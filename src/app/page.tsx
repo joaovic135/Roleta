@@ -10,6 +10,10 @@ const Home: React.FC = () => {
     <div className="flex h-fit min-h-fit flex-col bg-gray-100 py-8">
       <RoletaMain />
       <RoletaAlt />
+      <div className="mt-8 text-center text-sm text-gray-500">
+        <p>Created by Joaovic135</p>
+        <p>To make life easer in JOGADORES em TREINAMENTO</p>
+      </div>{' '}
     </div>
   )
 }
