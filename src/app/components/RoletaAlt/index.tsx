@@ -293,12 +293,12 @@ const RoletaAlt: React.FC = () => {
           </div>
 
           {/* Seção de Configuração */}
-          <OptionsEditor
+          {/* <OptionsEditor
             textInput={textInput}
             setTextInput={setTextInput}
             options={options}
             updateQuantity={updateQuantity}
-          />
+          /> */}
 
           <WinnerDialog
             isOpen={showWinnerDialog}

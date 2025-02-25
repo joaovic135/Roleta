@@ -7,11 +7,18 @@ import { useState, useRef, useEffect } from 'react'
 interface MovieSearchProps {
   selectedMovie: Movie | null
   setSelectedMovie: (movie: Movie | null) => void
+  watchProviders: WatchProvider[]
+  setWatchProviders: (providers: WatchProvider[]) => void
+  selectedMovies: Movie[]
+  onAddMovie: (movie: Movie) => void
 }
 
 export function MovieSearch({
   selectedMovie,
   setSelectedMovie,
+  setWatchProviders,
+  selectedMovies,
+  onAddMovie,
 }: MovieSearchProps) {
   const [query, setQuery] = useState<string>('')
   const [movies, setMovies] = useState<Movie[]>([])
@@ -19,7 +26,6 @@ export function MovieSearch({
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [isOpen, setIsOpen] = useState<boolean>(false)
-  const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([])
   const dropdownRef = useRef<HTMLDivElement>(null)
   const searchBarRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -60,12 +66,48 @@ export function MovieSearch({
     }
   }
 
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false)
+
   // Handle movie selection
-  const handleSelectMovie = (movie: Movie) => {
-    setSelectedMovie(movie)
-    setIsOpen(false)
-    console.log('Movie selected:', movie) // For debugging
+  const handleSelectMovie = async (movie: Movie) => {
+    if (selectedMovies.some((m) => m.id === movie.id)) {
+      setError('Este filme já está na roleta!')
+      return
+    }
+
+    try {
+      const providersData = await getMovieWatchProviders(movie.id)
+      const brProviders = providersData.results.BR?.flatrate || []
+
+      const movieWithProviders = {
+        ...movie,
+        watchProviders: brProviders,
+      }
+
+      setSelectedMovie(movieWithProviders)
+      onAddMovie(movieWithProviders)
+      setWatchProviders(brProviders)
+      setShowConfirmation(true) // Show confirmation when movie is selected
+      setIsOpen(false)
+    } catch (error) {
+      console.error('Erro ao buscar watch providers:', error)
+      setSelectedMovie(movie)
+      onAddMovie(movie)
+      setWatchProviders([])
+      setShowConfirmation(true) // Show confirmation even if providers fail
+      setIsOpen(false)
+    }
   }
+
+  useEffect(() => {
+    if (showConfirmation) {
+      const timer = setTimeout(() => {
+        setShowConfirmation(false)
+      }, 3000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [showConfirmation])
 
   // Handle input change with debounce
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,6 +174,17 @@ export function MovieSearch({
   const currentMovies = movies.slice(indexOfFirstMovie, indexOfLastMovie)
   const totalPages = Math.ceil(movies.length / moviesPerPage)
 
+  useEffect(() => {
+    if (selectedMovie) {
+      const timer = setTimeout(() => {
+        setSelectedMovie(null)
+      }, 1000) // 3 seconds
+
+      // Cleanup the timer if component unmounts or selectedMovie changes
+      return () => clearTimeout(timer)
+    }
+  }, [selectedMovie]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="relative mx-auto w-full max-w-4xl p-4">
       {/* Search Bar */}
@@ -159,9 +212,9 @@ export function MovieSearch({
       </div>
 
       {/* Selected Movie Display */}
-      {selectedMovie && (
-        <div className="mt-4 rounded-lg border bg-blue-50 p-4">
-          <div className="flex items-center">
+      {/* {selectedMovie && showConfirmation && ( */}
+      {/* <div className="mt-4 rounded-lg border bg-blue-50 p-4"> */}
+      {/* <div className="flex items-center">
             <div className="relative mr-4 h-24 w-16 flex-shrink-0">
               {selectedMovie.poster_path ? (
                 <Image
@@ -189,10 +242,10 @@ export function MovieSearch({
                 </button>
               </div>
             </div>
-          </div>
+          </div> */}
 
-          {/* Watch Providers Section */}
-          {watchProviders.length > 0 && (
+      {/* Watch Providers Section */}
+      {/* {watchProviders.length > 0 && (
             <div className="mt-4">
               <h4 className="mb-2 font-semibold">Onde assistir:</h4>
               <div className="flex flex-wrap gap-2">
@@ -217,15 +270,15 @@ export function MovieSearch({
                 ))}
               </div>
             </div>
-          )}
-        </div>
-      )}
+          )} */}
+      {/* </div> */}
+      {/* )} */}
 
       {/* Dropdown results - positioned below search bar */}
       {isOpen && movies.length > 0 && (
         <div
           ref={dropdownRef}
-          className="max-h-96 w-full overflow-hidden rounded-lg border bg-white shadow-lg"
+          className="absolute left-0 right-0 top-full mt-1 max-h-96 w-full overflow-hidden rounded-lg border bg-white shadow-lg"
           style={{ zIndex: 50 }}
         >
           <div className="sticky top-0 z-20 border-b bg-gray-50">
