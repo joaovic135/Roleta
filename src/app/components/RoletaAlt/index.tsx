@@ -51,7 +51,7 @@ const RoletaAlt: React.FC = () => {
   const [volume, setVolume] = useState(0.2)
 
   const [textInput, setTextInput] = useState<string>(() => {
-    const savedOptions = Cookies.get('rouletteOptions')
+    const savedOptions = Cookies.get('AltrouletteOptions')
     if (savedOptions) {
       try {
         const parsed = JSON.parse(savedOptions)
@@ -293,12 +293,12 @@ const RoletaAlt: React.FC = () => {
           </div>
 
           {/* Seção de Configuração */}
-          {/* <OptionsEditor
+          <OptionsEditor
             textInput={textInput}
             setTextInput={setTextInput}
             options={options}
             updateQuantity={updateQuantity}
-          /> */}
+          />
 
           <WinnerDialog
             isOpen={showWinnerDialog}

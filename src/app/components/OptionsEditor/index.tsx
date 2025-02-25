@@ -8,9 +8,9 @@ interface OptionsEditorProps {
   setTextInput: (text: string) => void
   options: RouletteOption[]
   updateQuantity: (index: number, quantity: number) => void
-  selectedMovies: Movie[]
-  handleRemoveMovie: (movie: Movie) => void
-  watchProviders: WatchProvider[]
+  selectedMovies?: Movie[]
+  handleRemoveMovie?: (movie: Movie) => void
+  watchProviders?: WatchProvider[]
 }
 
 const OptionsEditor: React.FC<OptionsEditorProps> = ({
@@ -132,12 +132,16 @@ const OptionsEditor: React.FC<OptionsEditorProps> = ({
                         : 'Ano não informado'}
                     </p>
                     <div className="mt-2 flex">
-                      <button
-                        onClick={() => handleRemoveMovie(movie)}
-                        className="text-sm text-red-600 hover:text-red-800"
-                      >
-                        Remover da roleta
-                      </button>
+                      {
+                        <button
+                          onClick={() =>
+                            handleRemoveMovie && handleRemoveMovie(movie)
+                          }
+                          className="text-sm text-red-600 hover:text-red-800"
+                        >
+                          Remover da roleta
+                        </button>
+                      }
                     </div>
                   </div>
 
