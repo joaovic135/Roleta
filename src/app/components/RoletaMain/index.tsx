@@ -11,8 +11,17 @@ import WinnerDialog from '../WinnerDialog'
 import Cookies from 'js-cookie'
 import { RouletteOption } from '@/app/types'
 import { generateRandomColor } from '@/app/utils/colors'
+import { Movie } from '@/app/utils/tmdbApi'
 
-const RoletaMain: React.FC = () => {
+interface RoletaMainProps {
+  selectedMovie: Movie | null
+  setSelectedMovie: (movie: Movie | null) => void
+}
+
+export function RoletaMain({
+  selectedMovie,
+  setSelectedMovie,
+}: RoletaMainProps) {
   const [options, setOptions] = useState<RouletteOption[]>(() => {
     // Try to load options from cookies on initial render
     const savedOptions = Cookies.get('rouletteOptions')
@@ -75,6 +84,38 @@ const RoletaMain: React.FC = () => {
       console.error('Error saving options to cookie:', e)
     }
   }, [options])
+
+  useEffect(() => {
+    if (selectedMovie) {
+      let displayTitle = selectedMovie.title
+
+      // Create abbreviation if title is longer than 15 characters
+      if (selectedMovie.title.length > 15) {
+        displayTitle = selectedMovie.title
+          .split(' ')
+          .map((word) => word.charAt(0))
+          .join('')
+          .toUpperCase()
+      }
+
+      const movieOption: RouletteOption = {
+        text: displayTitle,
+        color: generateRandomColor(),
+        quantity: 1,
+      }
+
+      // Check if movie already exists in options
+      const movieExists = options.some(
+        (option) =>
+          option.text === displayTitle || option.text === selectedMovie.title,
+      )
+
+      if (!movieExists) {
+        setOptions((prev) => [...prev, movieOption])
+        setTextInput((prev) => prev + '\n' + displayTitle)
+      }
+    }
+  }, [selectedMovie])
 
   // Processa o texto de entrada para criar as opções da roleta
 
