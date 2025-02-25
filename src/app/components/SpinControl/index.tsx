@@ -1,11 +1,11 @@
-import React from 'react';
+import React from 'react'
 
 interface SpinControlProps {
-  spinTime: number;
-  setSpinTime: (time: number) => void;
-  spinRoulette: () => void;
-  isSpinning: boolean;
-  hasOptions: boolean;
+  spinTime: number
+  setSpinTime: (time: number) => void
+  spinRoulette: () => void
+  isSpinning: boolean
+  hasOptions: boolean
 }
 
 const SpinControl: React.FC<SpinControlProps> = ({
@@ -13,10 +13,10 @@ const SpinControl: React.FC<SpinControlProps> = ({
   setSpinTime,
   spinRoulette,
   isSpinning,
-  hasOptions
+  hasOptions,
 }) => {
   return (
-    <div className="w-full mt-6 flex flex-col gap-4">
+    <div className="mt-6 flex w-full flex-col gap-4">
       <div className="flex items-center justify-between">
         <label htmlFor="spinTime" className="text-sm font-medium">
           Tempo de Giro (segundos): {spinTime}
@@ -28,22 +28,23 @@ const SpinControl: React.FC<SpinControlProps> = ({
           max="15"
           value={spinTime}
           onChange={(e) => setSpinTime(parseInt(e.target.value))}
-          className="w-2/3 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          className="h-2 w-2/3 cursor-pointer appearance-none rounded-lg bg-gray-200"
         />
       </div>
-      
+
       <button
         onClick={spinRoulette}
         disabled={isSpinning || !hasOptions}
-        className={`w-full py-3 rounded-lg text-white font-bold transition-colors 
-                  ${isSpinning || !hasOptions 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700'}`}
+        className={`w-full rounded-lg py-3 font-bold text-white transition-colors ${
+          isSpinning || !hasOptions
+            ? 'cursor-not-allowed bg-gray-400'
+            : 'bg-blue-600 hover:bg-blue-700'
+        }`}
       >
         {isSpinning ? 'Girando...' : 'Girar Roleta'}
       </button>
     </div>
-  );
-};
+  )
+}
 
-export default SpinControl;
+export default SpinControl
