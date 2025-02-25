@@ -9,46 +9,33 @@ import OptionsEditor from '../OptionsEditor'
 import SegmentsControl from '../SegmentsControl'
 import WinnerDialog from '../WinnerDialog'
 import Cookies from 'js-cookie'
-import { RouletteOption } from '@/app/types'
+import { RouletteOption, WatchProvider } from '@/app/types'
 import { generateRandomColor } from '@/app/utils/colors'
 import { Movie } from '@/app/utils/tmdbApi'
 
 interface RoletaMainProps {
   selectedMovie: Movie | null
   setSelectedMovie: (movie: Movie | null) => void
+  options: RouletteOption[]
+  setOptions: React.Dispatch<React.SetStateAction<RouletteOption[]>>
+  textInput: string
+  setTextInput: React.Dispatch<React.SetStateAction<string>>
+  selectedMovies: Movie[]
+  handleRemoveMovie: (movie: Movie) => void
+  watchProviders: WatchProvider[]
 }
 
 export function RoletaMain({
   selectedMovie,
   setSelectedMovie,
+  options,
+  setOptions,
+  textInput,
+  setTextInput,
+  selectedMovies,
+  handleRemoveMovie,
+  watchProviders,
 }: RoletaMainProps) {
-  const [options, setOptions] = useState<RouletteOption[]>(() => {
-    // Try to load options from cookies on initial render
-    const savedOptions = Cookies.get('rouletteOptions')
-    console.log('Loading saved options:', savedOptions) // Debug log
-
-    if (savedOptions) {
-      try {
-        const parsed = JSON.parse(savedOptions)
-        console.log('Parsed options:', parsed) // Debug log
-        return parsed
-      } catch (e) {
-        console.error('Error parsing saved options:', e)
-        return [
-          { text: 'Opção 1', color: '#FF6B6B', quantity: 1 },
-          { text: 'Opção 2', color: '#4ECDC4', quantity: 1 },
-          { text: 'Opção 3', color: '#FFD166', quantity: 1 },
-        ]
-      }
-    }
-    // Default options if nothing is saved
-    return [
-      { text: 'Opção 1', color: '#FF6B6B', quantity: 1 },
-      { text: 'Opção 2', color: '#4ECDC4', quantity: 1 },
-      { text: 'Opção 3', color: '#FFD166', quantity: 1 },
-    ]
-  })
-
   const [isSpinning, setIsSpinning] = useState<boolean>(false)
   const [spinTime, setSpinTime] = useState<number>(15)
   const [spinDegrees, setSpinDegrees] = useState<number>(0)
@@ -58,19 +45,6 @@ export function RoletaMain({
 
   const [isMuted, setIsMuted] = useState(false)
   const [volume, setVolume] = useState(0.2)
-
-  const [textInput, setTextInput] = useState<string>(() => {
-    const savedOptions = Cookies.get('rouletteOptions')
-    if (savedOptions) {
-      try {
-        const parsed = JSON.parse(savedOptions)
-        return parsed.map((opt: RouletteOption) => opt.text).join('\n')
-      } catch (e) {
-        return 'Opção 1\nOpção 2\nOpção 3'
-      }
-    }
-    return 'Opção 1\nOpção 2\nOpção 3'
-  })
 
   useEffect(() => {
     try {
@@ -112,7 +86,7 @@ export function RoletaMain({
 
       if (!movieExists) {
         setOptions((prev) => [...prev, movieOption])
-        setTextInput((prev) => prev + '\n' + displayTitle)
+        setTextInput((prev) => prev + displayTitle + '\n')
       }
     }
   }, [selectedMovie])
@@ -338,6 +312,9 @@ export function RoletaMain({
             setTextInput={setTextInput}
             options={options}
             updateQuantity={updateQuantity}
+            selectedMovies={selectedMovies}
+            handleRemoveMovie={handleRemoveMovie}
+            watchProviders={watchProviders}
           />
 
           <WinnerDialog

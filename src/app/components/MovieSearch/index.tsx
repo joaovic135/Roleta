@@ -7,11 +7,19 @@ import { useState, useRef, useEffect } from 'react'
 interface MovieSearchProps {
   selectedMovie: Movie | null
   setSelectedMovie: (movie: Movie | null) => void
+  watchProviders: WatchProvider[]
+  setWatchProviders: (providers: WatchProvider[]) => void
+  selectedMovies: Movie[]
+  onAddMovie: (movie: Movie) => void
 }
 
 export function MovieSearch({
   selectedMovie,
   setSelectedMovie,
+  watchProviders,
+  setWatchProviders,
+  selectedMovies,
+  onAddMovie,
 }: MovieSearchProps) {
   const [query, setQuery] = useState<string>('')
   const [movies, setMovies] = useState<Movie[]>([])
@@ -19,7 +27,6 @@ export function MovieSearch({
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [isOpen, setIsOpen] = useState<boolean>(false)
-  const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([])
   const dropdownRef = useRef<HTMLDivElement>(null)
   const searchBarRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -61,10 +68,35 @@ export function MovieSearch({
   }
 
   // Handle movie selection
-  const handleSelectMovie = (movie: Movie) => {
-    setSelectedMovie(movie)
-    setIsOpen(false)
-    console.log('Movie selected:', movie) // For debugging
+  const handleSelectMovie = async (movie: Movie) => {
+    if (selectedMovies.some((m) => m.id === movie.id)) {
+      setError('Este filme já está na roleta!')
+      return
+    }
+
+    try {
+      // Fetch watch providers first
+      const providersData = await getMovieWatchProviders(movie.id)
+      const brProviders = providersData.results.BR?.flatrate || []
+
+      // Create movie object with providers
+      const movieWithProviders = {
+        ...movie,
+        watchProviders: brProviders,
+      }
+
+      setSelectedMovie(movieWithProviders)
+      onAddMovie(movieWithProviders) // Pass the movie with providers
+      setWatchProviders(brProviders)
+      setIsOpen(false)
+    } catch (error) {
+      console.error('Erro ao buscar watch providers:', error)
+      // If providers fetch fails, add movie without providers
+      setSelectedMovie(movie)
+      onAddMovie(movie)
+      setWatchProviders([])
+      setIsOpen(false)
+    }
   }
 
   // Handle input change with debounce
@@ -225,7 +257,7 @@ export function MovieSearch({
       {isOpen && movies.length > 0 && (
         <div
           ref={dropdownRef}
-          className="max-h-96 w-full overflow-hidden rounded-lg border bg-white shadow-lg"
+          className="absolute left-0 right-0 top-full mt-1 max-h-96 w-full overflow-hidden rounded-lg border bg-white shadow-lg"
           style={{ zIndex: 50 }}
         >
           <div className="sticky top-0 z-20 border-b bg-gray-50">
