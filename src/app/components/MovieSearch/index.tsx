@@ -16,7 +16,6 @@ interface MovieSearchProps {
 export function MovieSearch({
   selectedMovie,
   setSelectedMovie,
-  watchProviders,
   setWatchProviders,
   selectedMovies,
   onAddMovie,
@@ -67,6 +66,8 @@ export function MovieSearch({
     }
   }
 
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false)
+
   // Handle movie selection
   const handleSelectMovie = async (movie: Movie) => {
     if (selectedMovies.some((m) => m.id === movie.id)) {
@@ -75,29 +76,38 @@ export function MovieSearch({
     }
 
     try {
-      // Fetch watch providers first
       const providersData = await getMovieWatchProviders(movie.id)
       const brProviders = providersData.results.BR?.flatrate || []
 
-      // Create movie object with providers
       const movieWithProviders = {
         ...movie,
         watchProviders: brProviders,
       }
 
       setSelectedMovie(movieWithProviders)
-      onAddMovie(movieWithProviders) // Pass the movie with providers
+      onAddMovie(movieWithProviders)
       setWatchProviders(brProviders)
+      setShowConfirmation(true) // Show confirmation when movie is selected
       setIsOpen(false)
     } catch (error) {
       console.error('Erro ao buscar watch providers:', error)
-      // If providers fetch fails, add movie without providers
       setSelectedMovie(movie)
       onAddMovie(movie)
       setWatchProviders([])
+      setShowConfirmation(true) // Show confirmation even if providers fail
       setIsOpen(false)
     }
   }
+
+  useEffect(() => {
+    if (showConfirmation) {
+      const timer = setTimeout(() => {
+        setShowConfirmation(false)
+      }, 3000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [showConfirmation])
 
   // Handle input change with debounce
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,6 +174,17 @@ export function MovieSearch({
   const currentMovies = movies.slice(indexOfFirstMovie, indexOfLastMovie)
   const totalPages = Math.ceil(movies.length / moviesPerPage)
 
+  useEffect(() => {
+    if (selectedMovie) {
+      const timer = setTimeout(() => {
+        setSelectedMovie(null)
+      }, 1000) // 3 seconds
+
+      // Cleanup the timer if component unmounts or selectedMovie changes
+      return () => clearTimeout(timer)
+    }
+  }, [selectedMovie]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="relative mx-auto w-full max-w-4xl p-4">
       {/* Search Bar */}
@@ -191,9 +212,9 @@ export function MovieSearch({
       </div>
 
       {/* Selected Movie Display */}
-      {selectedMovie && (
-        <div className="mt-4 rounded-lg border bg-blue-50 p-4">
-          <div className="flex items-center">
+      {/* {selectedMovie && showConfirmation && ( */}
+      {/* <div className="mt-4 rounded-lg border bg-blue-50 p-4"> */}
+      {/* <div className="flex items-center">
             <div className="relative mr-4 h-24 w-16 flex-shrink-0">
               {selectedMovie.poster_path ? (
                 <Image
@@ -221,10 +242,10 @@ export function MovieSearch({
                 </button>
               </div>
             </div>
-          </div>
+          </div> */}
 
-          {/* Watch Providers Section */}
-          {watchProviders.length > 0 && (
+      {/* Watch Providers Section */}
+      {/* {watchProviders.length > 0 && (
             <div className="mt-4">
               <h4 className="mb-2 font-semibold">Onde assistir:</h4>
               <div className="flex flex-wrap gap-2">
@@ -249,9 +270,9 @@ export function MovieSearch({
                 ))}
               </div>
             </div>
-          )}
-        </div>
-      )}
+          )} */}
+      {/* </div> */}
+      {/* )} */}
 
       {/* Dropdown results - positioned below search bar */}
       {isOpen && movies.length > 0 && (
