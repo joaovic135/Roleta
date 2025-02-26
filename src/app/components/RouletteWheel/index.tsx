@@ -6,8 +6,6 @@ import StylizedPointer from '../StylizedPointer'
 interface RouletteWheelProps {
   options: RouletteOption[]
   spinDegrees: number
-  isSpinning: boolean
-  spinTime: number
   pointerColor?: string
   pointerSize?: 'sm' | 'md' | 'lg'
   segmentsPerOption: number // Número de segmentos por opção
@@ -16,8 +14,6 @@ interface RouletteWheelProps {
 const RouletteWheel: React.FC<RouletteWheelProps> = ({
   options,
   spinDegrees,
-  isSpinning,
-  spinTime,
   pointerColor = '#e11d48',
   pointerSize = 'md',
   segmentsPerOption = 1,
@@ -131,9 +127,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
         className="relative aspect-square w-full"
         style={{
           transform: `rotate(${spinDegrees}deg)`,
-          transition: isSpinning
-            ? `transform ${spinTime * 1.5}s cubic-bezier(0.2, 0.8, 0.2, 0.99)`
-            : 'none',
+          transition: 'none',
         }}
       >
         <canvas

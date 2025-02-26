@@ -156,31 +156,6 @@ export function RoletaMain({
     setOptions(newOptions)
   }
 
-  const determineWinner = () => {
-    // Cria um array com todas as opções expandidas conforme a quantidade
-    const expandedOptions: RouletteOption[] = []
-    options.forEach((option) => {
-      for (let i = 0; i < option.quantity * segmentsPerOption; i++) {
-        expandedOptions.push(option)
-      }
-    })
-
-    if (expandedOptions.length === 0) return null
-
-    // Calcula o ângulo final (normalizado para 0-360)
-    const finalAngle = spinDegrees % 360
-
-    // Calcula o tamanho de cada segmento em graus
-    const segmentSize = 360 / expandedOptions.length
-
-    // Determina qual segmento foi selecionado
-    // A roleta gira no sentido horário, então ajustamos o cálculo
-    // 360 - finalAngle para inverter a direção e ajustar para o indicador no topo
-    const normalizedAngle = (360 - finalAngle) % 360
-    const winningIndex = Math.floor(normalizedAngle / segmentSize)
-
-    return expandedOptions[winningIndex] || expandedOptions[0]
-  }
   // Atualiza a quantidade de aparições de uma opção
   const updateQuantity = (index: number, newQuantity: number) => {
     const newOptions = [...options]
@@ -202,44 +177,112 @@ export function RoletaMain({
   // Gira a roleta
   const spinRoulette = () => {
     if (isSpinning) return
-
     setIsSpinning(true)
     setShowWinnerDialog(false)
 
-    // Start playing the sound
     if (spinningAudio.current) {
       spinningAudio.current.currentTime = 0
       spinningAudio.current.play()
     }
 
-    // Aumentando MUITO o número de rotações iniciais
-    // Agora vai girar entre 60 e 70 voltas completas (21600-25200 graus)
-    // Isso cria uma sensação de velocidade muito maior no início
-    const randomDegree = Math.floor(Math.random() * 10000) + 4000
-    setSpinDegrees(spinDegrees + randomDegree)
-
-    // Reduzindo o tempo total mas mantendo a desaceleração dramática
-    setTimeout(() => {
-      setIsSpinning(false)
-
-      if (spinningAudio.current) {
-        spinningAudio.current.pause()
+    const expandedOptions: RouletteOption[] = []
+    options.forEach((option) => {
+      for (let i = 0; i < option.quantity; i++) {
+        expandedOptions.push(option)
       }
+    })
 
-      // Determina o vencedor e exibe o diálogo
-      const winningOption = determineWinner()
-      setWinner(winningOption)
-      if (winningOption) {
-        setShowWinnerDialog(true)
-        // Play winner sound
-        if (winnerAudio.current) {
-          winnerAudio.current.currentTime = 0
-          winnerAudio.current.play()
+    if (expandedOptions.length === 1) {
+      return Array(segmentsPerOption).fill(expandedOptions[0])
+    }
+
+    const segments: RouletteOption[] = []
+
+    for (let segmentSet = 0; segmentSet < segmentsPerOption; segmentSet++) {
+      for (let i = 0; i < expandedOptions.length; i++) {
+        segments.push(expandedOptions[i])
+      }
+    }
+
+    if (segments.length === 0) return
+
+    // Calcular a rotação final
+    const segmentSize = 360 / (options.length * segmentsPerOption)
+
+    // Variáveis de controle da animação
+    // Variáveis de controle da animação
+    let startTime: number | null = null
+    const initialSpeed = spinTime < 5 ? 10 : 20 // Velocidade inicial aleatória entre 20 e 30
+    let currentRotation = Math.random() * 360 // Rotação inicial aleatória
+
+    // Número aleatório de rotações completas (entre 5 e 10)
+    const minRotations = 5
+    const maxRotations = 10
+    const targetRotations =
+      minRotations + Math.floor(Math.random() * (maxRotations - minRotations))
+    const minTotalRotation = targetRotations * 360 + Math.random() * 360
+
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp
+      const elapsedTime = timestamp - startTime
+
+      // Fator de desaceleração exponencial com componente aleatório
+      // const spinTimeMs = spinTime * 1000
+      // const baseDeceleration = 3000 + Math.random() * 1000
+      // const baseDeceleration = spinTimeMs / 3 + Math.random() * (spinTimeMs / 2) - nao usar
+
+      // const decelerationFactor = Math.exp(-elapsedTime / baseDeceleration)
+
+      // Fator de desaceleração exponencial inversamente proporcional ao spinTime
+      const spinTimeMultiplier = spinTime * 150 // Diferença mais agressiva
+      const baseDeceleration = 1000 + spinTimeMultiplier
+
+      const decelerationFactor = Math.exp(-elapsedTime / baseDeceleration)
+
+      // Velocidade atual sem componente aleatório
+      const currentSpeed = initialSpeed * decelerationFactor
+      console.log('initialSpeed', initialSpeed * 0.01)
+      console.log('currentSpeed', currentSpeed)
+      // Atualiza a rotação
+      currentRotation += currentSpeed
+      setSpinDegrees(currentRotation)
+
+      // Condição de parada: quando a velocidade for menor que 0.1% da inicial
+      if (currentSpeed > 0.01) {
+        //escolhe quando vai parar a roleta
+        requestAnimationFrame(animate)
+      } else {
+        // Finaliza a animação
+        setIsSpinning(false)
+
+        // Calcular o ângulo final real
+        const finalAngle = currentRotation % 360 // Normaliza para um valor entre 0 e 360
+        const normalizedAngle = (360 - finalAngle) % 360 // Ajusta para a direção correta
+
+        // Calcular o segmento vencedor
+        const winningSegmentIndex = Math.floor(normalizedAngle / segmentSize)
+        const winningOption = options[winningSegmentIndex % options.length]
+
+        if (winningOption) {
+          setWinner(winningOption)
+          setTimeout(() => {
+            if (spinningAudio.current) {
+              spinningAudio.current.pause()
+            }
+
+            setShowWinnerDialog(true)
+            if (winnerAudio.current) {
+              winnerAudio.current.currentTime = 0
+              winnerAudio.current.play()
+            }
+          }, 1000)
         }
       }
-    }, spinTime * 1200)
-  }
+    }
 
+    // Inicia a animação
+    requestAnimationFrame(animate)
+  }
   // Processa o texto de entrada quando ele muda
   useEffect(() => {
     processTextInput(textInput)
@@ -283,8 +326,6 @@ export function RoletaMain({
             <RouletteWheel
               options={options}
               spinDegrees={spinDegrees}
-              isSpinning={isSpinning}
-              spinTime={spinTime}
               pointerColor="#e11d48"
               pointerSize="md"
               segmentsPerOption={segmentsPerOption}
