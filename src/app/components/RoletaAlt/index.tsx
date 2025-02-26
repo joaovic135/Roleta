@@ -269,8 +269,6 @@ const RoletaAlt: React.FC = () => {
             <RouletteWheel
               options={options}
               spinDegrees={spinDegrees}
-              isSpinning={isSpinning}
-              spinTime={spinTime}
               pointerColor="#e11d48"
               pointerSize="md"
               segmentsPerOption={segmentsPerOption}
