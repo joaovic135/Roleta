@@ -4,7 +4,9 @@ import { Movie, MovieWithWatchProviders } from '@/app/utils/tmdbApi'
 const CONFIRMATION_TIMEOUT = 3000
 const SELECTION_TIMEOUT = 1000
 
-export function useMovieSelection(onMovieSelect: (movie: Movie) => void) {
+export function useMovieSelection(
+  onMovieSelect: (movie: MovieWithWatchProviders) => void,
+) {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false)
 

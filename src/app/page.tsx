@@ -54,6 +54,7 @@ const Home: React.FC = () => {
 
   const handleSelectMovie = (movie: Movie) => {
     setSelectedMovies((prev) => [...prev, movie])
+    setTextInput((prev) => (prev ? `${prev}\n${movie.title}` : movie.title))
   }
 
   const handleRemoveMovie = (movieToRemove: Movie) => {
@@ -93,10 +94,6 @@ const Home: React.FC = () => {
   return (
     <div className="flex h-fit min-h-fit flex-col bg-gray-100 py-8">
       <MovieSearchContainer
-        selectedMovie={selectedMovie}
-        setSelectedMovie={setSelectedMovie}
-        watchProviders={watchProviders}
-        setWatchProviders={setWatchProviders}
         selectedMovies={selectedMovies}
         onMovieSelect={handleSelectMovie}
       />
