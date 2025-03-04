@@ -18,10 +18,12 @@ export interface Movie {
   genre_ids: number[]
   backdrop_path: string | null
   adult: boolean
-  watchProviders?: WatchProvider[] // Optional array of watch providers
 }
 
-// Função para buscar filmes
+export interface MovieWithWatchProviders extends Movie {
+  watchProviders: WatchProvider[]
+}
+
 export async function searchMovies(query: string): Promise<Movie[]> {
   try {
     const response = await axios.get(`${BASE_URL}/search/movie`, {

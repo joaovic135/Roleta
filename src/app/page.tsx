@@ -8,6 +8,7 @@ import RoletaAlt from './components/RoletaAlt'
 import { MovieSearch } from './components/MovieSearch'
 import { Movie } from './utils/tmdbApi'
 import { RouletteOption, WatchProvider } from './types'
+import { MovieSearchContainer } from './containers/MovieSearchContainer'
 
 const Home: React.FC = () => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
@@ -51,7 +52,7 @@ const Home: React.FC = () => {
     return 'Opção 1\nOpção 2\nOpção 3'
   })
 
-  const handleAddMovie = (movie: Movie) => {
+  const handleSelectMovie = (movie: Movie) => {
     setSelectedMovies((prev) => [...prev, movie])
   }
 
@@ -91,13 +92,13 @@ const Home: React.FC = () => {
 
   return (
     <div className="flex h-fit min-h-fit flex-col bg-gray-100 py-8">
-      <MovieSearch
+      <MovieSearchContainer
         selectedMovie={selectedMovie}
         setSelectedMovie={setSelectedMovie}
         watchProviders={watchProviders}
         setWatchProviders={setWatchProviders}
         selectedMovies={selectedMovies}
-        onAddMovie={handleAddMovie}
+        onMovieSelect={handleSelectMovie}
       />
       <RoletaMain
         selectedMovie={selectedMovie}
