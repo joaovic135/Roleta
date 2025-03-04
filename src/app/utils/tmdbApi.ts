@@ -31,7 +31,6 @@ export async function searchMovies(query: string): Promise<Movie[]> {
       },
     })
 
-    console.log('response:', response.data.results)
     return response.data.results
   } catch (error) {
     console.error('Erro ao buscar filmes:', error)
