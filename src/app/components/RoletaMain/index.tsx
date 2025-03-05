@@ -11,7 +11,7 @@ import WinnerDialog from '../WinnerDialog'
 import Cookies from 'js-cookie'
 import { RouletteOption, WatchProvider } from '@/app/types'
 import { generateRandomColor } from '@/app/utils/colors'
-import { Movie } from '@/app/utils/tmdbApi'
+import { Movie, MovieWithWatchProviders } from '@/app/utils/tmdbApi'
 
 interface RoletaMainProps {
   selectedMovie: Movie | null
@@ -20,7 +20,7 @@ interface RoletaMainProps {
   setOptions: React.Dispatch<React.SetStateAction<RouletteOption[]>>
   textInput: string
   setTextInput: React.Dispatch<React.SetStateAction<string>>
-  selectedMovies: Movie[]
+  selectedMovies: MovieWithWatchProviders[]
   handleRemoveMovie: (movie: Movie) => void
   watchProviders: WatchProvider[]
 }
@@ -48,7 +48,6 @@ export function RoletaMain({
 
   useEffect(() => {
     try {
-      console.log('Saving options to cookie:', options) // Debug log
       Cookies.set('rouletteOptions', JSON.stringify(options), {
         expires: 365,
         path: '/',
@@ -241,8 +240,6 @@ export function RoletaMain({
 
       // Velocidade atual sem componente aleatório
       const currentSpeed = initialSpeed * decelerationFactor
-      console.log('initialSpeed', initialSpeed * 0.01)
-      console.log('currentSpeed', currentSpeed)
       // Atualiza a rotação
       currentRotation += currentSpeed
       setSpinDegrees(currentRotation)

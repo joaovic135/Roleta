@@ -16,12 +16,10 @@ const RoletaAlt: React.FC = () => {
   const [options, setOptions] = useState<RouletteOption[]>(() => {
     // Try to load options from cookies on initial render
     const savedOptions = Cookies.get('AltrouletteOptions')
-    console.log('Loading saved options:', savedOptions) // Debug log
 
     if (savedOptions) {
       try {
         const parsed = JSON.parse(savedOptions)
-        console.log('Parsed options:', parsed) // Debug log
         return parsed
       } catch (e) {
         console.error('Error parsing saved options:', e)
@@ -65,7 +63,6 @@ const RoletaAlt: React.FC = () => {
 
   useEffect(() => {
     try {
-      console.log('Saving options to cookie:', options) // Debug log
       Cookies.set('AltrouletteOptions', JSON.stringify(options), {
         expires: 365,
         path: '/',

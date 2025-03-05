@@ -1,5 +1,5 @@
 import { RouletteOption, WatchProvider } from '@/app/types'
-import { Movie } from '@/app/utils/tmdbApi'
+import { Movie, MovieWithWatchProviders } from '@/app/utils/tmdbApi'
 import Image from 'next/image'
 import React, { useState } from 'react'
 
@@ -8,7 +8,7 @@ interface OptionsEditorProps {
   setTextInput: (text: string) => void
   options: RouletteOption[]
   updateQuantity: (index: number, quantity: number) => void
-  selectedMovies?: Movie[]
+  selectedMovies?: MovieWithWatchProviders[]
   handleRemoveMovie?: (movie: Movie) => void
   watchProviders?: WatchProvider[]
 }

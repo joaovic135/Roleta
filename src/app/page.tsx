@@ -6,22 +6,23 @@ import React, { useState, useEffect, useRef } from 'react'
 import RoletaMain from './components/RoletaMain'
 import RoletaAlt from './components/RoletaAlt'
 import { MovieSearch } from './components/MovieSearch'
-import { Movie } from './utils/tmdbApi'
+import { Movie, MovieWithWatchProviders } from './utils/tmdbApi'
 import { RouletteOption, WatchProvider } from './types'
+import { MovieSearchContainer } from './containers/MovieSearchContainer'
 
 const Home: React.FC = () => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
   const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([])
-  const [selectedMovies, setSelectedMovies] = useState<Movie[]>([])
+  const [selectedMovies, setSelectedMovies] = useState<
+    MovieWithWatchProviders[]
+  >([])
   const [options, setOptions] = useState<RouletteOption[]>(() => {
     // Try to load options from cookies on initial render
     const savedOptions = Cookies.get('rouletteOptions')
-    console.log('Loading saved options:', savedOptions) // Debug log
 
     if (savedOptions) {
       try {
         const parsed = JSON.parse(savedOptions)
-        console.log('Parsed options:', parsed) // Debug log
         return parsed
       } catch (e) {
         console.error('Error parsing saved options:', e)
@@ -53,8 +54,9 @@ const Home: React.FC = () => {
     return 'Opção 1\nOpção 2\nOpção 3'
   })
 
-  const handleAddMovie = (movie: Movie) => {
+  const handleSelectMovie = (movie: MovieWithWatchProviders) => {
     setSelectedMovies((prev) => [...prev, movie])
+    setTextInput((prev) => (prev ? `${prev}\n${movie.title}` : movie.title))
   }
 
   const handleRemoveMovie = (movieToRemove: Movie) => {
@@ -93,13 +95,9 @@ const Home: React.FC = () => {
 
   return (
     <div className="flex h-fit min-h-fit flex-col bg-gray-100 py-8">
-      <MovieSearch
-        selectedMovie={selectedMovie}
-        setSelectedMovie={setSelectedMovie}
-        watchProviders={watchProviders}
-        setWatchProviders={setWatchProviders}
+      <MovieSearchContainer
         selectedMovies={selectedMovies}
-        onAddMovie={handleAddMovie}
+        onMovieSelect={handleSelectMovie}
       />
       <RoletaMain
         selectedMovie={selectedMovie}
