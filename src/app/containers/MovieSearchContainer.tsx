@@ -1,4 +1,4 @@
-import { Movie } from '@/app/utils/tmdbApi'
+import { Movie, MovieWithWatchProviders } from '@/app/utils/tmdbApi'
 import { useRef } from 'react'
 import { MovieSearch } from '../components/MovieSearch'
 import { useMovieSearch } from '../hooks/useMovieSearch'
@@ -10,7 +10,7 @@ const MOVIES_PER_PAGE = 5
 
 interface MovieSearchContainerProps {
   selectedMovies: Movie[]
-  onMovieSelect: (movie: Movie) => void
+  onMovieSelect: (movie: MovieWithWatchProviders) => void
 }
 
 export function MovieSearchContainer({

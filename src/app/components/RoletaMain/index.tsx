@@ -11,7 +11,7 @@ import WinnerDialog from '../WinnerDialog'
 import Cookies from 'js-cookie'
 import { RouletteOption, WatchProvider } from '@/app/types'
 import { generateRandomColor } from '@/app/utils/colors'
-import { Movie } from '@/app/utils/tmdbApi'
+import { Movie, MovieWithWatchProviders } from '@/app/utils/tmdbApi'
 
 interface RoletaMainProps {
   selectedMovie: Movie | null
@@ -20,7 +20,7 @@ interface RoletaMainProps {
   setOptions: React.Dispatch<React.SetStateAction<RouletteOption[]>>
   textInput: string
   setTextInput: React.Dispatch<React.SetStateAction<string>>
-  selectedMovies: Movie[]
+  selectedMovies: MovieWithWatchProviders[]
   handleRemoveMovie: (movie: Movie) => void
   watchProviders: WatchProvider[]
 }

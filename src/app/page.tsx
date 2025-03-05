@@ -6,14 +6,16 @@ import React, { useState, useEffect, useRef } from 'react'
 import RoletaMain from './components/RoletaMain'
 import RoletaAlt from './components/RoletaAlt'
 import { MovieSearch } from './components/MovieSearch'
-import { Movie } from './utils/tmdbApi'
+import { Movie, MovieWithWatchProviders } from './utils/tmdbApi'
 import { RouletteOption, WatchProvider } from './types'
 import { MovieSearchContainer } from './containers/MovieSearchContainer'
 
 const Home: React.FC = () => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
   const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([])
-  const [selectedMovies, setSelectedMovies] = useState<Movie[]>([])
+  const [selectedMovies, setSelectedMovies] = useState<
+    MovieWithWatchProviders[]
+  >([])
   const [options, setOptions] = useState<RouletteOption[]>(() => {
     // Try to load options from cookies on initial render
     const savedOptions = Cookies.get('rouletteOptions')
@@ -52,7 +54,7 @@ const Home: React.FC = () => {
     return 'Opção 1\nOpção 2\nOpção 3'
   })
 
-  const handleSelectMovie = (movie: Movie) => {
+  const handleSelectMovie = (movie: MovieWithWatchProviders) => {
     setSelectedMovies((prev) => [...prev, movie])
     setTextInput((prev) => (prev ? `${prev}\n${movie.title}` : movie.title))
   }
