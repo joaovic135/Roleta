@@ -112,7 +112,7 @@ const Home: React.FC = () => {
         handleRemoveMovie={handleRemoveMovie}
         watchProviders={watchProviders}
       />
-      <RoletaAlt />
+      {/* <RoletaAlt /> */}
       <div className="mt-8 text-center text-sm text-gray-500">
         <p>Created by Joaovic135</p>
         <p>To make life easer in JOGADORES em TREINAMENTO</p>
