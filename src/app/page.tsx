@@ -13,6 +13,7 @@ const Home: React.FC = () => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null)
   const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([])
   const [selectedMovies, setSelectedMovies] = useState<Movie[]>([])
+
   const [options, setOptions] = useState<RouletteOption[]>(() => {
     // Try to load options from cookies on initial render
     const savedOptions = Cookies.get('rouletteOptions')
@@ -52,6 +53,21 @@ const Home: React.FC = () => {
     }
     return 'Opção 1\nOpção 2\nOpção 3'
   })
+
+  useEffect(() => {
+    // Versão da aplicação - atualize a cada deploy importante
+    const APP_VERSION = '1.0.0'
+    const storedVersion = localStorage.getItem('appVersion')
+
+    if (storedVersion !== APP_VERSION) {
+      // Limpar o localStorage e atualizar a versão
+      localStorage.clear()
+      localStorage.setItem('appVersion', APP_VERSION)
+
+      // Forçar atualização da página se a versão mudou
+      window.location.reload()
+    }
+  }, [])
 
   const handleAddMovie = (movie: Movie) => {
     setSelectedMovies((prev) => [...prev, movie])
