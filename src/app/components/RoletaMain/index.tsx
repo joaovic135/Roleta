@@ -37,7 +37,7 @@ export function RoletaMain({
   watchProviders,
 }: RoletaMainProps) {
   const [isSpinning, setIsSpinning] = useState<boolean>(false)
-  const [spinTime, setSpinTime] = useState<number>(15)
+  const [spinTime, setSpinTime] = useState<number>(10)
   const [spinDegrees, setSpinDegrees] = useState<number>(0)
   const [segmentsPerOption, setSegmentsPerOption] = useState<number>(3)
   const [winner, setWinner] = useState<RouletteOption | null>(null)
