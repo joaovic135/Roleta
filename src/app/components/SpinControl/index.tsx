@@ -25,7 +25,7 @@ const SpinControl: React.FC<SpinControlProps> = ({
           type="range"
           id="spinTime"
           min="1"
-          max="15"
+          max="10"
           value={spinTime}
           onChange={(e) => setSpinTime(parseInt(e.target.value))}
           className="h-2 w-2/3 cursor-pointer appearance-none rounded-lg bg-gray-200"
