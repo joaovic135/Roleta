@@ -1,4 +1,5 @@
 import { MAX_SPIN_SECONDS } from '@/app/hooks/useWheelSound'
+import { PlayMode } from '@/app/types'
 import React, { useId } from 'react'
 import SegmentsControl from '../SegmentsControl'
 
@@ -6,27 +7,44 @@ interface SpinButtonProps {
   spinRoulette: () => void
   isSpinning: boolean
   hasOptions: boolean
+  // No modo cartas o botão distribui as cartas
+  mode?: PlayMode
 }
 
 export const SpinButton: React.FC<SpinButtonProps> = ({
   spinRoulette,
   isSpinning,
   hasOptions,
-}) => (
-  <button
-    type="button"
-    onClick={spinRoulette}
-    disabled={isSpinning || !hasOptions}
-    className="ui-cta group relative w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-r from-amber-400 via-cta-2 to-cta-3 py-3.5 text-lg font-extrabold uppercase tracking-wider text-slate-950 shadow-lg shadow-cta-2/20 transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:from-slate-600 disabled:via-slate-600 disabled:to-slate-600 disabled:text-slate-300 disabled:shadow-none"
-  >
-    {isSpinning ? 'Girando…' : hasOptions ? 'Girar roleta' : 'Sem opções'}
-    {!isSpinning && hasOptions && (
-      <kbd className="ml-3 hidden rounded-md bg-slate-950/20 px-2 py-0.5 align-middle text-xs font-semibold normal-case tracking-normal sm:inline">
-        Espaço
-      </kbd>
-    )}
-  </button>
-)
+  mode = 'wheel',
+}) => {
+  const cards = mode === 'cards'
+  // No celular o modo cartas diz só "Distribuir" (cabe numa linha em todos
+  // os temas)
+  const spinning = cards ? 'Embaralhando…' : 'Girando…'
+  const ready = cards ? (
+    <>
+      Distribuir<span className="hidden sm:inline"> cartas</span>
+    </>
+  ) : (
+    'Girar roleta'
+  )
+  const label = isSpinning ? spinning : hasOptions ? ready : 'Sem opções'
+  return (
+    <button
+      type="button"
+      onClick={spinRoulette}
+      disabled={isSpinning || !hasOptions}
+      className="ui-cta group relative w-full shrink-0 overflow-hidden rounded-xl bg-gradient-to-r from-amber-400 via-cta-2 to-cta-3 py-3.5 text-lg font-extrabold uppercase tracking-wider text-slate-950 shadow-lg shadow-cta-2/20 transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:from-slate-600 disabled:via-slate-600 disabled:to-slate-600 disabled:text-slate-300 disabled:shadow-none"
+    >
+      {label}
+      {!isSpinning && hasOptions && (
+        <kbd className="ml-3 hidden rounded-md bg-slate-950/20 px-2 py-0.5 align-middle text-xs font-semibold normal-case tracking-normal sm:inline">
+          Espaço
+        </kbd>
+      )}
+    </button>
+  )
+}
 
 export interface SpinSettingsProps {
   spinTime: number

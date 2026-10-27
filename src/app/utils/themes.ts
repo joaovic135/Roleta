@@ -26,6 +26,7 @@ import { goodTimesTheme } from '../themes/good-times/theme'
 import { cityPopTheme } from '../themes/city-pop/theme'
 import { vaporwaveTheme } from '../themes/vaporwave/theme'
 import { cinePulpTheme } from '../themes/cine-pulp/theme'
+import { neonNoirTheme } from '../themes/neon-noir/theme'
 import { altoContrasteTheme } from '../themes/alto-contraste/theme'
 
 export const THEMES: WheelTheme[] = [
@@ -45,13 +46,55 @@ export const THEMES: WheelTheme[] = [
   goodTimesTheme,
   cityPopTheme,
   cinePulpTheme,
+  neonNoirTheme,
   altoContrasteTheme,
 ]
 
-export const DEFAULT_THEME_ID = THEMES[0].id
+// "Aleatório": valor salvo nas configurações que sorteia um tema a cada
+// carregamento da página. É o padrão para quem nunca escolheu um tema.
+export const RANDOM_THEME_ID = 'random'
+export const DEFAULT_THEME_ID = RANDOM_THEME_ID
+
+// Temas que entram no sorteio: o alto contraste é de acessibilidade e só
+// aparece se escolhido de propósito
+export const RANDOM_THEME_POOL = THEMES.filter(
+  (t) => t.id !== 'alto-contraste',
+).map((t) => t.id)
+
+// Último tema sorteado, para não repetir no próximo carregamento
+const LAST_RANDOM_KEY = 'roleta.lastRandomTheme'
+
+// Variável global onde o script de boot deixa o tema sorteado para o React
+declare global {
+  interface Window {
+    __roletaRandomTheme?: string
+  }
+}
 
 export const getTheme = (id: string) =>
   THEMES.find((t) => t.id === id) ?? THEMES[0]
+
+// Sorteia um tema do pool evitando o último sorteado (e o que está na tela)
+export const rollRandomTheme = (): string => {
+  let last: string | null = null
+  try {
+    last = localStorage.getItem(LAST_RANDOM_KEY)
+  } catch {}
+  const current = document.documentElement.dataset.theme
+  const pool = RANDOM_THEME_POOL.filter((id) => id !== last && id !== current)
+  const id =
+    pool[Math.floor(Math.random() * pool.length)] ?? RANDOM_THEME_POOL[0]
+  try {
+    localStorage.setItem(LAST_RANDOM_KEY, id)
+  } catch {}
+  window.__roletaRandomTheme = id
+  return id
+}
+
+// Tema sorteado neste carregamento (pelo script de boot); sorteia agora se o
+// script não rodou
+export const currentRandomTheme = () =>
+  window.__roletaRandomTheme ?? rollRandomTheme()
 
 // Cor de cada opção pela posição dela, seguindo a sequência do tema
 // (vizinhas na roda = cores opostas). Cores escolhidas à mão são mantidas.
@@ -98,5 +141,7 @@ export const themeCss = () =>
   `:root{${cssVars(THEMES[0])}}` +
   THEMES.map((t) => `html[data-theme="${t.id}"]{${cssVars(t)}}`).join('')
 
-// Roda antes da primeira pintura e aplica o tema salvo, sem piscar o padrão
-export const themeBootScript = `try{var t=JSON.parse(localStorage.getItem('roleta.settings')||'{}').theme;if(t)document.documentElement.dataset.theme=t}catch(e){}`
+// Roda antes da primeira pintura e aplica o tema salvo, sem piscar o padrão.
+// Sem tema salvo (ou "Aleatório") sorteia aqui mesmo, evitando o último
+// sorteado, e deixa o resultado em window.__roletaRandomTheme para o React
+export const themeBootScript = `try{var s=localStorage,d=document.documentElement,t=JSON.parse(s.getItem('roleta.settings')||'{}').theme||'${RANDOM_THEME_ID}';if(t==='${RANDOM_THEME_ID}'){var l=s.getItem('${LAST_RANDOM_KEY}'),p=${JSON.stringify(RANDOM_THEME_POOL)}.filter(function(i){return i!==l});t=p[Math.floor(Math.random()*p.length)];s.setItem('${LAST_RANDOM_KEY}',t);window.__roletaRandomTheme=t}d.dataset.theme=t}catch(e){}`

@@ -1,0 +1,269 @@
+/* Modo cartas: mesa de feltro, maço e flip 3D. Só transform e opacity
+   animam (WAAPI no componente); sombras e brilhos são fixos e pintados uma
+   vez. Cores e fonte vêm das variáveis do tema; os temas podem personalizar
+   pelas classes ui-deck-* (mesa, costas, face, brilho, legendas). */
+
+.deck-stage {
+  perspective: 1600px;
+  /* largura da carta em tamanho real (--deck-w) vem do componente */
+  --deck-h: calc(var(--deck-w) * 1.45);
+  --deck-radius: calc(var(--deck-w) * 0.07);
+}
+
+/* Mesa: feltro com o brilho do tema, borda dourada e a linha pontilhada
+   das mesas de carteado */
+.deck-felt {
+  position: absolute;
+  inset: 3%;
+  border-radius: 2.25rem;
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 50% 42%,
+      rgb(var(--glow-1) / 0.22),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 90% 70% at 50% 100%,
+      rgb(var(--glow-2) / 0.14),
+      transparent 70%
+    ),
+    linear-gradient(rgb(var(--slate-800) / 0.92), rgb(var(--slate-900) / 0.96));
+  box-shadow:
+    inset 0 0 0 3px rgb(var(--amber-500) / 0.5),
+    inset 0 0 0 9px rgb(var(--slate-950) / 0.55),
+    inset 0 0 70px rgb(0 0 0 / 0.45),
+    0 30px 80px -20px rgb(0 0 0 / 0.85);
+}
+
+.deck-felt::after {
+  content: '';
+  position: absolute;
+  inset: 6%;
+  border-radius: 1.6rem;
+  border: 1px dashed rgb(var(--amber-300) / 0.25);
+}
+
+/* Mundo 3D das cartas: a ordem de desenho vem do translateZ (sem overflow
+   aqui, que achataria o 3D) */
+.deck-world {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.deck-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--deck-w);
+  height: var(--deck-h);
+  margin-left: calc(var(--deck-w) * -0.5);
+  margin-top: calc(var(--deck-h) * -0.5);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.deck-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.deck-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--deck-radius);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+}
+
+/* Costas: moldura clara, trama diagonal e um losango no meio, nas cores
+   do tema */
+.deck-back {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgb(var(--ink) / 0.09) 0 calc(var(--deck-w) * 0.025),
+      transparent 0 calc(var(--deck-w) * 0.06)
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgb(var(--ink) / 0.09) 0 calc(var(--deck-w) * 0.025),
+      transparent 0 calc(var(--deck-w) * 0.06)
+    ),
+    linear-gradient(
+      155deg,
+      rgb(var(--cta-2)),
+      rgb(var(--slate-900)) 55%,
+      rgb(var(--cta-3))
+    );
+  border: calc(var(--deck-w) * 0.035) solid rgb(var(--slate-100));
+}
+
+.deck-back::before {
+  content: '';
+  position: absolute;
+  inset: 6%;
+  border-radius: calc(var(--deck-radius) * 0.6);
+  border: calc(var(--deck-w) * 0.012) solid rgb(var(--amber-300) / 0.75);
+}
+
+.deck-emblem {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: calc(var(--deck-w) * 0.014) solid rgb(var(--amber-300));
+  background:
+    radial-gradient(
+      circle,
+      rgb(var(--amber-300)) 0 18%,
+      transparent 19%
+    ),
+    rgb(var(--slate-950) / 0.55);
+}
+
+/* Face: pôster do filme ou o texto da opção na cor dela */
+.deck-front {
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(
+      circle at 30% 20%,
+      rgb(255 255 255 / 0.22),
+      transparent 60%
+    ),
+    var(--card-color);
+  border: calc(var(--deck-w) * 0.02) solid rgb(255 255 255 / 0.55);
+  font-family: var(--wheel-font, inherit);
+}
+
+/* Índice no canto (como nas cartas de verdade): é o que aparece com as
+   cartas sobrepostas no arco */
+.deck-index {
+  position: absolute;
+  left: 3%;
+  top: 4%;
+  bottom: 4%;
+  width: 22%;
+  overflow: hidden;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(var(--deck-w) * 0.13);
+  font-weight: 800;
+  line-height: 1.5;
+  text-align: end;
+}
+
+.deck-name {
+  position: absolute;
+  inset: 0 6% 0 24%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-wrap: anywhere;
+  text-align: center;
+  font-size: calc(var(--deck-w) * 0.14);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* Com pôster o nome vira uma faixa no pé da carta */
+.has-poster .deck-name {
+  inset: auto 0 0;
+  display: block;
+  padding: 18% 6% 5%;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.85));
+  color: #fff;
+  font-size: calc(var(--deck-w) * 0.075);
+}
+
+.deck-weight {
+  position: absolute;
+  right: 5%;
+  top: 4%;
+  padding: 0.1em 0.4em;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: calc(var(--deck-w) * 0.08);
+  font-weight: 800;
+}
+
+/* Véu das perdedoras quando a vencedora é revelada */
+.deck-shade {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0);
+  opacity: 0;
+}
+
+/* Brilho da vencedora: box-shadow fixo, só a opacidade anima */
+.deck-glow {
+  position: absolute;
+  inset: -3%;
+  border-radius: calc(var(--deck-radius) * 1.3);
+  box-shadow:
+    0 0 calc(var(--deck-w) * 0.22) calc(var(--deck-w) * 0.05) var(--glow),
+    0 0 calc(var(--deck-w) * 0.5) calc(var(--deck-w) * 0.1)
+      rgb(var(--amber-300) / 0.45);
+  opacity: 0;
+}
+
+/* Maço parado: clicar embaralha (como o miolo da roda) */
+.deck-idle {
+  position: absolute;
+  inset: 0;
+  border-radius: 2.25rem;
+  cursor: pointer;
+}
+
+.deck-idle:disabled {
+  cursor: not-allowed;
+}
+
+.deck-idle .deck-card {
+  transition: translate 0.2s ease-out;
+}
+
+.deck-idle:not(:disabled):hover .deck-card {
+  translate: 0 -4px;
+}
+
+.deck-idle:focus-visible {
+  outline: 2px solid rgb(var(--amber-300));
+  outline-offset: -6px;
+}
+
+.deck-caption {
+  position: absolute;
+  left: 50%;
+  /* a mesa é quadrada: meia altura do maço = 22% × 1,45 / 2 da largura */
+  top: calc(50% + 16% + 0.8rem);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--slate-300));
+}
+
+.deck-more {
+  position: absolute;
+  right: 7%;
+  bottom: 6%;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgb(var(--slate-950) / 0.7);
+  box-shadow: inset 0 0 0 1px rgb(var(--amber-400) / 0.4);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(var(--slate-200));
+}

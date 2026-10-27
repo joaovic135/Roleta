@@ -27,7 +27,11 @@ export interface RouletteSettings {
   autoSegments: boolean
   // Tema de cores da roda
   theme: string
+  // Sorteio pela roda ou pelas cartas do dealer
+  mode: PlayMode
 }
+
+export type PlayMode = 'wheel' | 'cards'
 
 export interface WatchProvider {
   logo_path: string

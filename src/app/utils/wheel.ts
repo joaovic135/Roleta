@@ -10,6 +10,14 @@ export const random = (): number =>
 
 export const easeOutQuart = (t: number): number => 1 - Math.pow(1 - t, 4)
 
+// Ângulo final do giro. Mais tempo = mais voltas; o ângulo final é
+// uniforme, então a chance de cada opção é proporcional ao número de fatias
+// dela. O modo cartas sorteia com a mesma função.
+export const spinTarget = (start: number, spinSeconds: number): number => {
+  const turns = 2 + spinSeconds * 1.1 + random() * 2
+  return start + turns * 360 + random() * 360
+}
+
 export const createOption = (
   text: string,
   existing: RouletteOption[],

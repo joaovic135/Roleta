@@ -1,4 +1,5 @@
-// Shader do tema Darksynth (GLSL ES 1.0, roda no ShaderCanvas do _kit).
+// Shader do tema Darksynth (GLSL ES 1.0, roda no ShaderCanvas do _kit, que
+// o converte para GLSL ES 3.00 quando há WebGL2).
 //
 // Um quadro só, em camadas, de trás para a frente:
 //   céu: degradê preto -> carmim, lua de sangue enorme atrás da pirâmide,
@@ -23,12 +24,20 @@
 // clarões) e o vale inteiro acende; depois tudo volta à calma.
 //
 // Coordenadas: uv.y = 0 embaixo, 1 no alto; uv.x centrado, em alturas de tela.
-// PX = px CSS por px do canvas (o ShaderCanvas roda com scale 0,5), para o
-// olho daqui cair exatamente sobre o olho em CSS (top: clamp(32px, 5.6vh,
-// 64px); x no centro, ou a 72% da largura abaixo de 641px). O canvas tem
-// 16px a mais de largura (8 de cada lado, para a tremida da fita).
+// PX = px CSS por px do canvas (u_css = 1 / scale, vem do ShaderCanvas: 2
+// com o scale 0,5 do Scene.tsx), para o olho daqui cair exatamente sobre o
+// olho em CSS (top: clamp(32px, 5.6vh, 64px); x no centro, ou a 72% da
+// largura abaixo de 641px). O canvas tem 16px a mais de largura (8 de cada
+// lado, para a tremida da fita).
 // u_travel = fatias voadas, já em módulo 256 (o relevo repete a cada 256
 // fatias, sem emenda: os períodos do ruído em z dividem 256).
+//
+// Custo: o laço do relevo é o grosso. Cada fatia só calcula o ruído se o
+// pixel pode estar abaixo da crista dela (teto pela altura máxima) e, a
+// cada oitava calculada, testa um teto mais justo antes da seguinte.
+// Pixels do céu pulam direto as fatias do meio do vale (sem paredão) e
+// param nas do fundo que já não alcançam (contas no laço). Nuvens, mares da
+// lua, névoa rasteira e fachos do olho só calculam ruído onde aparecem.
 
 export const FRAG = /* glsl */ `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -42,8 +51,9 @@ uniform vec2 u_res;
 uniform float u_spin;
 uniform float u_win;
 uniform float u_travel;
+uniform float u_css;
 
-#define PX 2.0
+#define PX u_css
 #define HZ 0.40
 #define CAM 1.0
 #define Z0 0.35
@@ -114,16 +124,8 @@ float fbm(vec2 p) {
 float wallOf(float ax) {
   return smoothstep(1.3, 5.0, ax);
 }
-// altura do relevo; k = índice da fatia (z do ruído com período 32/64/128)
-float terrain(float X, float k) {
-  float ax = abs(X);
-  vec2 p = vec2(X * 0.42, k * 0.125);
-  float n1 = 1.0 - abs(vlin(p, 32.0) * 2.0 - 1.0);
-  float n2 = 1.0 - abs(vlin(p * 2.0 + vec2(5.2, 0.0), 64.0) * 2.0 - 1.0);
-  float n3 = 1.0 - abs(vlin(p * 4.0 + vec2(1.7, 0.0), 128.0) * 2.0 - 1.0);
-  float h = n1 * n1 * 1.0 + n2 * n2 * 0.6 + n3 * n3 * 0.3;
-  return h * wallOf(ax) * (1.4 + ax * 0.26) + n3 * 0.14;
-}
+// altura do relevo (no laço, em linha): fatia k = z do ruído com períodos
+// 32/64/128; h = n1² + 0,6 n2² + 0,3 n3² vezes o paredão, mais 0,14 n3
 // distância (px do canvas) de p ao segmento a-b
 float segD(vec2 p, vec2 a, vec2 b, float s) {
   vec2 pa = p - a;
@@ -185,21 +187,52 @@ void main() {
   float cover = 0.0;
   float occZ = 1000.0;
   float halo = 0.0;
+  // Pixel do céu: enquanto |X| < 1,3 não há paredão e a crista fica abaixo
+  // do horizonte, então as fatias com z < zIn pulam todas. E, como a crista
+  // nunca passa de 0,494|q.x| + (1,8 + 0,494|camX|) / z, as de z > zOut
+  // também (dali para o fundo o pixel fica sempre acima): o laço para.
+  float i0 = 0.0;
+  float zOut = 1e6;
+  if (q.y > margin) {
+    float zIn = (1.3 - sign(q.x) * camX) / max(abs(q.x), 1e-4);
+    i0 = floor((zIn - Z0) / DZ - 1.0 + fr);
+    float room = q.y - margin - 0.494 * abs(q.x);
+    if (room > 0.0) zOut = (1.8 + 0.494 * abs(camX)) / room;
+  }
+#if __VERSION__ >= 300
+  for (int i = int(clamp(i0, 0.0, float(ROWS))); i < ROWS; i++) {
+    float fi = float(i);
+#else
   for (int i = 0; i < ROWS; i++) {
     float fi = float(i);
+    if (fi < i0) continue;
+#endif
     float pos = fi + 1.0 - fr;
     float z = Z0 + pos * DZ;
+    if (z > zOut) break;
     float X = q.x * z + camX;
     float ax = abs(X);
     // teto possível desta fatia: se o pixel está acima, nem calcula o ruído
-    float ymax = (1.9 * wallOf(ax) * (1.4 + ax * 0.26) + 0.14 - CAM) / z;
-    if (q.y > ymax + margin) continue;
-    float yr = (terrain(X, kb + 1.0 + fi) - CAM) / z;
+    float wall = wallOf(ax) * (1.4 + ax * 0.26);
+    float yc = q.y * z + CAM - 0.14 - margin * z;
+    if (yc > 1.9 * wall) continue;
+    // tetos mais justos a cada oitava (n2 e n3 somam no máximo 0,6 e 0,3)
+    float k = kb + 1.0 + fi;
+    vec2 tp = vec2(X * 0.42, k * 0.125);
+    float n1 = 1.0 - abs(vlin(tp, 32.0) * 2.0 - 1.0);
+    if (yc > (n1 * n1 + 0.9) * wall) continue;
+    float n2 = 1.0 - abs(vlin(tp * 2.0 + vec2(5.2, 0.0), 64.0) * 2.0 - 1.0);
+    if (yc > (n1 * n1 + n2 * n2 * 0.6 + 0.3) * wall) continue;
+    float n3 = 1.0 - abs(vlin(tp * 4.0 + vec2(1.7, 0.0), 128.0) * 2.0 - 1.0);
+    float th = (n1 * n1 + n2 * n2 * 0.6 + n3 * n3 * 0.3) * wall + n3 * 0.14;
+    float yr = (th - CAM) / z;
     float d = (q.y - yr) * pxs;
+    // (1 - névoa)^1,5 = exp(-0,15 z): uma exponencial em vez de exp + pow
     float fog = 1.0 - exp(-z * 0.1);
     float fade = smoothstep(0.0, 0.7, pos) * smoothstep(48.0, 41.0, pos);
-    float lit = (pow(1.0 - fog, 1.5) * gain +
-      1.3 * scanOn * exp(-abs(z - scanZ) * 1.4)) * fade;
+    float lit = exp(-z * 0.15) * gain;
+    if (scanOn > 0.0) lit += 1.3 * scanOn * exp(-abs(z - scanZ) * 1.4);
+    lit *= fade;
     if (d < 0.0) {
       float dd = -d;
       float gx = abs(fract(X * 0.7 + 0.5) - 0.5) / 0.7 / z * pxs;
@@ -231,14 +264,16 @@ void main() {
     vec2 mc = uv - vec2(E.x, MOONY);
     float md = length(mc);
     float mdisk = smoothstep(RM + 1.5 / pxs, RM - 1.5 / pxs, md);
-    float mar = vnoise(mc * 8.0 + 3.0, 8192.0) * 0.6 +
-      vnoise(mc * 21.0 + 7.0, 8192.0) * 0.4;
-    vec3 moon = mix(vec3(0.5, 0.045, 0.028), vec3(0.13, 0.007, 0.006),
-      smoothstep(0.38, 0.62, mar));
-    moon *= (0.45 + 0.55 * smoothstep(RM * 1.02, RM * 0.15, md)) *
-      (0.75 + 0.35 * clamp(mc.y / RM, -1.0, 1.0));
-    moon += vec3(1.0, 0.28, 0.14) * smoothstep(RM * 0.93, RM, md) * 0.4;
-    sky = mix(sky, moon, mdisk);
+    if (mdisk > 0.0) {
+      float mar = vnoise(mc * 8.0 + 3.0, 8192.0) * 0.6 +
+        vnoise(mc * 21.0 + 7.0, 8192.0) * 0.4;
+      vec3 moon = mix(vec3(0.5, 0.045, 0.028), vec3(0.13, 0.007, 0.006),
+        smoothstep(0.38, 0.62, mar));
+      moon *= (0.45 + 0.55 * smoothstep(RM * 1.02, RM * 0.15, md)) *
+        (0.75 + 0.35 * clamp(mc.y / RM, -1.0, 1.0));
+      moon += vec3(1.0, 0.28, 0.14) * smoothstep(RM * 0.93, RM, md) * 0.4;
+      sky = mix(sky, moon, mdisk);
+    }
     sky += vec3(0.75, 0.06, 0.03) * exp(-max(md - RM, 0.0) * 10.0) * 0.2 *
       (1.0 - mdisk);
 
@@ -285,22 +320,24 @@ void main() {
     }
 
     // nuvens de tempestade (o calor do olho abre um buraco nelas)
-    vec2 cp = vec2(uv.x * 1.4 + t * 0.016, uv.y * 3.1 - t * 0.005);
-    float n = fbm(cp);
-    float hole = smoothstep(0.035, 0.17, length((uv - E) * vec2(0.55, 1.0)));
-    float deck = smoothstep(0.24, 0.5, sy) * hole;
-    float cl = smoothstep(0.46, 0.72, n) * deck;
-    cl *= mix(1.0, 0.35 + 0.65 * smoothstep(0.86, 1.0, uv.y), inP);
-    vec3 cc = mix(vec3(0.03, 0.004, 0.006), vec3(0.006, 0.001, 0.002),
-      smoothstep(0.55, 0.9, n));
     float fl = flash * exp(-length((uv - F) * vec2(1.0, 1.5)) * 3.0);
-    cc += vec3(1.0, 0.3, 0.24) * fl * (0.3 + 1.2 * n);
-    sky = mix(sky, cc, cl);
-    // contorno das nuvens aceso pelo vermelho de baixo (e pelo relâmpago)
-    float rim = (smoothstep(0.41, 0.46, n) - smoothstep(0.46, 0.55, n)) *
-      deck * (1.0 - 0.7 * inP);
-    sky += rim * (vec3(0.42, 0.04, 0.026) *
-      (0.3 + 0.7 * smoothstep(0.75, 0.32, sy)) + vec3(1.0, 0.32, 0.25) * fl * 1.6);
+    float deck = smoothstep(0.24, 0.5, sy);
+    if (deck > 0.0) {
+      deck *= smoothstep(0.035, 0.17, length((uv - E) * vec2(0.55, 1.0)));
+      vec2 cp = vec2(uv.x * 1.4 + t * 0.016, uv.y * 3.1 - t * 0.005);
+      float n = fbm(cp);
+      float cl = smoothstep(0.46, 0.72, n) * deck;
+      cl *= mix(1.0, 0.35 + 0.65 * smoothstep(0.86, 1.0, uv.y), inP);
+      vec3 cc = mix(vec3(0.03, 0.004, 0.006), vec3(0.006, 0.001, 0.002),
+        smoothstep(0.55, 0.9, n));
+      cc += vec3(1.0, 0.3, 0.24) * fl * (0.3 + 1.2 * n);
+      sky = mix(sky, cc, cl);
+      // contorno das nuvens aceso pelo vermelho de baixo (e pelo relâmpago)
+      float rim = (smoothstep(0.41, 0.46, n) - smoothstep(0.46, 0.55, n)) *
+        deck * (1.0 - 0.7 * inP);
+      sky += rim * (vec3(0.42, 0.04, 0.026) *
+        (0.3 + 0.7 * smoothstep(0.75, 0.32, sy)) + vec3(1.0, 0.32, 0.25) * fl * 1.6);
+    }
     sky += vec3(0.7, 0.12, 0.1) * fl * 0.12;
 
     col = mix(sky, terr, cover);
@@ -331,9 +368,12 @@ void main() {
 
   // halo das cristas e névoa rasteira
   col += RED * halo * 0.07;
-  float fb = vnoise(vec2(uv.x * 2.2 + t * 0.03, uv.y * 7.0 - t * 0.012), 8192.0);
-  col += vec3(0.5, 0.045, 0.03) * smoothstep(HZ + 0.12, HZ - 0.25, uv.y) *
-    smoothstep(0.3, 0.85, fb) * (0.07 + 0.12 * spin);
+  float mist = smoothstep(HZ + 0.12, HZ - 0.25, uv.y);
+  if (mist > 0.0) {
+    float fb = vnoise(vec2(uv.x * 2.2 + t * 0.03, uv.y * 7.0 - t * 0.012), 8192.0);
+    col += vec3(0.5, 0.045, 0.03) * mist * smoothstep(0.3, 0.85, fb) *
+      (0.07 + 0.12 * spin);
+  }
 
   // feixes da varredura: do olho até a faixa de luz no chão
   if (scanOn > 0.0) {
@@ -351,10 +391,14 @@ void main() {
   // o olho: brilho, fachos de luz e clarão branco na vitória
   vec2 dv = uv - E;
   float er = length(dv * vec2(0.55, 1.0));
-  vec2 dir2 = dv / max(length(dv), 0.0001);
-  float sh2 = vnoise(dir2 * 3.2 + vec2(t * 0.06, 0.0), 8192.0);
-  float shafts = sh2 * sh2 * sh2 * exp(-er * 4.5) * smoothstep(0.02, 0.07, er);
   float eyeI = 0.5 + 0.08 * sin(t * 1.7) + 0.55 * spin + 1.4 * wEnv;
+  float shafts = 0.0;
+  if (er < 1.3) {
+    vec2 dir2 = dv / max(length(dv), 0.0001);
+    float sh2 = vnoise(dir2 * 3.2 + vec2(t * 0.06, 0.0), 8192.0);
+    shafts = sh2 * sh2 * sh2 * exp(-er * 4.5) * smoothstep(0.02, 0.07, er) *
+      smoothstep(1.3, 0.9, er);
+  }
   col += vec3(1.0, 0.16, 0.05) * (exp(-er * 26.0) * 0.75 + shafts * 0.5) * eyeI;
   col += HOT * exp(-er * 40.0) * wEnv * 1.5;
 
@@ -382,6 +426,7 @@ void main() {
   float em = smoothstep(0.95, 0.1, uv.y) *
     mix(0.3, 1.0, smoothstep(0.3, 0.75, abs(uv.x)));
   for (int j = 0; j < 3; j++) {
+    if (em <= 0.0) break;
     float fj = float(j);
     float sc = 7.0 + fj * 6.0;
     vec2 g = vec2(uv.x * sc + fj * 3.7, uv.y * sc - tm * (0.5 + fj * 0.3));

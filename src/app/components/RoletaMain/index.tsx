@@ -6,11 +6,20 @@ import RouletteWheel from '../RouletteWheel'
 import SpinSettings, { SpinButton } from '../SpinControl'
 import SpinRail from '../SpinRail'
 import ThemePicker from '../ThemePicker'
-import { DEFAULT_THEME_ID, applyTheme, getTheme } from '@/app/utils/themes'
+import {
+  DEFAULT_THEME_ID,
+  RANDOM_THEME_ID,
+  applyTheme,
+  currentRandomTheme,
+  getTheme,
+  rollRandomTheme,
+} from '@/app/utils/themes'
 import OptionsEditor from '../OptionsEditor'
 import HistoryPanel from '../HistoryPanel'
 import ImportBanner from '../ImportBanner'
 import { preloadTmdbImage } from '../TmdbImage'
+import CardTable, { CardTableHandle, cardSeconds } from '../CardTable'
+import ModeToggle from '../ModeToggle'
 import { HistoryEntry, RouletteOption, RouletteSettings } from '@/app/types'
 import { RouletteImport, takeRouletteImport } from '@/app/utils/rouletteImport'
 import { Movie } from '@/app/utils/tmdbApi'
@@ -25,6 +34,7 @@ import {
   random,
   autoSegmentsPerOption,
   segmentIndexAt,
+  spinTarget,
   uid,
 } from '@/app/utils/wheel'
 
@@ -36,6 +46,7 @@ const DEFAULT_SETTINGS: RouletteSettings = {
   eliminationMode: false,
   autoSegments: true,
   theme: DEFAULT_THEME_ID,
+  mode: 'wheel',
 }
 
 const DEFAULT_OPTIONS: RouletteOption[] = [
@@ -87,9 +98,8 @@ export function RoletaMain() {
     'roleta.history',
     [],
   )
-  const [storedSettings, setStoredSettings] = usePersistentState<
-    Partial<RouletteSettings>
-  >('roleta.settings', {})
+  const [storedSettings, setStoredSettings, settingsLoaded] =
+    usePersistentState<Partial<RouletteSettings>>('roleta.settings', {})
   const settings = { ...DEFAULT_SETTINGS, ...storedSettings }
   const updateSettings = (patch: Partial<RouletteSettings>) =>
     setStoredSettings((prev) => ({ ...prev, ...patch }))
@@ -113,6 +123,7 @@ export function RoletaMain() {
   const rotationRef = useRef(0)
   const rafRef = useRef<number | null>(null)
   const revealTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const cardsRef = useRef<CardTableHandle>(null)
 
   const sound = useWheelSound(settings.volume, settings.muted)
 
@@ -121,11 +132,21 @@ export function RoletaMain() {
     : settings.segmentsPerOption
   // Cores vêm do tema (pares complementares lado a lado), exceto as
   // escolhidas à mão
-  const theme = getTheme(settings.theme)
-  // O tema também pinta o site inteiro (variáveis CSS por data-theme)
+  // "Aleatório": o tema efetivo é o sorteado neste carregamento (pelo script
+  // de boot no layout). Só é lido após montar, como o resto do estado salvo
+  const isRandomTheme = settings.theme === RANDOM_THEME_ID
+  const [randomThemeId, setRandomThemeId] = useState<string | null>(null)
   useEffect(() => {
-    document.documentElement.dataset.theme = theme.id
-  }, [theme.id])
+    if (settingsLoaded && isRandomTheme && !randomThemeId)
+      setRandomThemeId(currentRandomTheme())
+  }, [settingsLoaded, isRandomTheme, randomThemeId])
+  const theme = getTheme(isRandomTheme ? (randomThemeId ?? '') : settings.theme)
+  // O tema também pinta o site inteiro (variáveis CSS por data-theme). Espera
+  // o tema salvo/sorteado para não sobrescrever o que o script de boot aplicou
+  const themeReady = settingsLoaded && (!isRandomTheme || !!randomThemeId)
+  useEffect(() => {
+    if (themeReady) document.documentElement.dataset.theme = theme.id
+  }, [theme.id, themeReady])
 
   // As cenas de fundo reagem à roleta: data-wheel no <html> (girando /
   // vencedor em destaque) e --win-color com a cor da fatia vencedora
@@ -228,10 +249,16 @@ export function RoletaMain() {
     commitOptions(options.filter((o) => o.id !== id))
 
   // Trocar de tema repinta tudo, inclusive cores escolhidas à mão
+  // "Aleatório" sorteia na hora (de novo a cada clique), sem repetir o atual
   const changeTheme = (id: string) => {
+    let applied = id
+    if (id === RANDOM_THEME_ID) {
+      applied = rollRandomTheme()
+      setRandomThemeId(applied)
+    }
     // Aplica já no clique: a roda redesenha (nos efeitos) lendo a fonte do
     // tema novo, e os efeitos dela rodam antes dos deste componente
-    document.documentElement.dataset.theme = id
+    document.documentElement.dataset.theme = applied
     updateSettings({ theme: id })
     if (options.some((o) => o.customColor))
       setOptions(options.map((o) => ({ ...o, customColor: false })))
@@ -311,31 +338,9 @@ export function RoletaMain() {
     )
   }
 
-  const spin = () => {
-    const rotor = rotorRef.current
-    if (isSpinning || segments.length === 0 || !rotor) return
-
-    const spinSeconds = Math.min(settings.spinTime, MAX_SPIN_SECONDS)
-    sound.unlock()
-    // A roda só sai quando a música começa, para as duas acabarem juntas
-    const wheelStart = sound.startSpin(spinSeconds)
-    loadWinnerDialog()
-    setShowWinner(false)
-    setWinnerIndex(null)
-    setCelebrating(false)
-    setIsSpinning(true)
-
-    const snapshot = segments
-    const count = snapshot.length
-    const start = rotationRef.current
-    const duration = spinSeconds * 1000
-    // Mais tempo = mais voltas; o ângulo final é uniforme, então a chance de
-    // cada opção é proporcional ao número de fatias dela
-    const turns = 2 + spinSeconds * 1.1 + random() * 2
-    const end = start + turns * 360 + random() * 360
-    // O vencedor já está decidido: as imagens dele baixam durante o giro e o
-    // modal abre sem esperar a rede
-    const next = snapshot[segmentIndexAt(end, count)]
+  // O vencedor já está decidido: as imagens dele baixam durante o giro (ou
+  // as cartas) e o modal abre sem esperar a rede
+  const preloadWinner = (next: RouletteOption | undefined) => {
     const nextMovie = next?.movieId ? movieById.get(next.movieId) : undefined
     if (nextMovie?.poster_path)
       preloadTmdbImage({
@@ -351,6 +356,76 @@ export function RoletaMain() {
         height: 22,
       }),
     )
+  }
+
+  // Fim do sorteio (roda ou cartas): resultado, histórico e modal
+  const finishRound = (won: RouletteOption, index: number) => {
+    setIsSpinning(false)
+    setWinner(won)
+    setWinnerIndex(index)
+    setCelebrating(true)
+    setHistory((prev) =>
+      [
+        {
+          id: uid(),
+          text: won.text,
+          color: won.color,
+          movieId: won.movieId,
+          at: Date.now(),
+        },
+        ...prev,
+      ].slice(0, MAX_HISTORY),
+    )
+    revealTimeoutRef.current = setTimeout(() => {
+      setShowWinner(true)
+      sound.win()
+    }, 350)
+  }
+
+  const spin = () => {
+    const cardsMode = settings.mode === 'cards'
+    const rotor = rotorRef.current
+    const table = cardsRef.current
+    if (isSpinning || segments.length === 0) return
+    if (cardsMode ? !table : !rotor) return
+
+    const spinSeconds = Math.min(settings.spinTime, MAX_SPIN_SECONDS)
+    sound.unlock()
+    loadWinnerDialog()
+    setShowWinner(false)
+    setWinnerIndex(null)
+    setCelebrating(false)
+    setIsSpinning(true)
+
+    const snapshot = segments
+    const count = snapshot.length
+    const start = rotationRef.current
+    const end = spinTarget(start, spinSeconds)
+
+    // Modo cartas: o mesmo sorteio da roda (a fatia sob o ponteiro no ângulo
+    // final); o dealer só encena o resultado
+    if (cardsMode && table) {
+      const index = segmentIndexAt(end, count)
+      const won = snapshot[index]
+      preloadWinner(won)
+      const seconds = cardSeconds(spinSeconds)
+      table.play({
+        segments: snapshot,
+        winnerIndex: index,
+        seconds,
+        // as cartas começam junto com a música, para acabarem juntas
+        start: sound.startSpin(seconds),
+        onTick: sound.tick,
+        onDone: () => finishRound(won, index),
+      })
+      return
+    }
+    if (!rotor) return
+
+    // A roda só sai quando a música começa, para as duas acabarem juntas
+    const wheelStart = sound.startSpin(spinSeconds)
+    const duration = spinSeconds * 1000
+    preloadWinner(snapshot[segmentIndexAt(end, count)])
     let startedAt = 0
     let lastIndex = segmentIndexAt(start, count)
     let lastTickAt = 0
@@ -379,28 +454,7 @@ export function RoletaMain() {
       rotationRef.current = rotation % 360
       rotor.style.transform = `rotate(${rotationRef.current}deg)`
       settlePointer()
-
-      const won = snapshot[index]
-      setIsSpinning(false)
-      setWinner(won)
-      setWinnerIndex(index)
-      setCelebrating(true)
-      setHistory((prev) =>
-        [
-          {
-            id: uid(),
-            text: won.text,
-            color: won.color,
-            movieId: won.movieId,
-            at: Date.now(),
-          },
-          ...prev,
-        ].slice(0, MAX_HISTORY),
-      )
-      revealTimeoutRef.current = setTimeout(() => {
-        setShowWinner(true)
-        sound.win()
-      }, 350)
+      finishRound(snapshot[index], index)
     }
 
     wheelStart.then((t) => {
@@ -519,6 +573,7 @@ export function RoletaMain() {
         {/* Temas: card separado à esquerda, só com as cores */}
         <ThemePicker
           themeId={theme.id}
+          random={isRandomTheme}
           onChange={changeTheme}
           disabled={isSpinning}
         />
@@ -549,17 +604,28 @@ export function RoletaMain() {
               largura e pela altura (container query), para tudo caber na tela */}
             <div className="pt-4 lg:min-h-0 lg:flex-1">
               <div className="flex items-center justify-center lg:h-full lg:[container-type:size]">
-                <RouletteWheel
-                  segments={segments}
-                  highlightIndex={celebrating ? winnerIndex : null}
-                  isSpinning={isSpinning}
-                  canSpin={canSpin}
-                  onSpin={spin}
-                  rotorRef={rotorRef}
-                  pointerRef={pointerRef}
-                  rotationRef={rotationRef}
-                  movieById={movieById}
-                />
+                {settings.mode === 'cards' ? (
+                  <CardTable
+                    handleRef={cardsRef}
+                    optionCount={coloredOptions.length}
+                    active={isSpinning || celebrating}
+                    canPlay={canSpin}
+                    onPlay={spin}
+                    movieById={movieById}
+                  />
+                ) : (
+                  <RouletteWheel
+                    segments={segments}
+                    highlightIndex={celebrating ? winnerIndex : null}
+                    isSpinning={isSpinning}
+                    canSpin={canSpin}
+                    onSpin={spin}
+                    rotorRef={rotorRef}
+                    pointerRef={pointerRef}
+                    rotationRef={rotationRef}
+                    movieById={movieById}
+                  />
+                )}
               </div>
             </div>
 
@@ -584,11 +650,22 @@ export function RoletaMain() {
               ) : null}
             </div>
 
-            <SpinButton
-              spinRoulette={spin}
-              isSpinning={isSpinning}
-              hasOptions={segments.length > 0}
-            />
+            {/* Modo do sorteio (roda ou cartas) ao lado do botão principal */}
+            <div className="flex shrink-0 gap-2">
+              <ModeToggle
+                mode={settings.mode}
+                onChange={(mode) => updateSettings({ mode })}
+                disabled={isSpinning}
+              />
+              <div className="min-w-0 flex-1">
+                <SpinButton
+                  spinRoulette={spin}
+                  isSpinning={isSpinning}
+                  hasOptions={segments.length > 0}
+                  mode={settings.mode}
+                />
+              </div>
+            </div>
           </div>
         </section>
 

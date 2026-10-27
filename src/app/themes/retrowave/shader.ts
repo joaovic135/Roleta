@@ -1,5 +1,6 @@
-// Mundo 3D do tema Retrowave num único fragment shader (GLSL ES 1.0),
-// desenhado pelo ShaderCanvas do kit a meia resolução e 30 fps.
+// Mundo 3D do tema Retrowave num único fragment shader (GLSL ES 1.0; o
+// ShaderCanvas do kit converte para GLSL ES 3.00 quando há WebGL2),
+// desenhado a meia resolução e 30 fps.
 //
 // Projeção: câmera a 1 unidade do chão, horizonte em HZ (fração da altura,
 // a partir de baixo) e ponto de fuga no centro da tela. Um ponto do chão a
@@ -25,6 +26,12 @@
 // 9,6): toda frequência aqui fecha um número inteiro de voltas em 240 s
 // (e a grade, a faixa e os postes fecham em 9,6), então não há salto
 // quando o relógio volta a zero.
+//
+// Custo: carroceria dos carros e halo dos postes saem antes das
+// exponenciais quando o pixel está longe deles (o que sobraria fica abaixo
+// de 1/1000), as cabeças dos postes e as poças só são calculadas na faixa
+// do ciclo em que alguma está acesa e a chuva de estrelas cadentes só
+// durante a chuva.
 
 export const FRAG = /* glsl */ `
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -150,17 +157,21 @@ vec3 lampPost(vec3 col, vec2 p, float s, float A, float c, float px) {
     col = mix(col, vec3(0.07, 0.02, 0.12), max(pole, arm) * exp(-zk * 0.012));
   }
   // cabeça acesa e halo: procura pelo x da cabeça, com os vizinhos
+  // (fora do crepúsculo e da noite todas estão apagadas)
+  if (c < 0.27 || c > 0.91) return col;
   float xh = LX - ARM;
   float kh = floor((xh * A / abs(p.x) + u_scroll) / LP + 0.5);
   for (int j = -1; j <= 1; j++) {
     float kj = kh + float(j);
     float z2 = kj * LP - u_scroll;
     if (z2 < 0.7) continue;
-    float iz = 1.0 / z2;
-    vec2 q = (p - vec2(s * xh * A * iz, HZ + 0.585 * iz)) * z2;
-    float d = length(q * vec2(1.0, 2.6));
     float on = lampOn(kj, c);
     if (on <= 0.0) continue;
+    float iz = 1.0 / z2;
+    vec2 q = (p - vec2(s * xh * A * iz, HZ + 0.585 * iz)) * z2;
+    // fora do halo e do cone (o que sobra fica abaixo de 1/1000)
+    if (abs(q.x) > 3.0 || q.y > 1.0 || q.y < -1.7) continue;
+    float d = length(q * vec2(1.0, 2.6));
     // cone de luz até o chão (a cabeça está a 1,58 do chão)
     float down = -q.y;
     float cone = exp(-abs(q.x) / (0.03 + 0.32 * max(down, 0.0))) *
@@ -177,13 +188,16 @@ vec3 rearCar(vec3 col, vec2 p, float X, float z, float A, float px) {
   vec2 hs = vec2(0.17 * dyc * A, 0.075 * dyc);
   vec2 q = abs(p - c) - hs;
   float box = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
-  float body = smoothstep(px, -px, box) * exp(-z * 0.02);
-  col = mix(col, vec3(0.03, 0.0, 0.07), body * 0.92);
-  // teto refletindo o céu
-  col += vec3(1.0, 0.5, 0.8) * 0.45 * body * smoothstep(-hs.y * 0.5, hs.y, p.y - c.y) *
-    exp(-z * 0.03);
-  col += vec3(1.0, 0.1, 0.45) * exp(-max(box, 0.0) / (0.05 * dyc)) * 0.12 *
-    smoothstep(c.y, c.y - hs.y * 3.0, p.y);
+  // carroceria e brilho vermelho só perto do carro
+  if (box < max(0.4 * dyc, px)) {
+    float body = smoothstep(px, -px, box) * exp(-z * 0.02);
+    col = mix(col, vec3(0.03, 0.0, 0.07), body * 0.92);
+    // teto refletindo o céu
+    col += vec3(1.0, 0.5, 0.8) * 0.45 * body * smoothstep(-hs.y * 0.5, hs.y, p.y - c.y) *
+      exp(-z * 0.03);
+    col += vec3(1.0, 0.1, 0.45) * exp(-max(box, 0.0) / (0.05 * dyc)) * 0.12 *
+      smoothstep(c.y, c.y - hs.y * 3.0, p.y);
+  }
   return col + lamps(p, X, z, A, vec3(1.0, 0.16, 0.36), 0.12, px);
 }
 
@@ -261,8 +275,9 @@ void main() {
       }
       // estrelas cadentes (e uma chuva delas no meio da noite)
       float burst = smoothstep(0.5, 0.52, c) * (1.0 - smoothstep(0.56, 0.58, c));
-      float sh = shoot(p, 8.0, 1.0, halfW, px) + shoot(p, 12.0, 7.0, halfW, px) +
-        shoot(p, 2.0, 3.0, halfW, px) * burst + shoot(p, 3.0, 5.0, halfW, px) * burst;
+      float sh = shoot(p, 8.0, 1.0, halfW, px) + shoot(p, 12.0, 7.0, halfW, px);
+      if (burst > 0.0)
+        sh += (shoot(p, 2.0, 3.0, halfW, px) + shoot(p, 3.0, 5.0, halfW, px)) * burst;
       col += vec3(1.0, 0.85, 1.0) * sh * (wN + 0.3 * wD);
     }
 
@@ -431,11 +446,13 @@ void main() {
       sunUp * (0.25 + 0.75 * band) * 0.6;
 
     // poças de luz dos postes no asfalto
-    float kp = floor((z + u_scroll) / LP + 0.5);
-    float onp = lampOn(kp, c);
-    if (onp > 0.0) {
-      vec2 dq = vec2((abs(X) - (LX - ARM)) / 0.72, (z - (kp * LP - u_scroll)) / 1.5);
-      col += lampCol(kp) * onp * exp(-dot(dq, dq)) * 0.5;
+    if (c > 0.27 && c < 0.91) {
+      float kp = floor((z + u_scroll) / LP + 0.5);
+      float onp = lampOn(kp, c);
+      if (onp > 0.0) {
+        vec2 dq = vec2((abs(X) - (LX - ARM)) / 0.72, (z - (kp * LP - u_scroll)) / 1.5);
+        col += lampCol(kp) * onp * exp(-dot(dq, dq)) * 0.5;
+      }
     }
     col = lampPost(col, p, 1.0, A, c, px);
     col = lampPost(col, p, -1.0, A, c, px);

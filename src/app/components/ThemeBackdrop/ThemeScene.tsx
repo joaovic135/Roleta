@@ -49,6 +49,9 @@ const SCENES: Record<string, ComponentType> = {
   'cine-pulp': dynamic(() => import('@/app/themes/cine-pulp/Scene'), {
     ssr: false,
   }),
+  'neon-noir': dynamic(() => import('@/app/themes/neon-noir/Scene'), {
+    ssr: false,
+  }),
   'alto-contraste': dynamic(() => import('@/app/themes/alto-contraste/Scene'), {
     ssr: false,
   }),

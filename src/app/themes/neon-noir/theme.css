@@ -1,0 +1,1704 @@
+/* Tema Neon Noir: estilos sob html[data-theme='neon-noir'].
+
+   Cena viva (Scene.tsx): beco estreito de fliperamas numa Tóquio de 199X.
+   Camada central em unidades da tela (céu em pixel art, planeta anelado,
+   nuvens rosa, arranha-céus do fim do beco, chão molhado em perspectiva)
+   e dois palcos laterais presos nas bordas (--nn-u: 1000 = altura da tela)
+   com as paredes, os letreiros de tubo, o pôster de anime, o fliperama, a
+   TV de tubo e a máquina de bebidas. A chuva, os respingos e os anéis nas
+   poças ficam no único canvas (Rain.tsx); o resto é SVG/HTML estático com
+   animações só em transform/opacity.
+
+   Ciclo do clima (--nn-cycle 180 s; --nn-at = a página abre em 6%):
+     0–28%    garoa, nuvens rosa, estrelas fracas
+     28–40%   a chuva engrossa, nuvens de tempestade fecham o céu
+     40–60%   temporal; relâmpagos em 43%, 50% e 56% (cada um pisca no
+              máximo 2 vezes; o de 50% derruba os letreiros por ~2 s)
+     60–69%   a chuva afina e para
+     69–94%   céu limpo: estrelas no máximo, planeta aceso, estrelas
+              cadentes em 75% e 86%
+     94–100%  a garoa volta
+   Laços próprios: letreiros (7–13 s), falhas de 薬 (37 s) e 酒 (53 s),
+   gato (53 s), carro voador (29 s), trem do céu (47 s), glitch do pôster
+   (11 s), piscadela (5,3 s), vapor (5,4 s), joguinho da TV (1–4 s).
+   Roleta: html[data-wheel='spinning'] = néons no talo pulsando, telas em
+   SPIN, carretéis disparados (a chuva acelera no canvas); 'won' = explosão
+   na cor da fatia (--win-color), todos os letreiros acesos e parados,
+   "大当たり JACKPOT" no alto e no fliperama; pisca no máximo 2 vezes e
+   assenta. Sem animação (prefers-reduced-motion) fica a garoa parada. */
+
+html[data-theme='neon-noir'] .scene-neon-noir {
+  display: block;
+  container-type: size;
+  --nn-cycle: 180s;
+  --nn-at: -0.06;
+  --nn-u: 0.1cqh;
+}
+html[data-theme='neon-noir'] body {
+  --wheel-font: var(--font-silkscreen);
+  --wheel-font-scale: 1;
+  --nn-jp:
+    'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Hiragino Kaku Gothic ProN',
+    'Noto Sans JP', var(--font-mochiy), sans-serif;
+}
+/* céu da noite: preto no alto, violeta e o clarão magenta no horizonte */
+html[data-theme='neon-noir'] .theme-backdrop {
+  background: linear-gradient(
+    to bottom,
+    #05020f 0%,
+    #0f0530 20%,
+    #240a4e 38%,
+    #3d0d5c 47%,
+    #1a0833 58%,
+    #08030f 100%
+  );
+}
+
+/* ---------- cena: camadas ---------- */
+
+html[data-theme='neon-noir'] .scene-neon-noir > *,
+html[data-theme='neon-noir'] .nn-stage > *,
+html[data-theme='neon-noir'] .nn-signs > * {
+  position: absolute;
+  pointer-events: none;
+}
+html[data-theme='neon-noir'] .nn-stage {
+  bottom: 0;
+  width: calc(560 * var(--nn-u));
+  height: calc(1000 * var(--nn-u));
+}
+html[data-theme='neon-noir'] .nn-stage-l {
+  left: 0;
+}
+html[data-theme='neon-noir'] .nn-stage-r {
+  right: 0;
+}
+html[data-theme='neon-noir'] .nn-signs {
+  inset: 0;
+}
+
+/* ---------- céu ---------- */
+
+html[data-theme='neon-noir'] .nn-horizon {
+  inset: 0;
+  background:
+    radial-gradient(ellipse 34% 26% at 50% 50%, rgb(255 43 214 / 0.5), rgb(140 30 190 / 0.22) 50%, transparent 75%),
+    radial-gradient(ellipse 60% 18% at 50% 52%, rgb(25 230 255 / 0.12), transparent 70%);
+}
+html[data-theme='neon-noir'] .nn-starfield {
+  inset: 0 0 auto;
+  height: 46%;
+  opacity: 0.45;
+}
+html[data-theme='neon-noir'] .nn-stars {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='neon-noir'] .nn-stars-b {
+  opacity: 0.6;
+}
+/* estrela cadente: risco com cabeça clara */
+html[data-theme='neon-noir'] .nn-meteor {
+  position: absolute;
+  width: calc(150 * var(--nn-u));
+  height: calc(3 * var(--nn-u));
+  background: linear-gradient(90deg, transparent, rgb(255 190 240 / 0.5) 60%, #fff);
+  border-radius: 2px;
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-meteor-1 {
+  left: 18%;
+  top: 6%;
+  rotate: 162deg;
+}
+html[data-theme='neon-noir'] .nn-meteor-2 {
+  left: 70%;
+  top: 3%;
+  rotate: 156deg;
+}
+
+/* planeta gigante (pixel art) com halo */
+html[data-theme='neon-noir'] .nn-planet {
+  left: calc(66% - 225 * var(--nn-u));
+  top: calc(-72 * var(--nn-u));
+  width: calc(450 * var(--nn-u));
+  height: calc(276 * var(--nn-u));
+}
+html[data-theme='neon-noir'] .nn-planet svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='neon-noir'] .nn-planet-halo {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  top: 0;
+  bottom: 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 80 200 / 0.4), rgb(120 40 200 / 0.18) 70%, transparent);
+  transform: scale(1.5);
+}
+
+/* nuvens de algodão-doce (sprites 3 u por pixel) à deriva */
+html[data-theme='neon-noir'] .nn-clouds {
+  inset: 0 0 auto;
+  height: 40%;
+}
+html[data-theme='neon-noir'] .nn-cloud {
+  position: absolute;
+  left: 0;
+}
+html[data-theme='neon-noir'] .nn-cloud-1 {
+  top: calc(26 * var(--nn-u));
+  width: calc(450 * var(--nn-u));
+  height: calc(120 * var(--nn-u));
+  transform: translateX(42cqw);
+  opacity: 0.75;
+}
+html[data-theme='neon-noir'] .nn-cloud-2 {
+  top: calc(4 * var(--nn-u));
+  width: calc(210 * var(--nn-u));
+  height: calc(66 * var(--nn-u));
+  transform: translateX(14cqw);
+  opacity: 0.6;
+}
+html[data-theme='neon-noir'] .nn-cloud-3 {
+  top: calc(56 * var(--nn-u));
+  width: calc(300 * var(--nn-u));
+  height: calc(85 * var(--nn-u));
+  opacity: 0.9;
+  transform: translateX(70cqw);
+}
+html[data-theme='neon-noir'] .nn-cloud-4 {
+  top: calc(30 * var(--nn-u));
+  width: calc(270 * var(--nn-u));
+  height: calc(84 * var(--nn-u));
+  transform: translateX(28cqw);
+}
+
+/* nuvens de tempestade (o ciclo acende) */
+html[data-theme='neon-noir'] .nn-storm {
+  inset: 0 0 auto;
+  height: 62%;
+  background:
+    radial-gradient(ellipse 40% 50% at 20% 10%, #1a0b2e, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 75% 0%, #140825, transparent 70%),
+    linear-gradient(to bottom, #0b0518 20%, rgb(11 5 24 / 0.6) 60%, transparent);
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-bolt {
+  left: 29%;
+  top: 0;
+  width: calc(70 * var(--nn-u));
+  height: calc(230 * var(--nn-u));
+  opacity: 0;
+}
+
+/* fim do beco: arranha-céus em pixel e a torre com o farol */
+html[data-theme='neon-noir'] .nn-far {
+  left: 50%;
+  bottom: 46%;
+  width: calc(640 * var(--nn-u));
+  height: calc(340 * var(--nn-u));
+  transform: translateX(-50%);
+}
+html[data-theme='neon-noir'] .nn-skyline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='neon-noir'] .nn-spire {
+  position: absolute;
+  left: 58%;
+  bottom: 0;
+  width: calc(16 * var(--nn-u));
+  height: calc(100cqh * 0.5);
+  background:
+    linear-gradient(90deg, #ff4fc8 0 1.5px, transparent 1.5px calc(100% - 1.5px), #5ff3ff calc(100% - 1.5px)),
+    repeating-linear-gradient(to bottom, #12082a 0 10px, #1d0f3a 10px 12px);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+}
+html[data-theme='neon-noir'] .nn-spire-beacon {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: calc(10 * var(--nn-u));
+  height: calc(10 * var(--nn-u));
+  margin-left: calc(-5 * var(--nn-u));
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #fff, #ff3b6b 50%, transparent);
+}
+
+/* trem do céu e carro voador (bem longe, no alto) */
+html[data-theme='neon-noir'] .nn-train {
+  left: 0;
+  top: calc(78 * var(--nn-u));
+  width: calc(230 * var(--nn-u));
+  height: calc(11 * var(--nn-u));
+  transform: translateX(-120%);
+}
+html[data-theme='neon-noir'] .nn-train i {
+  position: absolute;
+  inset: 0;
+  border-radius: calc(6 * var(--nn-u)) calc(2 * var(--nn-u)) calc(2 * var(--nn-u)) calc(6 * var(--nn-u));
+  background:
+    repeating-linear-gradient(90deg, transparent 0 6px, #ffd0f4 6px 11px) 4% 35% / 88% 35% no-repeat,
+    linear-gradient(#2a1456, #12082a);
+  box-shadow: 0 0 calc(10 * var(--nn-u)) rgb(255 79 200 / 0.6);
+}
+html[data-theme='neon-noir'] .nn-train::after {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 30%;
+  width: 140%;
+  height: 40%;
+  background: linear-gradient(90deg, transparent, rgb(95 243 255 / 0.45));
+}
+html[data-theme='neon-noir'] .nn-car {
+  left: 0;
+  top: calc(36 * var(--nn-u));
+  width: calc(26 * var(--nn-u));
+  height: calc(8 * var(--nn-u));
+  border-radius: 40% 40% 20% 20%;
+  background: linear-gradient(#5ff3ff 0 30%, #2a1456 30%);
+  transform: translateX(110cqw);
+}
+html[data-theme='neon-noir'] .nn-car::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 45%;
+  width: calc(120 * var(--nn-u));
+  height: 35%;
+  background: linear-gradient(90deg, rgb(255 59 107 / 0.9), transparent);
+}
+
+html[data-theme='neon-noir'] .nn-wires {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* letreiro do salão de jogos pendurado no alto */
+html[data-theme='neon-noir'] .nn-jackpot {
+  left: 39.5%;
+  top: calc(14 * var(--nn-u));
+  width: calc(330 * var(--nn-u));
+  height: calc(58 * var(--nn-u));
+  background: #0b0518;
+  border: calc(2 * var(--nn-u)) solid #ff3fd0;
+  box-shadow:
+    0 0 calc(12 * var(--nn-u)) rgb(255 63 208 / 0.8),
+    inset 0 0 calc(10 * var(--nn-u)) rgb(255 63 208 / 0.45);
+  clip-path: polygon(
+    calc(12 * var(--nn-u)) 0,
+    calc(100% - 12 * var(--nn-u)) 0,
+    100% calc(12 * var(--nn-u)),
+    100% calc(100% - 12 * var(--nn-u)),
+    calc(100% - 12 * var(--nn-u)) 100%,
+    calc(12 * var(--nn-u)) 100%,
+    0 calc(100% - 12 * var(--nn-u)),
+    0 calc(12 * var(--nn-u))
+  );
+}
+html[data-theme='neon-noir'] .nn-jackpot span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  white-space: nowrap;
+  font: 700 calc(26 * var(--nn-u)) / 1 var(--font-silkscreen), monospace;
+  letter-spacing: 0.08em;
+  color: #ffe1f8;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 8px #ff3fd0,
+    0 0 18px #ff3fd0;
+}
+html[data-theme='neon-noir'] .nn-jackpot b {
+  font-family: var(--nn-jp);
+  font-weight: 900;
+  color: #d6fdff;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 8px #19e6ff,
+    0 0 16px #19e6ff;
+}
+html[data-theme='neon-noir'] :is(.nn-jp-spin, .nn-jp-win) {
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-jp-spin {
+  color: #d6fdff;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 10px #19e6ff,
+    0 0 20px #19e6ff;
+}
+html[data-theme='neon-noir'] .nn-jackpot .nn-jp-win,
+html[data-theme='neon-noir'] .nn-jackpot .nn-jp-win b {
+  color: #fff;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 8px var(--win-color, #ff3fd0),
+    0 0 20px var(--win-color, #ff3fd0);
+}
+
+/* ---------- rua molhada ---------- */
+
+html[data-theme='neon-noir'] .nn-floor {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* poças: manchas de luz dos letreiros e do fim do beco */
+html[data-theme='neon-noir'] .nn-puddles {
+  inset: auto 0 0;
+  height: 22%;
+  background:
+    radial-gradient(ellipse 12% 30% at 6% 82%, rgb(255 63 208 / 0.4), transparent 70%),
+    radial-gradient(ellipse 10% 26% at 17% 92%, rgb(79 184 255 / 0.32), transparent 70%),
+    radial-gradient(ellipse 14% 28% at 93% 86%, rgb(95 243 255 / 0.32), transparent 70%),
+    radial-gradient(ellipse 9% 24% at 82% 94%, rgb(255 63 208 / 0.3), transparent 70%),
+    radial-gradient(ellipse 22% 40% at 50% 100%, rgb(255 43 214 / 0.3), transparent 70%),
+    radial-gradient(ellipse 9% 60% at 50% 10%, rgb(255 120 230 / 0.25), transparent 70%);
+}
+/* brilho trêmulo da água (listras finas que descem um pouco) */
+html[data-theme='neon-noir'] .nn-wet {
+  inset: auto 0 -2%;
+  height: 16%;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(255 170 240 / 0.07) 0 1px,
+    transparent 1px 4px,
+    rgb(150 240 255 / 0.05) 4px 5px,
+    transparent 5px 9px
+  );
+}
+
+/* ---------- paredes e letreiros ---------- */
+
+html[data-theme='neon-noir'] .nn-wall {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='neon-noir'] .nn-wall-r {
+  transform: scaleX(-1);
+}
+
+html[data-theme='neon-noir'] .nn-sign {
+  font-family: var(--nn-jp);
+  font-weight: 900;
+  line-height: 1;
+}
+html[data-theme='neon-noir'] :is(.nn-sign-off, .nn-sign-on) {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12em;
+  border: calc(2.4 * var(--nn-u)) solid;
+  border-radius: calc(5 * var(--nn-u));
+}
+html[data-theme='neon-noir'] .nn-v b {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: -0.04em;
+}
+html[data-theme='neon-noir'] .nn-sign small {
+  font: 400 0.36em / 1 var(--font-vt323), monospace;
+  letter-spacing: 0.08em;
+}
+html[data-theme='neon-noir'] .nn-v small {
+  writing-mode: vertical-rl;
+}
+/* tubo apagado: vidro escuro com a cor bem fraca */
+html[data-theme='neon-noir'] .nn-sign-off {
+  background: #0c0618;
+  border-color: color-mix(in srgb, var(--c) 30%, #1a1030);
+  color: color-mix(in srgb, var(--c) 30%, #140a26);
+}
+/* tubo aceso */
+html[data-theme='neon-noir'] .nn-sign-on {
+  background: color-mix(in srgb, var(--c) 16%, #0c0618);
+  border-color: color-mix(in srgb, var(--c) 70%, #fff);
+  color: color-mix(in srgb, var(--c) 30%, #fff);
+  text-shadow:
+    0 0 0.05em #fff,
+    0 0 0.16em var(--c),
+    0 0 0.42em var(--c);
+  box-shadow:
+    0 0 calc(10 * var(--nn-u)) var(--c),
+    0 0 calc(34 * var(--nn-u)) color-mix(in srgb, var(--c) 45%, transparent),
+    inset 0 0 calc(10 * var(--nn-u)) color-mix(in srgb, var(--c) 55%, transparent);
+}
+/* reflexo do letreiro no chão molhado */
+html[data-theme='neon-noir'] .nn-refl {
+  background: radial-gradient(
+    ellipse 50% 100% at 50% 0,
+    color-mix(in srgb, var(--c) 55%, transparent),
+    color-mix(in srgb, var(--c) 18%, transparent) 55%,
+    transparent
+  );
+}
+
+/* caveira e lótus de néon */
+html[data-theme='neon-noir'] .nn-icon svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+html[data-theme='neon-noir'] .nn-icon::before {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(95 243 255 / 0.3), transparent);
+}
+html[data-theme='neon-noir'] .nn-lotus::before {
+  background: radial-gradient(closest-side, rgb(255 63 208 / 0.32), transparent);
+}
+html[data-theme='neon-noir'] .nn-skull-eyes {
+  opacity: 0;
+}
+
+/* ---------- fliperama ---------- */
+
+html[data-theme='neon-noir'] .nn-arcade > * {
+  position: absolute;
+}
+html[data-theme='neon-noir'] .nn-arcade > svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='neon-noir'] .nn-arcade::after {
+  /* luz do fliperama no chão */
+  content: '';
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: -6%;
+  height: 14%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 63 208 / 0.45), transparent);
+}
+html[data-theme='neon-noir'] .nn-arcade-marquee {
+  left: 7%;
+  right: 7%;
+  top: 3%;
+  height: 11%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(#ff5fd8, #a0189a);
+  box-shadow:
+    0 0 calc(14 * var(--nn-u)) #ff3fd0,
+    inset 0 0 0 calc(1.5 * var(--nn-u)) #ffd0f4;
+  font: 900 calc(17 * var(--nn-u)) / 1 var(--nn-jp);
+  color: #fff;
+  text-shadow: 0 0 0.3em #ffd0f4;
+  white-space: nowrap;
+}
+html[data-theme='neon-noir'] .nn-arcade-screen {
+  left: 12.5%;
+  top: 15.9%;
+  width: 75%;
+  height: 28.3%;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 45%, #22104c, #06020f 80%);
+  box-shadow:
+    0 0 calc(14 * var(--nn-u)) rgb(95 243 255 / 0.45),
+    inset 0 0 calc(8 * var(--nn-u)) rgb(95 243 255 / 0.5);
+}
+html[data-theme='neon-noir'] .nn-arcade-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.3) 0 1px, transparent 1px 3px);
+}
+html[data-theme='neon-noir'] .nn-arcade-coin {
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  width: calc(18 * var(--nn-u));
+  height: calc(18 * var(--nn-u));
+  margin-left: calc(-9 * var(--nn-u));
+}
+html[data-theme='neon-noir'] :is(.nn-arcade-insert, .nn-arcade-win) {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12%;
+  text-align: center;
+  white-space: nowrap;
+  font: 400 calc(15 * var(--nn-u)) / 1 var(--font-vt323), monospace;
+  letter-spacing: 0.06em;
+  color: #a6f6ff;
+  text-shadow: 0 0 6px #19e6ff;
+}
+html[data-theme='neon-noir'] .nn-arcade-win {
+  bottom: 30%;
+  font: 900 calc(18 * var(--nn-u)) / 1 var(--nn-jp);
+  color: #fff;
+  text-shadow:
+    0 0 4px var(--win-color, #ff3fd0),
+    0 0 12px var(--win-color, #ff3fd0);
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-arcade-btn {
+  top: 53%;
+  width: 8%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #5ff3ff;
+  box-shadow: 0 0 calc(8 * var(--nn-u)) #5ff3ff;
+}
+html[data-theme='neon-noir'] .nn-arcade-btn-a {
+  left: 52%;
+}
+html[data-theme='neon-noir'] .nn-arcade-btn-b {
+  left: 68%;
+  background: #ff3fd0;
+  box-shadow: 0 0 calc(8 * var(--nn-u)) #ff3fd0;
+}
+
+/* ---------- TV de tubo + walkman ---------- */
+
+html[data-theme='neon-noir'] .nn-crt {
+  border-radius: calc(10 * var(--nn-u));
+  background: linear-gradient(#3b2d5a, #1b1331);
+  box-shadow:
+    inset 0 0 0 calc(2 * var(--nn-u)) #4d3d72,
+    0 calc(8 * var(--nn-u)) calc(12 * var(--nn-u)) rgb(0 0 0 / 0.6);
+}
+html[data-theme='neon-noir'] .nn-crt > * {
+  position: absolute;
+}
+html[data-theme='neon-noir'] .nn-crt-screen {
+  left: 8%;
+  top: 10%;
+  width: 70%;
+  height: 78%;
+  overflow: hidden;
+  border-radius: 16% / 20%;
+  background: radial-gradient(ellipse at 50% 50%, #1c0c44, #05020c 78%);
+  box-shadow: 0 0 calc(14 * var(--nn-u)) rgb(95 243 255 / 0.4);
+}
+html[data-theme='neon-noir'] .nn-crt-screen > * {
+  position: absolute;
+}
+html[data-theme='neon-noir'] .nn-crt-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.32) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 35% 25%, rgb(255 255 255 / 0.14), transparent 45%);
+  box-shadow: inset 0 0 calc(10 * var(--nn-u)) rgb(0 0 0 / 0.9);
+}
+html[data-theme='neon-noir'] .nn-crt-stars {
+  left: 0;
+  top: -100%;
+  width: 100%;
+  height: 200%;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 8%, #fff, transparent),
+    radial-gradient(1px 1px at 64% 20%, #a6f6ff, transparent),
+    radial-gradient(1.4px 1.4px at 36% 34%, #ffc2ec, transparent),
+    radial-gradient(1px 1px at 82% 44%, #fff, transparent);
+  background-size: 100% 25%;
+}
+html[data-theme='neon-noir'] .nn-crt-inv {
+  left: 14%;
+  top: 18%;
+  width: 62%;
+  height: 16%;
+  display: flex;
+  justify-content: space-between;
+}
+html[data-theme='neon-noir'] .nn-crt-inv svg {
+  width: 26%;
+  height: 100%;
+}
+html[data-theme='neon-noir'] .nn-crt-ship {
+  left: 40%;
+  bottom: 10%;
+  width: 20%;
+  height: 18%;
+}
+html[data-theme='neon-noir'] .nn-crt-shot {
+  left: calc(50% - 1px);
+  bottom: 28%;
+  width: 2px;
+  height: 9%;
+  background: #a6f6ff;
+  box-shadow: 0 0 4px #5ff3ff;
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-crt-hud {
+  left: 8%;
+  top: 4%;
+  font: 400 calc(10 * var(--nn-u)) / 1 var(--font-vt323), monospace;
+  color: #ff9ad6;
+  white-space: nowrap;
+}
+html[data-theme='neon-noir'] .nn-crt-msg {
+  left: 0;
+  right: 0;
+  top: 40%;
+  text-align: center;
+  font: 700 calc(14 * var(--nn-u)) / 1 var(--font-silkscreen), monospace;
+  color: #fff;
+  text-shadow:
+    0 0 4px #ff3fd0,
+    0 0 10px #ff3fd0;
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-crt-roll {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 22%;
+  background: linear-gradient(transparent, rgb(166 246 255 / 0.12), transparent);
+  transform: translateY(-100%);
+}
+html[data-theme='neon-noir'] .nn-crt-knob {
+  right: 7%;
+  top: 22%;
+  width: 11%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #8a78b8, #2a1f45);
+}
+html[data-theme='neon-noir'] .nn-crt-knob-2 {
+  top: 50%;
+}
+html[data-theme='neon-noir'] .nn-walkman {
+  left: 14%;
+  bottom: 100%;
+  width: 52%;
+  height: 34%;
+  border-radius: calc(3 * var(--nn-u));
+  background:
+    linear-gradient(#ff3fd0, #ff3fd0) 0 78% / 100% 10% no-repeat,
+    linear-gradient(#0b0518, #0b0518) 18% 30% / 64% 36% no-repeat,
+    linear-gradient(#a9b8d8, #6d7aa3);
+  box-shadow: inset 0 0 0 1px #d6e2ff;
+}
+html[data-theme='neon-noir'] .nn-reel {
+  position: absolute;
+  left: 27%;
+  top: 33%;
+  width: 16%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: repeating-conic-gradient(#e8ecff 0 30deg, #6d7aa3 30deg 60deg);
+}
+html[data-theme='neon-noir'] .nn-reel-2 {
+  left: 57%;
+}
+html[data-theme='neon-noir'] .nn-phones {
+  left: 68%;
+  bottom: 100%;
+  width: 26%;
+  height: 34%;
+  border: calc(3 * var(--nn-u)) solid #5ff3ff;
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0;
+  box-shadow: 0 0 calc(6 * var(--nn-u)) rgb(95 243 255 / 0.6);
+}
+
+/* ---------- vapor do bueiro ---------- */
+
+html[data-theme='neon-noir'] .nn-manhole {
+  left: 10%;
+  right: 10%;
+  bottom: 0;
+  height: 30%;
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(90deg, #1a0e33 0 3px, #07030f 3px 6px);
+  box-shadow: 0 0 0 calc(2 * var(--nn-u)) #2a1656;
+}
+html[data-theme='neon-noir'] .nn-puff {
+  left: 0;
+  bottom: 10%;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(236 210 255 / 0.4), rgb(255 120 220 / 0.12) 60%, transparent);
+  opacity: 0.4;
+  transform: translateY(calc(-40 * var(--nn-u))) scale(1.2);
+}
+html[data-theme='neon-noir'] .nn-puff-2 {
+  opacity: 0.25;
+  transform: translateY(calc(-110 * var(--nn-u))) scale(1.9);
+}
+html[data-theme='neon-noir'] .nn-puff-3 {
+  opacity: 0;
+}
+
+/* ---------- máquina de bebidas ---------- */
+
+html[data-theme='neon-noir'] .nn-vend > * {
+  position: absolute;
+}
+html[data-theme='neon-noir'] .nn-vend-face {
+  inset: 0;
+  border-radius: calc(4 * var(--nn-u));
+  background: linear-gradient(#1f1640, #110a26);
+  box-shadow:
+    inset 0 0 0 calc(2 * var(--nn-u)) #5ff3ff,
+    0 0 calc(16 * var(--nn-u)) rgb(95 243 255 / 0.45);
+}
+html[data-theme='neon-noir'] .nn-vend-face > * {
+  position: absolute;
+}
+html[data-theme='neon-noir'] .nn-vend-tag {
+  left: 8%;
+  right: 8%;
+  top: 4%;
+  padding: 3% 0;
+  text-align: center;
+  font: 900 calc(15 * var(--nn-u)) / 1 var(--nn-jp);
+  color: #0b0518;
+  background: #a6f6ff;
+  box-shadow: 0 0 calc(10 * var(--nn-u)) #5ff3ff;
+}
+html[data-theme='neon-noir'] .nn-vend-cans {
+  left: 8%;
+  right: 8%;
+  top: 18%;
+  height: 22%;
+  background:
+    repeating-linear-gradient(90deg, #ff4fb4 0 14%, transparent 14% 20%, #5ff3ff 20% 34%, transparent 34% 40%, #f4f0ff 40% 54%, transparent 54% 60%),
+    linear-gradient(#e9f6ff, #9fd8ff);
+  background-size:
+    100% 60%,
+    100% 100%;
+  background-position: 0 70%;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 calc(2 * var(--nn-u)) #0b0518;
+}
+html[data-theme='neon-noir'] .nn-vend-cans-2 {
+  top: 43%;
+  filter: hue-rotate(60deg);
+}
+html[data-theme='neon-noir'] .nn-vend-slot {
+  left: 20%;
+  right: 20%;
+  bottom: 8%;
+  height: 10%;
+  background: #05020c;
+  box-shadow: inset 0 0 0 1px #4d3d72;
+}
+html[data-theme='neon-noir'] .nn-vend-glow {
+  left: -30%;
+  right: -30%;
+  bottom: -8%;
+  height: 16%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(95 243 255 / 0.4), transparent);
+}
+
+/* ---------- pôster de anime ---------- */
+
+html[data-theme='neon-noir'] .nn-poster {
+  background: #0c0618;
+  border: calc(2 * var(--nn-u)) solid #a6f6ff;
+  box-shadow:
+    0 0 calc(10 * var(--nn-u)) #19e6ff,
+    0 0 calc(36 * var(--nn-u)) rgb(25 230 255 / 0.35),
+    inset 0 0 calc(8 * var(--nn-u)) rgb(25 230 255 / 0.6);
+  transition: border-color 0.4s;
+}
+html[data-theme='neon-noir'] .nn-poster-glass {
+  position: absolute;
+  inset: calc(5 * var(--nn-u));
+  overflow: hidden;
+}
+html[data-theme='neon-noir'] .nn-poster-glass > * {
+  position: absolute;
+}
+html[data-theme='neon-noir'] :is(.nn-poster-art, .nn-poster-blink) {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='neon-noir'] .nn-poster-blink {
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-poster-title {
+  left: 5%;
+  top: 4%;
+  writing-mode: vertical-rl;
+  font: 900 calc(21 * var(--nn-u)) / 1 var(--nn-jp);
+  letter-spacing: 0.06em;
+  color: #fff;
+  text-shadow:
+    0.07em 0.07em 0 #ff3fd0,
+    0 0 0.3em rgb(255 63 208 / 0.8);
+}
+html[data-theme='neon-noir'] .nn-poster-band {
+  left: 0;
+  right: 0;
+  bottom: 4%;
+  padding: 1.5% 0;
+  text-align: center;
+  white-space: nowrap;
+  font: 400 calc(14 * var(--nn-u)) / 1 var(--font-vt323), monospace;
+  letter-spacing: 0.12em;
+  color: #d6fdff;
+  background: rgb(11 5 24 / 0.72);
+}
+html[data-theme='neon-noir'] .nn-poster-scan {
+  inset: 0;
+  background: repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.2) 0 1px, transparent 1px 3px);
+}
+html[data-theme='neon-noir'] .nn-poster-sweep {
+  top: -10%;
+  bottom: -10%;
+  left: -50%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.3) 50%, transparent 80%);
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-poster-glitch {
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 22%,
+    rgb(255 63 208 / 0.55) 22% 25%,
+    transparent 25% 48%,
+    rgb(95 243 255 / 0.5) 48% 50%,
+    transparent 50% 71%,
+    rgb(255 255 255 / 0.35) 71% 72%,
+    transparent 72%
+  );
+  opacity: 0;
+}
+
+/* ---------- gato ---------- */
+
+html[data-theme='neon-noir'] .nn-cat {
+  left: 0;
+  bottom: calc(10 * var(--nn-u));
+  width: calc(48 * var(--nn-u));
+  height: calc(27 * var(--nn-u));
+  transform: translateX(calc(190 * var(--nn-u)));
+}
+html[data-theme='neon-noir'] .nn-cat-body {
+  position: absolute;
+  inset: 0;
+}
+html[data-theme='neon-noir'] .nn-cat-body svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='neon-noir'] .nn-cat-b {
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-cat-refl {
+  top: 100%;
+  transform: scaleY(-0.7);
+  transform-origin: 50% 0;
+  opacity: 0.28;
+}
+
+/* ---------- canvas e camadas de luz ---------- */
+
+html[data-theme='neon-noir'] .nn-rain {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='neon-noir'] .nn-surge {
+  inset: 0;
+  background:
+    radial-gradient(ellipse 26% 60% at 0 45%, rgb(255 43 214 / 0.38), transparent 70%),
+    radial-gradient(ellipse 26% 60% at 100% 45%, rgb(25 230 255 / 0.32), transparent 70%),
+    linear-gradient(to top, rgb(255 43 214 / 0.2), transparent 22%);
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+html[data-theme='neon-noir'] .nn-burst {
+  left: 50%;
+  top: 50%;
+  width: 100vmax;
+  height: 100vmax;
+  margin: -50vmax 0 0 -50vmax;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    transparent 52%,
+    color-mix(in srgb, var(--win-color, #ff3fd0) 75%, transparent) 60%,
+    transparent 66%,
+    color-mix(in srgb, var(--win-color, #ff3fd0) 40%, transparent) 78%,
+    transparent 90%
+  );
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-winglow {
+  inset: 0;
+  background:
+    radial-gradient(ellipse 22% 55% at 0 50%, color-mix(in srgb, var(--win-color, #ff3fd0) 45%, transparent), transparent 70%),
+    radial-gradient(ellipse 22% 55% at 100% 50%, color-mix(in srgb, var(--win-color, #ff3fd0) 45%, transparent), transparent 70%),
+    linear-gradient(to top, color-mix(in srgb, var(--win-color, #ff3fd0) 30%, transparent), transparent 18%);
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+html[data-theme='neon-noir'] .nn-flash {
+  inset: 0;
+  background: #e8dcff;
+  opacity: 0;
+}
+html[data-theme='neon-noir'] .nn-vignette {
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgb(5 2 14 / 0.5), transparent 13cqh),
+    radial-gradient(ellipse 80% 75% at 50% 48%, transparent 58%, rgb(5 2 14 / 0.62));
+}
+
+/* ---------- reações à roleta ---------- */
+
+/* girando: néons no talo, pulsando */
+html[data-theme='neon-noir'][data-wheel='spinning'] .nn-surge {
+  opacity: 1;
+}
+html[data-theme='neon-noir'][data-wheel='spinning'] :is(.nn-jp-idle, .nn-arcade-insert) {
+  opacity: 0;
+  animation: none;
+}
+html[data-theme='neon-noir'][data-wheel='spinning'] :is(.nn-jp-spin, .nn-crt-spin, .nn-skull-eyes) {
+  opacity: 1;
+}
+/* vencedor: tudo aceso, JACKPOT na cor da fatia */
+html[data-theme='neon-noir'][data-wheel='won'] :is(.nn-jp-idle, .nn-arcade-insert, .nn-arcade-coin) {
+  opacity: 0;
+  animation: none;
+}
+html[data-theme='neon-noir'][data-wheel='won'] :is(.nn-jp-win, .nn-arcade-win, .nn-crt-win) {
+  opacity: 1;
+}
+html[data-theme='neon-noir'][data-wheel='won'] .nn-jackpot {
+  border-color: var(--win-color, #ff3fd0);
+  box-shadow:
+    0 0 calc(16 * var(--nn-u)) var(--win-color, #ff3fd0),
+    inset 0 0 calc(12 * var(--nn-u)) var(--win-color, #ff3fd0);
+}
+html[data-theme='neon-noir'][data-wheel='won'] .nn-poster {
+  border-color: var(--win-color, #ff3fd0);
+}
+html[data-theme='neon-noir'][data-wheel='won'] .nn-winglow {
+  opacity: 0.55;
+}
+
+/* ---------- celular ---------- */
+
+@media (max-width: 640px) {
+  html[data-theme='neon-noir'] .scene-neon-noir {
+    --nn-u: 0.075cqh;
+  }
+  html[data-theme='neon-noir']
+    :is(.nn-arcade, .nn-crt, .nn-steam, .nn-vend, .nn-poster, .nn-cat,
+      .nn-train, .nn-jackpot, .nn-refl) {
+    display: none;
+  }
+  html[data-theme='neon-noir'] .nn-planet {
+    left: calc(78% - 225 * var(--nn-u));
+    top: calc(-60 * var(--nn-u));
+  }
+}
+
+/* ---------- animações (só com movimento permitido) ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* tudo que segue o ciclo usa a mesma duração e o mesmo ponto de partida */
+  html[data-theme='neon-noir']
+    :is(.nn-starfield, .nn-storm, .nn-planet, .nn-clouds, .nn-bolt,
+      .nn-flash, .nn-signs, .nn-meteor) {
+    animation-duration: var(--nn-cycle);
+    animation-delay: calc(var(--nn-at) * var(--nn-cycle));
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+  html[data-theme='neon-noir'] .nn-starfield {
+    animation-name: nn-starfield;
+  }
+  html[data-theme='neon-noir'] .nn-storm {
+    animation-name: nn-storm;
+  }
+  html[data-theme='neon-noir'] .nn-planet {
+    animation-name: nn-planet;
+  }
+  html[data-theme='neon-noir'] .nn-clouds {
+    animation-name: nn-clouds;
+  }
+  html[data-theme='neon-noir'] .nn-bolt {
+    animation-name: nn-bolt;
+  }
+  html[data-theme='neon-noir'] .nn-flash {
+    animation-name: nn-flash;
+  }
+  html[data-theme='neon-noir'] .nn-signs {
+    animation-name: nn-brownout;
+  }
+  html[data-theme='neon-noir'] .nn-meteor-1 {
+    animation-name: nn-meteor-1;
+  }
+  html[data-theme='neon-noir'] .nn-meteor-2 {
+    animation-name: nn-meteor-2;
+  }
+
+  /* céu */
+  html[data-theme='neon-noir'] .nn-stars-a {
+    animation: nn-twinkle 3.1s ease-in-out infinite alternate;
+  }
+  html[data-theme='neon-noir'] .nn-stars-b {
+    animation: nn-twinkle 4.3s ease-in-out -2s infinite alternate-reverse;
+  }
+  html[data-theme='neon-noir'] .nn-cloud-1 {
+    animation: nn-drift 190s linear -110s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-cloud-2 {
+    animation: nn-drift 230s linear -60s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-cloud-3 {
+    animation: nn-drift 130s linear -95s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-cloud-4 {
+    animation: nn-drift 150s linear -45s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-spire-beacon {
+    animation: nn-beacon 1.8s steps(1, end) infinite;
+  }
+  html[data-theme='neon-noir'] .nn-train {
+    animation: nn-train 47s linear -38s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-car {
+    animation: nn-car 29s linear -12s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-jp-idle {
+    animation: nn-fk2 11.7s steps(1, end) -3s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-wet {
+    animation: nn-wet 1.1s steps(3, end) infinite;
+  }
+
+  /* letreiros: cada um zumbe e falha no seu ritmo */
+  html[data-theme='neon-noir'] .nn-fk1 {
+    animation: nn-fk1 7.3s steps(1, end) infinite;
+  }
+  html[data-theme='neon-noir'] .nn-fk2 {
+    animation: nn-fk2 11.7s steps(1, end) -5s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-fk3 {
+    animation: nn-fk3 9.1s steps(1, end) -2s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-fk4 {
+    animation: nn-fk4 13.3s steps(1, end) -7s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-fail {
+    animation: nn-fail 37s steps(1, end) -12s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-fail2 {
+    animation: nn-fail 53s steps(1, end) -40s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-skull-eyes {
+    animation: nn-eyes 6.1s steps(1, end) infinite;
+  }
+  html[data-theme='neon-noir'] .nn-lotus {
+    animation: nn-lotus 6s ease-in-out infinite alternate;
+  }
+
+  /* fliperama e TV */
+  html[data-theme='neon-noir'] .nn-arcade-marquee {
+    animation: nn-fk3 9.1s steps(1, end) -6s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-arcade-coin {
+    animation: nn-coin 1.2s ease-in-out infinite;
+  }
+  html[data-theme='neon-noir'] .nn-arcade-insert {
+    animation: nn-blink 1.4s steps(1, end) infinite;
+  }
+  html[data-theme='neon-noir'] .nn-crt-stars {
+    animation: nn-crt-stars 4s linear infinite;
+  }
+  html[data-theme='neon-noir'] .nn-crt-inv {
+    animation: nn-crt-inv 2.4s steps(4, end) infinite alternate;
+  }
+  html[data-theme='neon-noir'] .nn-crt-ship {
+    animation: nn-crt-ship 3.2s steps(8, end) infinite alternate;
+  }
+  html[data-theme='neon-noir'] .nn-crt-shot {
+    animation: nn-crt-shot 0.9s linear infinite;
+  }
+  html[data-theme='neon-noir'] .nn-crt-roll {
+    animation: nn-crt-roll 3.7s linear infinite;
+  }
+  html[data-theme='neon-noir'] .nn-reel {
+    animation: nn-spin 2.2s linear infinite;
+  }
+
+  /* vapor */
+  html[data-theme='neon-noir'] .nn-puff {
+    animation: nn-puff 5.4s ease-out infinite;
+  }
+  html[data-theme='neon-noir'] .nn-puff-2 {
+    animation-delay: -1.8s;
+  }
+  html[data-theme='neon-noir'] .nn-puff-3 {
+    animation-delay: -3.6s;
+  }
+
+  /* pôster */
+  html[data-theme='neon-noir'] .nn-poster-blink {
+    animation: nn-blinkeye 5.3s steps(1, end) infinite;
+  }
+  html[data-theme='neon-noir'] .nn-poster-sweep {
+    animation: nn-sweep 7s ease-in-out infinite;
+  }
+  html[data-theme='neon-noir'] .nn-poster-glitch {
+    animation: nn-glitch-bars 11s steps(1, end) -4s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-poster-glass {
+    animation: nn-glitch 11s steps(1, end) -4s infinite;
+  }
+
+  /* gato */
+  html[data-theme='neon-noir'] .nn-cat {
+    animation: nn-cat 53s linear -44s infinite;
+  }
+  html[data-theme='neon-noir'] .nn-cat-a {
+    animation: nn-step 0.44s steps(1, end) infinite;
+  }
+  html[data-theme='neon-noir'] .nn-cat-b {
+    animation: nn-step 0.44s steps(1, end) -0.22s infinite;
+  }
+
+  /* roleta girando: néons pulsando no máximo, telas em SPIN */
+  html[data-theme='neon-noir'][data-wheel='spinning'] :is(.nn-sign-on, .nn-refl, .nn-arcade-marquee, .nn-jp-spin) {
+    animation: nn-pulse 0.5s ease-in-out infinite alternate;
+  }
+  html[data-theme='neon-noir'][data-wheel='spinning'] .nn-surge {
+    animation: nn-surge 0.5s ease-in-out infinite alternate;
+  }
+  html[data-theme='neon-noir'][data-wheel='spinning'] .nn-crt-spin {
+    animation: nn-blink 0.5s steps(1, end) infinite;
+  }
+  html[data-theme='neon-noir'][data-wheel='spinning'] .nn-reel {
+    animation-duration: 0.4s;
+  }
+  html[data-theme='neon-noir'][data-wheel='spinning'] .nn-signs {
+    animation: none;
+  }
+  /* vencedor: explosão, tudo aceso e parado; JACKPOT pisca 2× e fica */
+  html[data-theme='neon-noir'][data-wheel='won'] :is(.nn-sign-on, .nn-refl, .nn-signs, .nn-arcade-marquee) {
+    animation: none;
+    opacity: 1;
+  }
+  html[data-theme='neon-noir'][data-wheel='won'] .nn-burst {
+    animation: nn-burst 1.8s ease-out both;
+  }
+  html[data-theme='neon-noir'][data-wheel='won'] .nn-winglow {
+    animation: nn-winglow 2.4s ease-out both;
+  }
+  html[data-theme='neon-noir'][data-wheel='won'] :is(.nn-jp-win, .nn-arcade-win, .nn-crt-win) {
+    animation: nn-won 1.2s steps(1, end) both;
+  }
+}
+
+/* ---------- ciclo ---------- */
+
+@keyframes nn-starfield {
+  0%, 28% { opacity: 0.45; }
+  38%, 62% { opacity: 0.08; }
+  72%, 92% { opacity: 1; }
+  100% { opacity: 0.45; }
+}
+@keyframes nn-storm {
+  0%, 27% { opacity: 0; }
+  36% { opacity: 0.55; }
+  41%, 59% { opacity: 0.85; }
+  69%, 100% { opacity: 0; }
+}
+@keyframes nn-planet {
+  0%, 28% { opacity: 0.9; }
+  39%, 61% { opacity: 0.3; }
+  72%, 92% { opacity: 1; }
+  100% { opacity: 0.9; }
+}
+@keyframes nn-clouds {
+  0%, 28% { opacity: 1; }
+  40%, 60% { opacity: 0.4; }
+  72%, 92% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+/* relâmpagos (cada um pisca no máximo 2 vezes em ~0,5 s) */
+@keyframes nn-bolt {
+  0%, 42.99% { opacity: 0; transform: none; }
+  43% { opacity: 1; transform: none; }
+  43.08% { opacity: 0; transform: none; }
+  43.16% { opacity: 1; transform: none; }
+  43.3% { opacity: 0; transform: none; }
+  49.99% { opacity: 0; transform: translateX(46cqw) scaleX(-1); }
+  50% { opacity: 1; transform: translateX(46cqw) scaleX(-1); }
+  50.1% { opacity: 0.2; transform: translateX(46cqw) scaleX(-1); }
+  50.18% { opacity: 1; transform: translateX(46cqw) scaleX(-1); }
+  50.36% { opacity: 0; transform: translateX(46cqw) scaleX(-1); }
+  55.99% { opacity: 0; transform: translateX(14cqw) scale(0.8); }
+  56% { opacity: 1; transform: translateX(14cqw) scale(0.8); }
+  56.14% { opacity: 0; transform: translateX(14cqw) scale(0.8); }
+  100% { opacity: 0; transform: translateX(14cqw) scale(0.8); }
+}
+@keyframes nn-flash {
+  0%, 42.99% { opacity: 0; }
+  43% { opacity: 0.2; }
+  43.08% { opacity: 0; }
+  43.16% { opacity: 0.14; }
+  43.4% { opacity: 0; }
+  49.99% { opacity: 0; }
+  50% { opacity: 0.24; }
+  50.1% { opacity: 0.04; }
+  50.18% { opacity: 0.18; }
+  50.5% { opacity: 0; }
+  55.99% { opacity: 0; }
+  56% { opacity: 0.12; }
+  56.2%, 100% { opacity: 0; }
+}
+/* o raio de 50% derruba os letreiros; voltam piscando */
+@keyframes nn-brownout {
+  0%, 50.05% { opacity: 1; }
+  50.1% { opacity: 0.2; }
+  50.5% { opacity: 0.55; }
+  50.7% { opacity: 0.1; }
+  51.4% { opacity: 0.7; }
+  51.6% { opacity: 0.3; }
+  52%, 100% { opacity: 1; }
+}
+@keyframes nn-meteor-1 {
+  0%, 74.9% { opacity: 0; transform: translateX(0); }
+  75% { opacity: 1; transform: translateX(0); }
+  75.8% { opacity: 0; transform: translateX(-26cqw); }
+  100% { opacity: 0; transform: translateX(-26cqw); }
+}
+@keyframes nn-meteor-2 {
+  0%, 85.9% { opacity: 0; transform: translateX(0); }
+  86% { opacity: 1; transform: translateX(0); }
+  86.7% { opacity: 0; transform: translateX(-22cqw); }
+  100% { opacity: 0; transform: translateX(-22cqw); }
+}
+
+/* ---------- laços curtos ---------- */
+
+@keyframes nn-twinkle {
+  from { opacity: 0.2; }
+  to { opacity: 1; }
+}
+@keyframes nn-drift {
+  from { transform: translateX(-40cqw); }
+  to { transform: translateX(110cqw); }
+}
+@keyframes nn-beacon {
+  0% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+@keyframes nn-train {
+  0% { transform: translateX(-120%); }
+  24% { transform: translateX(calc(100cqw + 60%)); }
+  100% { transform: translateX(calc(100cqw + 60%)); }
+}
+@keyframes nn-car {
+  0% { transform: translateX(110cqw); }
+  20% { transform: translateX(-30cqw); }
+  100% { transform: translateX(-30cqw); }
+}
+@keyframes nn-wet {
+  from { transform: translateY(0); }
+  to { transform: translateY(9px); }
+}
+/* zumbido: quedas curtas de brilho em pontos diferentes de cada laço */
+@keyframes nn-fk1 {
+  0% { opacity: 1; }
+  58% { opacity: 0.3; }
+  58.6% { opacity: 1; }
+  60% { opacity: 0.55; }
+  60.5% { opacity: 1; }
+}
+@keyframes nn-fk2 {
+  0% { opacity: 1; }
+  30% { opacity: 0.35; }
+  30.5% { opacity: 1; }
+  71% { opacity: 0.2; }
+  71.4% { opacity: 1; }
+  72% { opacity: 0.6; }
+  72.4% { opacity: 1; }
+}
+@keyframes nn-fk3 {
+  0% { opacity: 1; }
+  45% { opacity: 0.82; }
+  47% { opacity: 1; }
+  83% { opacity: 0.3; }
+  83.6% { opacity: 1; }
+}
+@keyframes nn-fk4 {
+  0% { opacity: 1; }
+  20% { opacity: 0.4; }
+  20.4% { opacity: 1; }
+  20.8% { opacity: 0.25; }
+  21.3% { opacity: 1; }
+  88% { opacity: 0.7; }
+  89% { opacity: 1; }
+}
+/* falha: tremelica, apaga por uns segundos e volta engasgando */
+@keyframes nn-fail {
+  0% { opacity: 1; }
+  62% { opacity: 0.15; }
+  62.5% { opacity: 0.9; }
+  63% { opacity: 0.05; }
+  63.6% { opacity: 0.6; }
+  64% { opacity: 0; }
+  76% { opacity: 0.7; }
+  76.6% { opacity: 0.1; }
+  77.4% { opacity: 1; }
+}
+@keyframes nn-eyes {
+  0% { opacity: 0; }
+  70% { opacity: 1; }
+  76% { opacity: 0; }
+  80% { opacity: 1; }
+  82% { opacity: 0; }
+}
+@keyframes nn-lotus {
+  from { transform: perspective(300px) rotateY(-28deg) translateY(0); }
+  to { transform: perspective(300px) rotateY(28deg) translateY(calc(-6 * var(--nn-u))); }
+}
+@keyframes nn-coin {
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  25% { transform: translateY(-20%) scaleX(0.2); }
+  50% { transform: translateY(-30%) scaleX(1); }
+  75% { transform: translateY(-20%) scaleX(0.2); }
+}
+@keyframes nn-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes nn-crt-stars {
+  from { transform: translateY(0); }
+  to { transform: translateY(50%); }
+}
+@keyframes nn-crt-inv {
+  from { transform: translateX(-12%); }
+  to { transform: translateX(12%); }
+}
+@keyframes nn-crt-ship {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+@keyframes nn-crt-shot {
+  0% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(-500%); }
+  81%, 100% { opacity: 0; transform: translateY(-500%); }
+}
+@keyframes nn-crt-roll {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(460%); }
+}
+@keyframes nn-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes nn-puff {
+  0% { opacity: 0; transform: translateY(0) scale(0.45); }
+  18% { opacity: 0.55; }
+  100% { opacity: 0; transform: translateY(calc(-170 * var(--nn-u))) scale(2.4); }
+}
+@keyframes nn-blinkeye {
+  0% { opacity: 0; }
+  91% { opacity: 1; }
+  93.5% { opacity: 0; }
+}
+@keyframes nn-sweep {
+  0% { opacity: 0; transform: translateX(0) skewX(-10deg); }
+  8% { opacity: 1; }
+  32% { opacity: 1; transform: translateX(480%) skewX(-10deg); }
+  33%, 100% { opacity: 0; transform: translateX(480%) skewX(-10deg); }
+}
+@keyframes nn-glitch-bars {
+  0% { opacity: 0; transform: none; }
+  90% { opacity: 1; transform: translateY(-12%); }
+  91% { opacity: 0.7; transform: translateY(18%); }
+  92% { opacity: 1; transform: translateY(4%); }
+  93% { opacity: 0; transform: none; }
+}
+@keyframes nn-glitch {
+  0% { transform: none; }
+  90% { transform: translateX(calc(4 * var(--nn-u))) skewX(-5deg); }
+  91% { transform: translateX(calc(-3 * var(--nn-u))); }
+  92% { transform: translateX(calc(2 * var(--nn-u))) skewX(3deg); }
+  93% { transform: none; }
+}
+/* o gato cruza a rua em ~15 s e some até a próxima volta */
+@keyframes nn-cat {
+  0% { transform: translateX(calc(-60 * var(--nn-u))); }
+  29% { transform: translateX(calc(100cqw + 20 * var(--nn-u))); }
+  100% { transform: translateX(calc(100cqw + 20 * var(--nn-u))); }
+}
+@keyframes nn-step {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ---------- reações à roleta ---------- */
+
+@keyframes nn-pulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+@keyframes nn-surge {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+@keyframes nn-burst {
+  0% { opacity: 1; transform: scale(0.3); }
+  70% { opacity: 0.6; }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+/* pisca 2 vezes e fica aceso */
+@keyframes nn-won {
+  0% { opacity: 1; }
+  15% { opacity: 0.1; }
+  30% { opacity: 1; }
+  45% { opacity: 0.1; }
+  60%, 100% { opacity: 1; }
+}
+/* clarão na cor da fatia que assenta num brilho calmo nas bordas */
+@keyframes nn-winglow {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* ---------- interface ---------- */
+
+/* título em tubo de néon magenta, com um traço ciano deslocado */
+html[data-theme='neon-noir'] .ui-title {
+  font-family: var(--font-silkscreen);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: none;
+  color: #ffe6fb;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 10px #ff2bd6,
+    0 0 26px rgb(255 43 214 / 0.8),
+    3px 3px 0 rgb(25 230 255 / 0.55);
+  animation: nn-ui-hum 8s steps(1, end) infinite;
+}
+html[data-theme='neon-noir'] .ui-subtitle {
+  font-family: var(--font-vt323);
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  color: #a6f6ff;
+  text-shadow:
+    0 0 6px rgb(25 230 255 / 0.5),
+    0 1px 2px #000;
+}
+@media (min-width: 1024px) {
+  html[data-theme='neon-noir'] .ui-title::after {
+    content: 'ネオン街 199X';
+    margin-left: 0.6em;
+    vertical-align: super;
+    font-family: var(--nn-jp);
+    font-size: 0.32em;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: #a6f6ff;
+    text-shadow: 0 0 8px rgb(25 230 255 / 0.8);
+  }
+}
+
+/* painéis de cassino: cantos chanfrados, tubo magenta por fora e ciano
+   por dentro (sombras internas; as diagonais são degradês nos cantos) */
+html[data-theme='neon-noir'] :is(.ui-card, .ui-chip) {
+  --nn-ch: 14px;
+  border: 0;
+  border-radius: 0;
+  clip-path: polygon(
+    var(--nn-ch) 0,
+    calc(100% - var(--nn-ch)) 0,
+    100% var(--nn-ch),
+    100% calc(100% - var(--nn-ch)),
+    calc(100% - var(--nn-ch)) 100%,
+    var(--nn-ch) 100%,
+    0 calc(100% - var(--nn-ch)),
+    0 var(--nn-ch)
+  );
+  background:
+    linear-gradient(135deg, transparent 9.4px, #ff3fd0 9.4px 11.2px, transparent 11.2px),
+    linear-gradient(225deg, transparent 9.4px, #ff3fd0 9.4px 11.2px, transparent 11.2px),
+    linear-gradient(315deg, transparent 9.4px, #ff3fd0 9.4px 11.2px, transparent 11.2px),
+    linear-gradient(45deg, transparent 9.4px, #ff3fd0 9.4px 11.2px, transparent 11.2px),
+    linear-gradient(to bottom, rgb(255 63 208 / 0.08), transparent 30%),
+    rgb(13 6 30 / 0.9);
+  box-shadow:
+    inset 0 0 0 1.8px #ff3fd0,
+    inset 0 0 0 5px rgb(11 5 24 / 0.95),
+    inset 0 0 0 6px rgb(95 243 255 / 0.55),
+    inset 0 0 26px rgb(255 63 208 / 0.22);
+}
+html[data-theme='neon-noir'] .ui-chip {
+  --nn-ch: 8px;
+  background:
+    linear-gradient(135deg, transparent 5.2px, #ff3fd0 5.2px 6.8px, transparent 6.8px),
+    linear-gradient(315deg, transparent 5.2px, #ff3fd0 5.2px 6.8px, transparent 6.8px),
+    linear-gradient(225deg, transparent 5.2px, #ff3fd0 5.2px 6.8px, transparent 6.8px),
+    linear-gradient(45deg, transparent 5.2px, #ff3fd0 5.2px 6.8px, transparent 6.8px),
+    rgb(13 6 30 / 0.9);
+}
+html[data-theme='neon-noir'] .ui-card-title {
+  font-family: var(--font-silkscreen);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #a6f6ff;
+  text-shadow: 0 0 8px rgb(25 230 255 / 0.55);
+}
+html[data-theme='neon-noir'] .ui-card-title::before {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: 0.5em;
+  vertical-align: 0.12em;
+  background: #ff3fd0;
+  box-shadow: 0 0 8px #ff3fd0;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+html[data-theme='neon-noir'] .ui-panel {
+  border-radius: 0;
+  border-color: rgb(95 243 255 / 0.3);
+  background-color: rgb(95 243 255 / 0.04);
+}
+html[data-theme='neon-noir'] .ui-input {
+  border-radius: 0;
+  border-color: rgb(255 63 208 / 0.5);
+  background-color: rgb(7 3 15 / 0.75);
+}
+html[data-theme='neon-noir'] .ui-input:focus {
+  border-color: #5ff3ff;
+  box-shadow: 0 0 0 1px #5ff3ff, 0 0 12px rgb(95 243 255 / 0.4);
+}
+/* botões de fliperama: chanfrados, contorno ciano aceso */
+html[data-theme='neon-noir'] .ui-btn {
+  border-radius: 0;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  border-color: rgb(95 243 255 / 0.55);
+  background-color: rgb(30 14 64 / 0.85);
+  color: #d6fdff;
+  box-shadow: inset 0 0 10px rgb(95 243 255 / 0.18);
+}
+html[data-theme='neon-noir'] .ui-btn:hover:not(:disabled) {
+  background-color: rgb(255 63 208 / 0.22);
+  border-color: #ff3fd0;
+}
+/* botão de girar: botão de fliperama magenta com anel ciano */
+html[data-theme='neon-noir'] .ui-cta {
+  border-radius: 12px;
+  background:
+    linear-gradient(to bottom, rgb(255 255 255 / 0.32), transparent 42%, rgb(0 0 0 / 0.22)),
+    linear-gradient(90deg, #c4128f, #ff2bd6 50%, #c4128f);
+  color: #fff;
+  font-family: var(--font-silkscreen);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-shadow:
+    0 0 8px rgb(255 255 255 / 0.8),
+    0 2px 0 #6a0a4c;
+  box-shadow:
+    0 0 0 2px #ffd0f4,
+    0 0 0 5px #0b0518,
+    0 0 0 7px #19e6ff,
+    0 0 26px rgb(255 43 214 / 0.65),
+    0 0 40px rgb(25 230 255 / 0.25);
+}
+html[data-theme='neon-noir'] .ui-cta:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+html[data-theme='neon-noir'] .ui-cta kbd {
+  font-family: var(--font-vt323);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  background: rgb(60 0 50 / 0.45);
+}
+/* aro: tubo duplo magenta/ciano sobre um anel escuro de cassino */
+html[data-theme='neon-noir'] .ui-rim {
+  background:
+    radial-gradient(circle closest-side, transparent 90.6%, #a6f6ff 91.2% 92.6%, rgb(25 230 255 / 0.5) 93.4%, transparent 95.5%),
+    repeating-conic-gradient(#1c0d3c 0deg 6deg, #2c1658 6deg 7deg),
+    #160a30;
+  box-shadow:
+    0 0 0 2px #ffd0f4,
+    0 0 0 4px #ff2bd6,
+    0 0 0 7px #0b0518,
+    0 0 0 9px #19e6ff,
+    0 0 30px rgb(255 43 214 / 0.7),
+    0 0 80px rgb(25 230 255 / 0.3),
+    inset 0 0 0 2px #ff2bd6,
+    inset 0 0 18px rgb(255 43 214 / 0.55);
+}
+html[data-theme='neon-noir'] .bulb {
+  background: #fff;
+  box-shadow:
+    0 0 4px 2px #ff3fd0,
+    0 0 12px 3px rgb(255 63 208 / 0.6);
+}
+html[data-theme='neon-noir'] .bulb:nth-of-type(even) {
+  box-shadow:
+    0 0 4px 2px #19e6ff,
+    0 0 12px 3px rgb(25 230 255 / 0.6);
+}
+html[data-theme='neon-noir'] .ui-hub {
+  font-family: var(--font-silkscreen);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #ffe6fb;
+  text-shadow: 0 0 8px #ff2bd6;
+  background: radial-gradient(circle at 50% 40%, #2c1462, #0b0518 72%);
+  box-shadow:
+    0 0 0 3px #19e6ff,
+    0 0 0 6px #0b0518,
+    0 0 0 8px #ff2bd6,
+    0 0 24px rgb(255 43 214 / 0.7),
+    inset 0 0 14px rgb(25 230 255 / 0.4);
+}
+html[data-theme='neon-noir'] footer {
+  color: rgb(var(--slate-400));
+  text-shadow:
+    0 1px 3px #000,
+    0 0 8px #000;
+}
+
+@keyframes nn-ui-hum {
+  0% { opacity: 1; }
+  71% { opacity: 0.6; }
+  71.6% { opacity: 1; }
+  72.4% { opacity: 0.8; }
+  73% { opacity: 1; }
+}
