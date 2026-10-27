@@ -1,0 +1,1023 @@
+/* ---------- RETROWAVE / OUTRUN ----------
+   O mundo 3D (céu, sol, montanhas, cidade, grade, estradas e tráfego) é
+   um fragment shader em WebGL (Scene.tsx + shader.ts). Aqui ficam as
+   camadas nítidas por cima dele e a personalização dos componentes.
+
+   Ciclo de --rw-cycle (240 s, mesma origem do shader: começa em 4%):
+     0–30%    pôr do sol, nuvens em faixas acesas de rosa
+     30–42%   crepúsculo (nuvens apagam), 42–70% noite, com o dirigível
+              do letreiro cruzando o cabeçalho (45–62%)
+     70–90%   alvorada neon (nuvens voltam), 90–100% pôr do sol de novo
+   Laços próprios: palmeiras passando (11,9 s, uma a cada ≈ 4 s por lado),
+   placa do motel (47,6 s), suspensão do carro (0,9 s), troca de faixa
+   (50 s), jato com rastro (70 s), barras de VHS (17/23/31 s), tracking
+   (41 s).
+   Projeção igual à do shader: ponto de fuga em (50vw, 60vh); um ponto do
+   chão a X unidades do centro e dy abaixo do horizonte fica em
+   x = 50vw + 56.25vw * X * dy, y = 60vh + 100vh * dy. As palmeiras ficam
+   em X = ±4,6 e são desenhadas na profundidade dy = 0,2 (escala 1): a
+   viagem é um scale() com origem no ponto de fuga (escala = 1 / z).
+   Roleta: girando = turbo (linhas de velocidade, carro avança, fogo no
+   escapamento, OSD "FF ▶▶"; o JS acelera as palmeiras com playbackRate);
+   vencedor = luz de freio uma vez e OSD "PAUSE".
+   Só opacity/transform animados. Sem animação (prefers-reduced-motion) o
+   quadro é o pôr do sol com as palmeiras paradas em fila. */
+
+html[data-theme='retrowave'] {
+  --rw-cycle: 240s;
+}
+html[data-theme='retrowave'] body {
+  --wheel-font: var(--font-orbitron);
+}
+
+/* ---------- Cena ---------- */
+
+html[data-theme='retrowave'] .scene-retrowave {
+  display: block;
+}
+/* fundo até o primeiro quadro do WebGL */
+html[data-theme='retrowave'] .theme-backdrop {
+  background: linear-gradient(
+    to bottom,
+    #1a0640 0%,
+    #5b1170 30%,
+    #d01d7e 52%,
+    #ff8a3d 60%,
+    #2a0846 60%,
+    #0d0219 100%
+  );
+}
+html[data-theme='retrowave'] .scene-retrowave > *,
+html[data-theme='retrowave'] .scene-retrowave svg {
+  position: absolute;
+  pointer-events: none;
+}
+html[data-theme='retrowave'] .scene-retrowave .rw-cyc {
+  animation-duration: var(--rw-cycle);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: calc(var(--rw-cycle) * -0.04);
+}
+
+/* mundo em WebGL (opaco, meia resolução ampliada) */
+html[data-theme='retrowave'] .rw-gl {
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* reserva sem WebGL: pôr do sol parado */
+html[data-theme='retrowave'] .rw-fb {
+  display: none;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(
+    to bottom,
+    #1a0640 0%,
+    #5b1170 26%,
+    #d01d7e 48%,
+    #ff8a3d 60%
+  );
+}
+html[data-theme='retrowave'] .rw-gl[data-gl='off'] + .rw-fb {
+  display: block;
+}
+html[data-theme='retrowave'] .rw-fb > * {
+  position: absolute;
+  display: block;
+}
+html[data-theme='retrowave'] .rw-fb-sun {
+  left: calc(65.5vw - 16.5vh);
+  top: calc(53vh - 16.5vh);
+  width: 33vh;
+  height: 33vh;
+  border-radius: 50%;
+  background: linear-gradient(#fff35c, #ff9e3d 50%, #ff2fb4);
+  box-shadow: 0 0 80px rgba(255, 47, 180, 0.6);
+  -webkit-mask-image:
+    linear-gradient(#000 0 58%, transparent 58%),
+    repeating-linear-gradient(#000 0 9px, transparent 9px 14px);
+  mask-image:
+    linear-gradient(#000 0 58%, transparent 58%),
+    repeating-linear-gradient(#000 0 9px, transparent 9px 14px);
+}
+html[data-theme='retrowave'] .rw-fb-floor {
+  left: 0;
+  right: 0;
+  top: 60vh;
+  bottom: 0;
+  overflow: hidden;
+  perspective: 30vh;
+  background: linear-gradient(#3b0f5f, #0d0219);
+  border-top: 2px solid #ff6ec7;
+}
+html[data-theme='retrowave'] .rw-fb-grid {
+  left: -50%;
+  right: -50%;
+  top: 0;
+  height: 200%;
+  transform-origin: 50% 0;
+  transform: rotateX(68deg);
+  background-image:
+    linear-gradient(rgba(255, 47, 180, 0.8) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255, 47, 180, 0.8) 2px, transparent 2px);
+  background-size: 60px 60px;
+}
+
+/* nuvens em faixas, duas camadas com velocidades diferentes */
+html[data-theme='retrowave'] .rw-clouds {
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  animation-name: rw-clouds;
+}
+html[data-theme='retrowave'] .rw-clouds svg {
+  left: 0;
+  top: 0;
+  width: 200%;
+  height: 100%;
+  animation: rw-drift 220s linear infinite;
+}
+html[data-theme='retrowave'] .rw-clouds-far {
+  top: 3vh;
+  height: 24vh;
+}
+html[data-theme='retrowave'] .rw-clouds-far path {
+  fill: rgba(255, 196, 232, 0.32);
+}
+html[data-theme='retrowave'] .rw-clouds-near {
+  top: 8vh;
+  height: 30vh;
+}
+html[data-theme='retrowave'] .rw-clouds-near svg {
+  animation-duration: 140s;
+  animation-delay: -40s;
+}
+html[data-theme='retrowave'] .rw-clouds-near path {
+  fill: rgba(255, 220, 242, 0.42);
+}
+
+/* dirigível com letreiro de LED: cruza o cabeçalho uma vez por ciclo, no
+   meio da noite (45–62%), devagar */
+html[data-theme='retrowave'] .rw-blimp {
+  top: 1.2vh;
+  left: 100vw;
+  width: 26vh;
+  aspect-ratio: 240 / 70;
+  opacity: 0;
+  animation-name: rw-blimp;
+}
+html[data-theme='retrowave'] .rw-blimp svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='retrowave'] .rw-blimp-body {
+  fill: #1d0b33;
+}
+html[data-theme='retrowave'] .rw-blimp-rim {
+  fill: rgba(255, 110, 199, 0.6);
+}
+html[data-theme='retrowave'] .rw-blimp-screen {
+  position: absolute;
+  left: 24%;
+  right: 17%;
+  top: 31%;
+  height: 36%;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 0.5vh;
+  background: #08020f;
+  box-shadow:
+    0 0 1.2vh rgba(255, 47, 180, 0.55),
+    inset 0 0 0.5vh rgba(255, 158, 61, 0.45);
+}
+html[data-theme='retrowave'] .rw-blimp-screen span {
+  white-space: pre;
+  font-family: var(--font-vt323), monospace;
+  font-size: 2.2vh;
+  line-height: 1;
+  color: #ffd36b;
+  text-shadow: 0 0 0.6vh #ff9e3d;
+  animation: rw-ticker 16s linear infinite;
+}
+html[data-theme='retrowave'] .rw-blimp-nav {
+  position: absolute;
+  left: 3%;
+  top: 44%;
+  width: 0.6vh;
+  height: 0.6vh;
+  border-radius: 50%;
+  background: #ff3355;
+  box-shadow: 0 0 0.8vh 0.3vh rgba(255, 51, 85, 0.8);
+  animation: rw-blink 1.6s steps(1) infinite;
+}
+
+/* jato cruzando o cabeçalho, deixando um rastro que se desfaz */
+html[data-theme='retrowave'] .rw-jet {
+  top: 4.4vh;
+  left: 100vw;
+  width: max(4.2vw, 52px);
+  aspect-ratio: 58 / 16;
+  animation: rw-jet 70s linear infinite;
+  animation-delay: -52s;
+}
+html[data-theme='retrowave'] .rw-jet svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: #2a0b3f;
+}
+html[data-theme='retrowave'] .rw-jet-nav {
+  position: absolute;
+  right: 4%;
+  top: 2%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ff3355;
+  box-shadow: 0 0 6px 2px rgba(255, 51, 85, 0.8);
+  animation: rw-blink 1.4s steps(1) infinite;
+}
+html[data-theme='retrowave'] .rw-trail {
+  display: block;
+  top: calc(4.4vh + max(0.6vw, 7px));
+  left: 0;
+  width: 100vw;
+  height: 3px;
+  transform-origin: 100% 50%;
+  transform: scaleX(0);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 244, 250, 0.7),
+    rgba(255, 190, 235, 0.35) 45%,
+    rgba(255, 190, 235, 0)
+  );
+  animation: rw-trail 70s linear infinite;
+  animation-delay: -52s;
+}
+
+/* ---------- Beira da estrada ---------- */
+html[data-theme='retrowave'] .rw-road {
+  inset: 0;
+}
+html[data-theme='retrowave'] .rw-road > * {
+  position: absolute;
+}
+
+/* palmeiras: desenhadas em dy = 0,2 (64vh de altura), base em X = ±4,6 */
+html[data-theme='retrowave'] .rw-palm {
+  top: 16vh;
+  width: 32vh;
+  height: 64vh;
+  animation: rw-pass 11.9s linear infinite;
+}
+html[data-theme='retrowave'] .rw-palm-l {
+  left: calc(-1.75vw - 8.8vh);
+  transform-origin: calc(51.75vw + 8.8vh) 44vh;
+}
+html[data-theme='retrowave'] .rw-palm-r {
+  left: calc(101.75vw - 23.2vh);
+  transform-origin: calc(-51.75vw + 23.2vh) 44vh;
+}
+/* quadro parado: uma fila de palmeiras recuando até o horizonte */
+html[data-theme='retrowave'] .rw-palm-l0 {
+  transform: scale(1.12);
+}
+html[data-theme='retrowave'] .rw-palm-l1 {
+  transform: scale(0.5);
+  animation-delay: -3.97s;
+}
+html[data-theme='retrowave'] .rw-palm-l2 {
+  transform: scale(0.27);
+  animation-delay: -7.93s;
+}
+html[data-theme='retrowave'] .rw-palm-r0 {
+  transform: scale(1.05);
+  animation-delay: -1.98s;
+}
+html[data-theme='retrowave'] .rw-palm-r1 {
+  transform: scale(0.58);
+  animation-delay: -5.95s;
+}
+html[data-theme='retrowave'] .rw-palm-r2 {
+  transform: scale(0.31);
+  animation-delay: -9.92s;
+}
+html[data-theme='retrowave'] .rw-palm-in,
+html[data-theme='retrowave'] .rw-sway {
+  position: absolute;
+  inset: 0;
+}
+html[data-theme='retrowave'] .rw-palm-r .rw-palm-in {
+  transform: scaleX(-1);
+}
+html[data-theme='retrowave'] .rw-sway {
+  transform-origin: 27.5% 100%;
+  animation: rw-sway 7s ease-in-out infinite alternate;
+}
+html[data-theme='retrowave'] .rw-palm-l1 .rw-sway {
+  scale: 0.86;
+  animation-duration: 5.6s;
+  animation-delay: -2s;
+}
+html[data-theme='retrowave'] .rw-palm-l2 .rw-sway {
+  scale: 1.08;
+  animation-duration: 6.4s;
+  animation-delay: -3s;
+}
+html[data-theme='retrowave'] .rw-palm-r0 .rw-sway {
+  scale: 0.92;
+  animation-duration: 7.8s;
+  animation-delay: -4s;
+}
+html[data-theme='retrowave'] .rw-palm-r1 .rw-sway {
+  scale: 1.05;
+  animation-duration: 6.1s;
+  animation-delay: -1s;
+}
+html[data-theme='retrowave'] .rw-palm-r2 .rw-sway {
+  scale: 0.85;
+  animation-duration: 5.2s;
+  animation-delay: -2.6s;
+}
+html[data-theme='retrowave'] .rw-palm svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+html[data-theme='retrowave'] .rw-palm-crown {
+  transform-origin: 58% 21.5%;
+  animation: rw-crown 4.4s ease-in-out infinite alternate;
+}
+html[data-theme='retrowave'] .rw-palm-trunk,
+html[data-theme='retrowave'] .rw-palm-leaf {
+  fill: #0c0220;
+}
+html[data-theme='retrowave'] .rw-palm-trunk {
+  stroke: rgba(255, 110, 199, 0.35);
+  stroke-width: 1.2;
+}
+html[data-theme='retrowave'] .rw-palm-leaf {
+  stroke: rgba(255, 47, 180, 0.7);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+/* placa de motel à esquerda (X = -3,8), desenhada em dy = 0,2: passa a
+   cada 47,6 s (um quarto do laço) e some até a próxima volta */
+html[data-theme='retrowave'] .rw-sign {
+  left: calc(7.25vw - 6vh);
+  top: 28vh;
+  width: 12vh;
+  height: 52vh;
+  transform-origin: calc(42.75vw + 6vh) 32vh;
+  transform: scale(1);
+  animation: rw-sign 47.6s linear infinite;
+  animation-delay: -30s;
+}
+html[data-theme='retrowave'] .rw-sign > * {
+  position: absolute;
+  display: block;
+}
+html[data-theme='retrowave'] .rw-sign-pole {
+  left: 44%;
+  width: 12%;
+  top: 62%;
+  bottom: 0;
+  background: linear-gradient(90deg, #1a0630, #5a2a7a 45%, #12031f);
+}
+html[data-theme='retrowave'] .rw-sign-box {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 64%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2vh;
+  border: 0.45vh solid #ff6ec7;
+  border-radius: 2vh 2vh 1vh 1vh;
+  background: linear-gradient(#2a0846, #12031f);
+  box-shadow:
+    0 0 1.6vh rgba(255, 47, 180, 0.8),
+    inset 0 0 1.4vh rgba(255, 47, 180, 0.45);
+  font-family: var(--font-monoton), var(--font-righteous), sans-serif;
+  color: #ffe1f3;
+  text-shadow:
+    0 0 0.6vh #ff2fb4,
+    0 0 1.6vh #ff2fb4;
+}
+html[data-theme='retrowave'] .rw-sign-box b {
+  font-weight: normal;
+  font-size: 4.6vh;
+  line-height: 0.98;
+}
+html[data-theme='retrowave'] .rw-sign-star {
+  font-style: normal;
+  font-size: 2.6vh;
+  color: #fff35c;
+  text-shadow: 0 0 1vh #ff9e3d;
+}
+html[data-theme='retrowave'] .rw-sign-name,
+html[data-theme='retrowave'] .rw-sign-vagas {
+  font-family: var(--font-righteous), sans-serif;
+  font-size: 1.35vh;
+  letter-spacing: 0.12em;
+}
+html[data-theme='retrowave'] .rw-sign-vagas {
+  color: #c8f8ff;
+  text-shadow:
+    0 0 0.5vh #2fd8ff,
+    0 0 1.2vh #2fd8ff;
+  animation: rw-neon 7.3s steps(1) infinite;
+}
+html[data-theme='retrowave'] .rw-sign-e {
+  animation: rw-neon 11.7s steps(1) infinite;
+  animation-delay: -4s;
+}
+html[data-theme='retrowave'] .rw-sign-arrow {
+  left: 62%;
+  top: 56%;
+  font-style: normal;
+  font-size: 4.4vh;
+  line-height: 1;
+  color: #8ff3ff;
+  text-shadow: 0 0 1vh #2fd8ff;
+  transform: rotate(28deg);
+}
+
+/* o nosso carro: perto da borda da estrada da direita, dy = 0,355 */
+html[data-theme='retrowave'] .rw-hero {
+  left: 91.73vw;
+  top: calc(95.5vh - 3.461vw);
+  width: 8.39vw;
+  aspect-ratio: 160 / 70;
+  animation: rw-lane 50s ease-in-out infinite;
+  animation-delay: -12s;
+}
+html[data-theme='retrowave'] .rw-hero-boost,
+html[data-theme='retrowave'] .rw-hero-bob {
+  position: absolute;
+  inset: 0;
+}
+html[data-theme='retrowave'] .rw-hero-boost {
+  transition: transform 1.4s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+html[data-theme='retrowave'] .rw-hero-bob {
+  animation: rw-bob 0.9s ease-in-out infinite alternate;
+}
+html[data-theme='retrowave'] .rw-hero svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+html[data-theme='retrowave'] .rw-hero i {
+  position: absolute;
+  display: block;
+}
+/* luz neon embaixo do carro e a poça vermelha das lanternas no asfalto */
+html[data-theme='retrowave'] .rw-hero-under {
+  left: -4%;
+  right: -4%;
+  top: 74%;
+  height: 46%;
+  background: radial-gradient(
+    closest-side,
+    rgba(47, 216, 255, 0.55),
+    rgba(124, 58, 237, 0.25) 60%,
+    rgba(47, 216, 255, 0)
+  );
+}
+html[data-theme='retrowave'] .rw-hero-pool {
+  left: -18%;
+  right: -18%;
+  top: 92%;
+  height: 90%;
+  background: radial-gradient(
+    ellipse 50% 60% at 50% 0,
+    rgba(255, 42, 109, 0.42),
+    rgba(255, 42, 109, 0.12) 55%,
+    rgba(255, 42, 109, 0)
+  );
+}
+html[data-theme='retrowave'] .rw-hero-tail,
+html[data-theme='retrowave'] .rw-hero-brake {
+  left: -10%;
+  right: -10%;
+  top: 22%;
+  height: 56%;
+  background:
+    radial-gradient(
+      ellipse 22% 42% at 22% 55%,
+      rgba(255, 70, 130, 0.7),
+      rgba(255, 42, 109, 0)
+    ),
+    radial-gradient(
+      ellipse 22% 42% at 78% 55%,
+      rgba(255, 70, 130, 0.7),
+      rgba(255, 42, 109, 0)
+    );
+}
+html[data-theme='retrowave'] .rw-hero-brake {
+  top: 0;
+  height: 80%;
+  background:
+    radial-gradient(
+      ellipse 26% 40% at 22% 66%,
+      rgba(255, 120, 150, 0.9),
+      rgba(255, 42, 109, 0)
+    ),
+    radial-gradient(
+      ellipse 26% 40% at 78% 66%,
+      rgba(255, 120, 150, 0.9),
+      rgba(255, 42, 109, 0)
+    ),
+    radial-gradient(
+      ellipse 16% 16% at 50% 17%,
+      rgba(255, 140, 170, 0.9),
+      rgba(255, 42, 109, 0)
+    );
+  opacity: 0;
+}
+/* fogo do escapamento (só no turbo) */
+html[data-theme='retrowave'] .rw-hero-fire {
+  top: 70%;
+  width: 11%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #ffffff 0,
+    #8ff3ff 22%,
+    rgba(255, 47, 180, 0.7) 48%,
+    rgba(255, 47, 180, 0) 70%
+  );
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+html[data-theme='retrowave'] .rw-hero-fire-l {
+  left: 25.4%;
+}
+html[data-theme='retrowave'] .rw-hero-fire-r {
+  left: 63.6%;
+}
+html[data-theme='retrowave'] .rw-car-tire {
+  fill: #050108;
+}
+html[data-theme='retrowave'] .rw-car-under {
+  fill: #12031e;
+}
+html[data-theme='retrowave'] .rw-car-shade {
+  fill: rgba(20, 0, 30, 0.4);
+}
+html[data-theme='retrowave'] .rw-car-hips {
+  fill: rgba(255, 190, 230, 0.35);
+}
+html[data-theme='retrowave'] .rw-car-glass {
+  fill: #160828;
+}
+html[data-theme='retrowave'] .rw-car-roof {
+  fill: #ff9ccc;
+}
+html[data-theme='retrowave'] .rw-car-wing {
+  fill: #7a0c3c;
+}
+html[data-theme='retrowave'] .rw-car-housing {
+  fill: #1a0310;
+}
+html[data-theme='retrowave'] .rw-car-lamp {
+  fill: #ff2a6d;
+}
+html[data-theme='retrowave'] .rw-car-core {
+  fill: #ffd2e2;
+}
+html[data-theme='retrowave'] .rw-car-reverse {
+  fill: #3a0c26;
+}
+html[data-theme='retrowave'] .rw-car-plate {
+  fill: #f2ecff;
+}
+html[data-theme='retrowave'] .rw-car-tag {
+  font-family: var(--font-vt323), monospace;
+  font-size: 9.5px;
+  fill: #2a0b3f;
+}
+html[data-theme='retrowave'] .rw-car-pipe {
+  fill: #0a0210;
+  stroke: #b8e8ff;
+  stroke-width: 1.2;
+}
+
+/* linhas de velocidade saindo do ponto de fuga (só no turbo) */
+html[data-theme='retrowave'] .rw-speed {
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+html[data-theme='retrowave'] .rw-speed svg {
+  left: 0;
+  top: 10vh;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform-origin: 50% 50%;
+  fill: rgba(220, 250, 255, 0.4);
+}
+
+/* ---------- Fita VHS ---------- */
+html[data-theme='retrowave'] .rw-glitch {
+  left: -6vw;
+  right: -6vw;
+  height: 1.6vh;
+  opacity: 0;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent 40%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(47, 216, 255, 0.55) 0 3px,
+      transparent 3px 8px,
+      rgba(255, 47, 180, 0.6) 8px 10px,
+      rgba(255, 255, 255, 0.4) 10px 11px,
+      transparent 11px 21px,
+      rgba(255, 243, 92, 0.35) 21px 23px,
+      transparent 23px 37px
+    );
+}
+html[data-theme='retrowave'] .rw-glitch-1 {
+  top: 21vh;
+  animation: rw-glitch 17s linear infinite;
+  animation-delay: -6s;
+}
+html[data-theme='retrowave'] .rw-glitch-2 {
+  top: 47vh;
+  height: 0.9vh;
+  animation: rw-glitch 23s linear infinite;
+  animation-delay: -15s;
+}
+html[data-theme='retrowave'] .rw-glitch-3 {
+  top: 79vh;
+  height: 2.6vh;
+  animation: rw-glitch 31s linear infinite;
+  animation-delay: -2s;
+}
+html[data-theme='retrowave'] .rw-tracking {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 7vh;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent,
+      rgba(10, 0, 25, 0.35) 25%,
+      rgba(255, 255, 255, 0.22) 50%,
+      rgba(10, 0, 25, 0.3) 75%,
+      transparent
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.35) 0 46px,
+      transparent 46px 83px,
+      rgba(47, 216, 255, 0.3) 83px 97px,
+      transparent 97px 151px,
+      rgba(255, 47, 180, 0.3) 151px 190px,
+      transparent 190px 263px
+    );
+  -webkit-mask-image: repeating-linear-gradient(#000 0 2px, transparent 2px 5px);
+  mask-image: repeating-linear-gradient(#000 0 2px, transparent 2px 5px);
+  opacity: 0;
+  animation: rw-track 41s linear infinite;
+  animation-delay: -30s;
+}
+html[data-theme='retrowave'] .rw-scan {
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.12) 0 1px,
+    transparent 1px 3px
+  );
+}
+/* OSD do videocassete: estado da fita no canto de cima, data embaixo */
+html[data-theme='retrowave'] :is(.rw-osd, .rw-date) {
+  display: flex;
+  gap: 1.1em;
+  font-family: var(--font-vt323), monospace;
+  font-size: 1.35rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow:
+    2px 0 rgba(255, 47, 180, 0.7),
+    -2px 0 rgba(47, 216, 255, 0.7);
+}
+html[data-theme='retrowave'] .rw-osd {
+  right: 1.3vw;
+  top: 1.6vh;
+}
+html[data-theme='retrowave'] .rw-osd-track {
+  opacity: 0;
+  animation: rw-track-osd 41s linear infinite;
+  animation-delay: -30s;
+}
+html[data-theme='retrowave'] .rw-osd-state {
+  display: grid;
+  justify-items: end;
+}
+html[data-theme='retrowave'] .rw-osd-state b {
+  grid-area: 1 / 1;
+  font-weight: normal;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+html[data-theme='retrowave'] .rw-osd-play {
+  opacity: 1 !important;
+}
+html[data-theme='retrowave'] .rw-date {
+  left: 1.3vw;
+  bottom: 1.4vh;
+  flex-direction: column;
+  gap: 0.15em;
+  font-size: 1.15rem;
+  color: rgba(255, 246, 210, 0.7);
+}
+
+/* ---------- Roleta: turbo e vencedor ---------- */
+html[data-theme='retrowave'][data-wheel='spinning'] .rw-speed {
+  opacity: 1;
+}
+html[data-theme='retrowave'][data-wheel='spinning'] .rw-speed svg {
+  animation: rw-speed 0.55s linear infinite;
+}
+html[data-theme='retrowave'][data-wheel='spinning'] .rw-speed .rw-speed-b {
+  animation-delay: -0.275s;
+}
+html[data-theme='retrowave'][data-wheel='spinning'] .rw-hero-boost {
+  transform: translate(-1.2vw, -2.4vh) scale(0.86);
+}
+html[data-theme='retrowave'][data-wheel='spinning'] .rw-hero-fire {
+  opacity: 1;
+  animation: rw-fire 0.36s steps(1) infinite;
+}
+html[data-theme='retrowave'][data-wheel='spinning'] .rw-hero-fire-r {
+  animation-delay: -0.18s;
+}
+html[data-theme='retrowave'][data-wheel='won'] .rw-hero-brake {
+  animation: rw-brake 2.6s ease-out forwards;
+}
+html[data-theme='retrowave'][data-wheel='spinning'] .rw-osd-play,
+html[data-theme='retrowave'][data-wheel='won'] .rw-osd-play {
+  opacity: 0 !important;
+}
+html[data-theme='retrowave'][data-wheel='spinning'] .rw-osd-ff,
+html[data-theme='retrowave'][data-wheel='won'] .rw-osd-pause {
+  opacity: 1;
+}
+html[data-theme='retrowave'][data-wheel='won'] .rw-osd-pause {
+  color: var(--win-color, #fff);
+}
+
+/* ---------- Ciclo ---------- */
+
+@keyframes rw-clouds {
+  0%, 28% { opacity: 1; }
+  40%, 70% { opacity: 0.14; }
+  80%, 100% { opacity: 1; }
+}
+@keyframes rw-blimp {
+  0%, 45% { opacity: 0; transform: translateX(0); }
+  45.1% { opacity: 1; transform: translateX(0); }
+  62% { opacity: 1; transform: translateX(calc(-100vw - 26vh)); }
+  62.1%, 100% { opacity: 0; transform: translateX(calc(-100vw - 26vh)); }
+}
+@keyframes rw-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* ---------- Laços ---------- */
+
+/* escala = 1 / z, com z indo de 30 a 3,8 em linha reta */
+@keyframes rw-pass {
+  0% { opacity: 0; transform: scale(0.1667); }
+  6% { opacity: 1; }
+  10% { transform: scale(0.1826); }
+  20% { transform: scale(0.2019); }
+  30% { transform: scale(0.2258); }
+  40% { transform: scale(0.2561); }
+  50% { transform: scale(0.2959); }
+  60% { transform: scale(0.3501); }
+  70% { transform: scale(0.4288); }
+  75% { transform: scale(0.4831); }
+  80% { transform: scale(0.5531); }
+  85% { transform: scale(0.6468); }
+  88% { transform: scale(0.72); }
+  92% { transform: scale(0.848); }
+  94% { transform: scale(0.9308); }
+  96% { opacity: 1; transform: scale(1.0314); }
+  98% { transform: scale(1.1563); }
+  100% { opacity: 0; transform: scale(1.3158); }
+}
+@keyframes rw-sway {
+  from { transform: rotate(-1.3deg); }
+  to { transform: rotate(1.5deg); }
+}
+@keyframes rw-crown {
+  from { transform: rotate(-3deg); }
+  to { transform: rotate(2.6deg); }
+}
+/* troca para a faixa de dentro (9,2vw à esquerda) e volta */
+@keyframes rw-lane {
+  0%, 58% { transform: translateX(0) rotate(0); }
+  61% { transform: translateX(-4.6vw) rotate(1.4deg); }
+  64%, 80% { transform: translateX(-9.2vw) rotate(0); }
+  83% { transform: translateX(-4.6vw) rotate(-1.4deg); }
+  86%, 100% { transform: translateX(0) rotate(0); }
+}
+/* a placa: mesma curva 1 / z da palmeira, comprimida no primeiro quarto */
+@keyframes rw-sign {
+  0% { opacity: 0; transform: scale(0.1667); }
+  1.5% { opacity: 1; }
+  5% { transform: scale(0.2019); }
+  10% { transform: scale(0.2561); }
+  15% { transform: scale(0.3501); }
+  17.5% { transform: scale(0.4288); }
+  20% { transform: scale(0.5531); }
+  22% { transform: scale(0.72); }
+  23% { transform: scale(0.848); }
+  24% { opacity: 1; transform: scale(1.0314); }
+  25% { opacity: 0; transform: scale(1.3158); }
+  25.1%, 100% { opacity: 0; transform: scale(0.1667); }
+}
+/* neon falhando: apaga por instantes, raramente */
+@keyframes rw-neon {
+  0%, 61% { opacity: 1; }
+  62% { opacity: 0.25; }
+  63% { opacity: 1; }
+  64.5% { opacity: 0.3; }
+  66%, 100% { opacity: 1; }
+}
+@keyframes rw-bob {
+  from { transform: translateY(0); }
+  to { transform: translateY(0.18vh); }
+}
+@keyframes rw-fire {
+  0% { opacity: 1; transform: scale(1); }
+  33% { opacity: 0.6; transform: scale(0.75); }
+  66% { opacity: 0.9; transform: scale(1.2); }
+}
+@keyframes rw-brake {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+@keyframes rw-speed {
+  0% { opacity: 0; transform: scale(0.7); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+@keyframes rw-jet {
+  0% { opacity: 1; transform: translateX(0); }
+  24% { opacity: 1; transform: translateX(-108vw); }
+  24.01%, 100% { opacity: 0; transform: translateX(-108vw); }
+}
+@keyframes rw-trail {
+  0% { opacity: 0.9; transform: scaleX(0); }
+  24% { opacity: 0.8; transform: scaleX(1.05) scaleY(1); }
+  40% { opacity: 0.4; transform: scaleX(1.05) scaleY(2.2); }
+  58%, 100% { opacity: 0; transform: scaleX(1.05) scaleY(3); }
+}
+@keyframes rw-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes rw-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes rw-glitch {
+  0%, 90% { opacity: 0; transform: translate(0, 0) scaleY(1); }
+  90.4% { opacity: 0.9; transform: translate(-2.5vw, 0) scaleY(1); }
+  91% { opacity: 0.5; transform: translate(1.8vw, 1.5vh) scaleY(2.2); }
+  91.6% { opacity: 0.85; transform: translate(-0.8vw, 2vh) scaleY(0.6); }
+  92.2% { opacity: 0.6; transform: translate(2.4vw, 4vh) scaleY(1.4); }
+  92.6%, 100% { opacity: 0; transform: translate(0, 4vh) scaleY(1); }
+}
+@keyframes rw-track {
+  0%, 88% { opacity: 0; transform: translateY(100vh); }
+  88.1% { opacity: 1; transform: translateY(100vh); }
+  96% { opacity: 1; transform: translateY(-10vh); }
+  96.1%, 100% { opacity: 0; transform: translateY(-10vh); }
+}
+@keyframes rw-track-osd {
+  0%, 88% { opacity: 0; }
+  88.1%, 90% { opacity: 1; }
+  90.1%, 91% { opacity: 0; }
+  91.1%, 96% { opacity: 1; }
+  96.1%, 100% { opacity: 0; }
+}
+
+/* sem margens largas: o OSD sobe para não encostar no volume */
+@media (max-width: 1500px) {
+  html[data-theme='retrowave'] .rw-osd {
+    top: 0.4vh;
+    font-size: 1.05rem;
+  }
+}
+/* telas estreitas: a estrada fica atrás dos cartões; só céu e fita */
+@media (max-width: 640px) {
+  html[data-theme='retrowave'] :is(.rw-road, .rw-speed, .rw-date) {
+    display: none;
+  }
+  html[data-theme='retrowave'] .rw-osd {
+    font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme='retrowave'] .scene-retrowave *,
+  html[data-theme='retrowave'] .scene-retrowave .rw-cyc {
+    animation: none !important;
+  }
+}
+
+/* ---------- Componentes ---------- */
+
+html[data-theme='retrowave'] .ui-title {
+  font-family: var(--font-orbitron);
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background-image: linear-gradient(
+    to bottom,
+    #e8fbff 0%,
+    #8fd8ff 46%,
+    #2b2a6e 50%,
+    #ff8ad8 54%,
+    #ffffff 100%
+  );
+  filter: drop-shadow(0 0 10px rgba(255, 47, 180, 0.75));
+}
+html[data-theme='retrowave'] .ui-subtitle {
+  color: #8fd8ff;
+  text-shadow: 0 1px 8px rgba(8, 2, 26, 0.9);
+}
+/* rodapé: a grade neon do shader passa bem atrás dele (o roxo padrão
+   ficava em ~1,3:1); vira uma etiqueta escura de fita, como o OSD */
+html[data-theme='retrowave'] body > div > footer {
+  align-self: center;
+  margin-bottom: 0.4rem;
+  padding: 0.1rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(14, 4, 32, 0.8);
+  box-shadow:
+    0 0 0 1px rgba(255, 47, 180, 0.35),
+    0 0 14px rgba(255, 47, 180, 0.2);
+  color: #c9ecff;
+}
+/* 0,78: com 0,7 as linhas da grade correndo atrás do histórico baixavam o
+   texto apagado para ~2,9:1; a cena ainda aparece pelo vidro */
+html[data-theme='retrowave'] :is(.ui-card, .ui-chip) {
+  background: rgba(20, 5, 40, 0.78);
+  border: 1px solid rgba(255, 47, 180, 0.55);
+  box-shadow:
+    0 0 24px rgba(255, 47, 180, 0.22),
+    inset 0 1px 0 rgba(143, 216, 255, 0.25),
+    inset 0 0 30px rgba(47, 216, 255, 0.06);
+}
+html[data-theme='retrowave'] .ui-card-title {
+  font-family: var(--font-orbitron);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #ff6ec7;
+  text-shadow: 0 0 10px rgba(255, 47, 180, 0.7);
+}
+html[data-theme='retrowave'] .ui-panel {
+  background: rgba(47, 216, 255, 0.05);
+  border-color: rgba(47, 216, 255, 0.3);
+}
+html[data-theme='retrowave'] .ui-cta {
+  font-family: var(--font-orbitron);
+  font-style: italic;
+  background: linear-gradient(90deg, #ffe25c, #ff8a3d 35%, #ff2fb4 70%, #9b3dff);
+  color: #170430;
+  box-shadow: 0 0 26px rgba(255, 47, 180, 0.6);
+}
+html[data-theme='retrowave'] :is(.ui-btn, .ui-hub) {
+  font-family: var(--font-orbitron);
+}
+html[data-theme='retrowave'] .ui-rim {
+  background: linear-gradient(180deg, #2fd8ff, #7c3aed 50%, #ff2fb4);
+  box-shadow:
+    0 0 30px rgba(255, 47, 180, 0.7),
+    0 0 70px rgba(47, 216, 255, 0.35);
+}
+html[data-theme='retrowave'] .ui-input {
+  border-color: rgba(47, 216, 255, 0.35);
+}

@@ -109,7 +109,22 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
   }
 
   useEffect(() => {
-    document.fonts?.ready.then(() => setFontsReady(true))
+    // Redesenha quando muda o que o canvas lê do CSS: o tema (o data-theme é
+    // gravado no <html> pelo RoletaMain depois deste desenho, no carregamento
+    // e na troca de tema) e a fonte dele, que pode chegar depois
+    const redraw = () => setFontTick((t) => t + 1)
+    const observer = new MutationObserver(redraw)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+    const fonts = document.fonts
+    fonts?.ready.then(() => setFontsReady(true))
+    fonts?.addEventListener('loadingdone', redraw)
+    return () => {
+      observer.disconnect()
+      fonts?.removeEventListener('loadingdone', redraw)
+    }
   }, [])
 
   useEffect(() => {
@@ -395,11 +410,7 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
         aria-label="Girar roleta"
         className="ui-hub absolute left-1/2 top-1/2 z-10 flex aspect-square w-[20%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-gradient-to-b from-slate-700 to-slate-950 text-[clamp(0.7rem,2.6vw,1.05rem)] font-black tracking-widest text-amber-300 shadow-[0_8px_20px_rgba(0,0,0,0.6),inset_0_2px_0_rgba(255,255,255,0.15)] ring-4 ring-amber-400 transition hover:scale-105 hover:text-amber-200 focus:outline-none focus-visible:ring-amber-200 active:scale-95 disabled:cursor-not-allowed disabled:hover:scale-100"
       >
-        {isSpinning ? (
-          <span className="h-1/3 w-1/3 animate-spin rounded-full border-4 border-amber-300/30 border-t-amber-300" />
-        ) : (
-          'GIRAR'
-        )}
+        GIRAR
       </button>
 
       <StylizedPointer pointerRef={pointerRef} />

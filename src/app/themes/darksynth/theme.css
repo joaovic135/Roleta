@@ -1,0 +1,1857 @@
+/* Tema darksynth: estilos sob html[data-theme='darksynth'] */
+
+/* ---------- DARKSYNTH: "O VIGIA" ----------
+   Horror cibernético em preto e vermelho. A sonda K-13 voa rasante por um
+   vale de montanhas serrilhadas (curvas de nível incandescentes) dentro de
+   uma tempestade, rumo a uma pirâmide negra colossal com uma lua de sangue
+   atrás e um olho de fenda que vigia a roleta.
+
+   Quem desenha o quê:
+     shader.ts (WebGL, 30 fps, meia resolução): céu, lua, nuvens, raios,
+       pirâmide, relevo em voo, névoa, varredura, fachos do olho, brasas.
+       .ds-fallback é a reserva parada se não houver WebGL.
+     este arquivo: o olho (pálpebras, íris e pupila em camadas HTML), lasers,
+       drones, fragmento em chamas, HUD da sonda, OSD da fita, VHS, eventos
+       raros e as reações. O olho daqui e o do shader ficam no mesmo ponto
+       (--ds-eye-y; x no centro, ou 72% abaixo de 641px).
+
+   Linha do tempo (laços desencontrados, em segundos desde a montagem):
+     segundos  halo do olho (5,3 s), radar (4,8 s), contadores, luzes dos
+               drones, cinzas (19 s), brasas (11 s), scanline rolando (9 s)
+     17 s      o olho passeia o olhar (ds-look)
+     37 s      esquadrilha de drones cruza o topo
+     41 s      piscadas: uma aos 20,5 s, uma dupla aos 38 s
+     47 s      varredura do shader; o HUD acende "VARREDURA" junto
+     64 s      quatro mensagens do HUD, 16 s cada
+     97 s      raro, aos 26 s: fragmento em chamas risca o cabeçalho
+     7,3 / 11,9 / 13,7 / 15,7 s  rasgos, tracking e tremida da fita
+     240 s     raro, aos 149 s: "ELE TE VIU" (olho cresce, pupila dilata,
+               bordas da tela fecham em vermelho)
+     210 s     raro, aos 183 s: sem sinal (imagem cai, faixas de ruído)
+   Roleta (html[data-wheel]):
+     spinning  pálpebras abrem, pupila contrai e trava na roleta, mira no
+               olho, 4 lasers disparando e varrendo as laterais, altímetro
+               acelera, legenda "ALVO TRAVADO" (no shader: voo e luz)
+     won       clarão suave na tela (2 pulsos, ≤ 0,22), raio na pirâmide
+               (shader), explosão de luz no olho na cor --win-color e depois
+               só um brilho calmo nessa cor enquanto o vencedor estiver aberto
+   prefers-reduced-motion: o shader desenha um quadro (raio descendo pela
+   margem esquerda) e as camadas abaixo ficam no estado-base, que é a foto
+   parada (drones à direita do olho, primeira mensagem do HUD à vista). */
+
+html[data-theme='darksynth'] {
+  --ds-eye-y: clamp(32px, 5.6vh, 64px);
+  --ds-eye-w: clamp(76px, 11vh, 128px);
+  --ds-cycle: 240s;
+  --ds-red: #ff2a1a;
+}
+html[data-theme='darksynth'] body {
+  --wheel-font: var(--font-audiowide);
+}
+/* céu antes do primeiro quadro do shader */
+html[data-theme='darksynth'] .theme-backdrop {
+  background: linear-gradient(
+    to bottom,
+    #020001 0%,
+    #0b0103 30%,
+    #2a0306 52%,
+    #6a0a08 59.4%,
+    #140102 60.6%,
+    #000 100%
+  );
+}
+
+/* ---------- Cena ---------- */
+
+html[data-theme='darksynth'] .scene-darksynth {
+  display: block;
+}
+.scene-darksynth > * {
+  position: absolute;
+  pointer-events: none;
+}
+.scene-darksynth svg {
+  display: block;
+  overflow: visible;
+}
+
+/* canvas do shader; 8px a mais dos lados para a tremida da fita */
+.scene-darksynth .ds-gl {
+  top: 0;
+  bottom: 0;
+  left: -8px;
+  width: calc(100% + 16px);
+  height: 100%;
+  display: block;
+  animation: ds-jolt 15.7s steps(1) infinite;
+}
+
+/* reserva sem WebGL: lua, pirâmide, brilho do horizonte e serras */
+.scene-darksynth .ds-fallback {
+  display: none;
+  inset: 0;
+}
+.scene-darksynth .ds-gl[data-gl='off'] ~ .ds-fallback {
+  display: block;
+}
+.scene-darksynth .ds-fallback > * {
+  position: absolute;
+}
+.scene-darksynth .ds-fb-moon {
+  left: 50%;
+  top: 30vh;
+  width: 60vh;
+  height: 60vh;
+  margin: -30vh 0 0 -30vh;
+  border-radius: 50%;
+  background: radial-gradient(circle, #a50d07 0%, #6a0604 60%, #3a0202 100%);
+  box-shadow: 0 0 80px 10px rgba(255, 20, 10, 0.35);
+}
+.scene-darksynth .ds-fb-pyr {
+  inset: 0;
+  background: linear-gradient(#060001, #0d0102 55%, #2a0305);
+  clip-path: polygon(
+    50% -3vh,
+    calc(50% + 63vh) 60vh,
+    calc(50% - 63vh) 60vh
+  );
+}
+.scene-darksynth .ds-fb-glow {
+  left: -10%;
+  right: -10%;
+  top: 46vh;
+  height: 28vh;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(255, 40, 20, 0.5),
+    rgba(255, 20, 20, 0.14) 45%,
+    transparent 70%
+  );
+}
+.scene-darksynth .ds-fallback svg {
+  left: 0;
+  width: 100%;
+  top: 36vh;
+  height: 24.2vh;
+}
+.scene-darksynth .ds-fallback path {
+  fill: #030000;
+  stroke: #ff2a1a;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- Brasas grandes e cinzas (perto da câmera, nas bordas) ---------- */
+
+.scene-darksynth .ds-motes {
+  inset: 0;
+}
+.scene-darksynth .ds-fall {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: -100%;
+  height: 200%;
+}
+.scene-darksynth .ds-fall svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-darksynth .ds-fall path {
+  fill: none;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.scene-darksynth .ds-ash {
+  animation: ds-fall 19s linear infinite;
+}
+.scene-darksynth .ds-ash path {
+  stroke: rgba(205, 185, 180, 0.5);
+  stroke-width: 3;
+}
+.scene-darksynth .ds-ember {
+  animation: ds-rise 11s linear infinite;
+}
+.scene-darksynth .ds-ember svg {
+  filter: drop-shadow(0 0 4px #ff3000);
+}
+.scene-darksynth .ds-ember path {
+  stroke: #ff6a2a;
+  stroke-width: 4.5;
+}
+
+/* ---------- O olho ---------- */
+
+.scene-darksynth .ds-eye {
+  left: 50%;
+  top: var(--ds-eye-y);
+  width: var(--ds-eye-w);
+  aspect-ratio: 2;
+  transform: translate(-50%, -50%);
+}
+.scene-darksynth .ds-eye > *,
+.scene-darksynth .ds-eye-stare > *,
+.scene-darksynth .ds-eye-clip > *,
+.scene-darksynth .ds-eye-win > * {
+  position: absolute;
+}
+.scene-darksynth .ds-eye-halo {
+  inset: -150% -95%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 90, 30, 0.4),
+    rgba(255, 30, 10, 0.13) 40%,
+    rgba(255, 10, 0, 0.04) 70%,
+    transparent
+  );
+  animation: ds-breathe 5.3s ease-in-out infinite alternate;
+}
+/* girando: brilho quente a mais */
+.scene-darksynth .ds-eye-halo-hot {
+  inset: -95% -55%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 200, 140, 0.6),
+    rgba(255, 70, 20, 0.28) 45%,
+    transparent
+  );
+  opacity: 0;
+  animation: none;
+  transition: opacity 0.6s ease;
+}
+.scene-darksynth .ds-eye-stare {
+  inset: 0;
+  animation: ds-k-stare var(--ds-cycle) linear infinite;
+}
+.scene-darksynth .ds-eye-clip {
+  inset: 0;
+}
+.scene-darksynth .ds-eye-sclera {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-darksynth .ds-eye-veins {
+  fill: none;
+  stroke: rgba(48, 0, 0, 0.6);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+/* íris + pupila (quadrado no meio): mira a roleta ao girar */
+.scene-darksynth .ds-eye-focus {
+  left: 27.5%;
+  top: 5%;
+  width: 45%;
+  height: 90%;
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.scene-darksynth .ds-eye-focus > *,
+.scene-darksynth .ds-eye-look > *,
+.scene-darksynth .ds-eye-pupil > * {
+  position: absolute;
+}
+.scene-darksynth .ds-eye-look {
+  inset: 0;
+  animation: ds-look 17s infinite;
+}
+.scene-darksynth .ds-eye-iris {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-darksynth .ds-iris-rays {
+  fill: none;
+  stroke: rgba(96, 0, 0, 0.55);
+  stroke-width: 1.3;
+}
+.scene-darksynth .ds-iris-limbus {
+  fill: none;
+  stroke: #1a0000;
+  stroke-width: 3;
+}
+.scene-darksynth .ds-iris-fire {
+  fill: none;
+  stroke: rgba(255, 238, 170, 0.6);
+  stroke-width: 1.6;
+}
+.scene-darksynth .ds-eye-pupil {
+  inset: 0;
+  transition: transform 0.4s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.scene-darksynth .ds-eye-dilate {
+  inset: 0;
+  animation: ds-k-dilate var(--ds-cycle) linear infinite;
+}
+.scene-darksynth .ds-eye-slit {
+  position: absolute;
+  left: 41%;
+  width: 18%;
+  top: 5%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, #000 55%, #1a0000);
+  box-shadow:
+    0 0 0 1px rgba(255, 190, 90, 0.45),
+    0 0 6px 1px rgba(0, 0, 0, 0.85);
+}
+.scene-darksynth .ds-eye-glint {
+  left: 60%;
+  top: 16%;
+  width: 13%;
+  height: 13%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #fff, rgba(255, 255, 255, 0));
+  opacity: 0.8;
+}
+/* pálpebras: o invólucro abre/aperta (transição), o filho pisca */
+.scene-darksynth .ds-lid {
+  left: -4%;
+  right: -4%;
+  height: 100%;
+  transition: transform 0.5s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.scene-darksynth .ds-lid i {
+  position: absolute;
+  inset: 0;
+  background: #060001;
+}
+/* olhar semicerrado e ameaçador por padrão */
+.scene-darksynth .ds-lid-top {
+  top: -50%;
+  transform: translateY(-15%);
+}
+.scene-darksynth .ds-lid-top i {
+  border-radius: 0 0 50% 50% / 0 0 14% 14%;
+  border-bottom: 1.5px solid #ff6a30;
+  box-shadow: 0 2px 6px rgba(255, 60, 20, 0.55);
+  animation: ds-blink-top 41s infinite;
+}
+.scene-darksynth .ds-lid-bot {
+  top: 50%;
+  transform: translateY(15%);
+}
+.scene-darksynth .ds-lid-bot i {
+  border-radius: 50% 50% 0 0 / 14% 14% 0 0;
+  border-top: 1.5px solid rgba(255, 90, 40, 0.75);
+  box-shadow: 0 -2px 5px rgba(255, 50, 20, 0.4);
+  animation: ds-blink-bot 41s infinite;
+}
+.scene-darksynth .ds-eye-rim {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 2px #ff2a10) drop-shadow(0 0 7px rgba(255, 30, 0, 0.6));
+}
+.scene-darksynth .ds-eye-rim path {
+  fill: none;
+  stroke: #ff5a2a;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+/* vencedor: portão (aparece já, some devagar) + clarão único + brilho */
+.scene-darksynth .ds-eye-win {
+  inset: 0;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity 1.6s ease;
+}
+.scene-darksynth .ds-eye-flare,
+.scene-darksynth .ds-eye-after {
+  inset: 0;
+}
+.scene-darksynth .ds-eye-flare {
+  opacity: 0;
+}
+.scene-darksynth .ds-eye-flare > *,
+.scene-darksynth .ds-eye-after {
+  position: absolute;
+}
+.scene-darksynth .ds-flare-glow {
+  inset: -260% -170%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    #fff 0%,
+    var(--win-color, #ff2a2a) 14%,
+    transparent 100%
+  );
+}
+.scene-darksynth .ds-flare-streak {
+  left: -900%;
+  right: -900%;
+  top: 46%;
+  height: 8%;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--win-color, #ff2a2a) 30%,
+    #fff 50%,
+    var(--win-color, #ff2a2a) 70%,
+    transparent
+  );
+}
+.scene-darksynth .ds-flare-cross {
+  left: 47%;
+  width: 6%;
+  top: -260%;
+  bottom: -260%;
+  border-radius: 50%;
+  background: linear-gradient(
+    transparent,
+    var(--win-color, #ff2a2a) 35%,
+    #fff 50%,
+    var(--win-color, #ff2a2a) 65%,
+    transparent
+  );
+}
+.scene-darksynth .ds-eye-after {
+  inset: -150% -100%;
+  border-radius: 50%;
+  opacity: 0.5;
+  background: radial-gradient(
+    closest-side,
+    var(--win-color, #ff2a2a) 0%,
+    transparent 100%
+  );
+}
+/* mira (cantos) que fecha no olho ao girar */
+.scene-darksynth .ds-eye-lock {
+  inset: -55% -28%;
+  opacity: 0;
+  transform: scale(1.9);
+  transition:
+    opacity 0.3s ease,
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background:
+    linear-gradient(var(--ds-red), var(--ds-red)) top left / 16% 2px no-repeat,
+    linear-gradient(var(--ds-red), var(--ds-red)) top left / 2px 30% no-repeat,
+    linear-gradient(var(--ds-red), var(--ds-red)) top right / 16% 2px no-repeat,
+    linear-gradient(var(--ds-red), var(--ds-red)) top right / 2px 30% no-repeat,
+    linear-gradient(var(--ds-red), var(--ds-red)) bottom left / 16% 2px
+      no-repeat,
+    linear-gradient(var(--ds-red), var(--ds-red)) bottom left / 2px 30%
+      no-repeat,
+    linear-gradient(var(--ds-red), var(--ds-red)) bottom right / 16% 2px
+      no-repeat,
+    linear-gradient(var(--ds-red), var(--ds-red)) bottom right / 2px 30%
+      no-repeat;
+}
+
+/* ---------- Lasers do olho ---------- */
+
+.scene-darksynth .ds-lasers {
+  left: 50%;
+  top: var(--ds-eye-y);
+  width: 0;
+  height: 0;
+}
+.scene-darksynth .ds-laser {
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 160vmax;
+  height: 8px;
+  transform-origin: 0 50%;
+  transform: rotate(var(--ds-a));
+  opacity: 0;
+  /* núcleo branco-quente com halo vermelho, cortado em volta do olho */
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(255, 30, 10, 0.45) 28%,
+      #ffe2d8 46% 54%,
+      rgba(255, 30, 10, 0.45) 72%,
+      transparent
+    )
+    calc(var(--ds-eye-w) * 0.45) 0 / 100% 100% no-repeat;
+}
+
+/* ---------- Drones ---------- */
+
+.scene-darksynth .ds-squad {
+  top: 14px;
+  left: 0;
+  width: 0;
+  height: 0;
+  /* parado (reduced motion): passando à direita do olho */
+  transform: translate(66vw, 0);
+  animation: ds-squad 37s linear infinite;
+  animation-delay: -6s;
+}
+.scene-darksynth .ds-drone {
+  position: absolute;
+  aspect-ratio: 64 / 26;
+}
+.scene-darksynth .ds-drone-bob {
+  position: absolute;
+  inset: 0;
+  animation: ds-bob ease-in-out infinite alternate;
+}
+.scene-darksynth .ds-drone svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-darksynth .ds-drone-hull {
+  fill: #050101;
+  stroke: rgba(255, 60, 44, 0.6);
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+.scene-darksynth .ds-drone-lit {
+  fill: #ff3a24;
+}
+.scene-darksynth .ds-drone-light {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    #ffe0d6,
+    #ff2a14 40%,
+    rgba(255, 20, 10, 0)
+  );
+  animation: ds-beacon 1.3s steps(1) infinite;
+}
+
+/* fragmento em chamas: cruza o cabeçalho da direita para a esquerda */
+.scene-darksynth .ds-meteor {
+  top: 0;
+  left: 0;
+  width: clamp(160px, 16vw, 300px);
+  height: 6px;
+  opacity: 0;
+  transform: translate(110vw, 12px) rotate(-7deg);
+  animation: ds-meteor 97s linear infinite;
+  animation-delay: -71s;
+}
+.scene-darksynth .ds-meteor i {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    #fff4e8 0,
+    #ffb070 3%,
+    rgba(255, 60, 20, 0.85) 12%,
+    rgba(255, 30, 10, 0.35) 45%,
+    transparent
+  );
+  box-shadow: -2px 0 10px 2px rgba(255, 120, 60, 0.6);
+}
+
+/* ---------- HUD da sonda (telas largas: margens livres) ---------- */
+
+.scene-darksynth .ds-hud {
+  /* abaixo da faixa da tempestade (o alto das margens fica para os raios) */
+  --ds-hud-t: max(235px, 22vh);
+  display: none;
+  top: 0;
+  bottom: 0;
+  width: 138px;
+  font-family: var(--font-share-tech), ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ff6250;
+  text-shadow: 0 0 6px rgba(255, 20, 0, 0.7);
+}
+.scene-darksynth .ds-hud-l {
+  left: 20px;
+}
+.scene-darksynth .ds-hud-r {
+  right: 20px;
+}
+@media (min-width: 1880px) {
+  .scene-darksynth .ds-hud {
+    display: block;
+  }
+}
+.scene-darksynth .ds-hud > * {
+  position: absolute;
+}
+.scene-darksynth :is(.ds-panel, .ds-alert, .ds-log, .ds-scanlbl) {
+  left: 0;
+  right: 0;
+}
+.scene-darksynth .ds-panel {
+  top: var(--ds-hud-t);
+  padding: 8px 10px 10px;
+  border: 1px solid rgba(255, 40, 30, 0.4);
+  background:
+    linear-gradient(#ff3a24, #ff3a24) top left / 12px 2px no-repeat,
+    linear-gradient(#ff3a24, #ff3a24) top left / 2px 12px no-repeat,
+    linear-gradient(#ff3a24, #ff3a24) bottom right / 12px 2px no-repeat,
+    linear-gradient(#ff3a24, #ff3a24) bottom right / 2px 12px no-repeat,
+    linear-gradient(rgba(34, 0, 2, 0.62), rgba(8, 0, 0, 0.38));
+}
+.scene-darksynth .ds-ptitle {
+  display: block;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 40, 30, 0.4);
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  color: #ffb4a6;
+}
+.scene-darksynth .ds-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 5px 0;
+}
+.scene-darksynth .ds-num {
+  display: inline-flex;
+  align-items: flex-start;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: #ffd8cf;
+}
+.scene-darksynth .ds-num small {
+  margin-left: 3px;
+  font-size: 9px;
+  color: #ff6250;
+}
+/* tira de dígitos: cada degrau sobe 1em */
+.scene-darksynth .ds-dig {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+}
+.scene-darksynth .ds-dig > span {
+  display: block;
+  white-space: pre;
+  line-height: 1;
+  animation: ds-count 1s steps(10) infinite;
+}
+.scene-darksynth .ds-alt0 > span {
+  animation-duration: 1.3s;
+}
+.scene-darksynth .ds-alt1 > span {
+  animation-duration: 13s;
+}
+.scene-darksynth .ds-d0 > span {
+  animation-duration: 1.1s;
+}
+.scene-darksynth .ds-d1 > span {
+  animation-duration: 11s;
+}
+.scene-darksynth .ds-d2 > span {
+  animation-duration: 110s;
+  animation-delay: -38s;
+}
+.scene-darksynth .ds-s0 > span {
+  animation-duration: 10s;
+}
+.scene-darksynth .ds-s1 > span {
+  animation: ds-count6 60s steps(6) infinite;
+}
+/* altímetro: régua rolando (uma cópia rápida entra ao girar) */
+.scene-darksynth .ds-ladder {
+  position: relative;
+  height: 110px;
+  margin: 8px 0;
+  overflow: hidden;
+  border-left: 1px solid rgba(255, 40, 30, 0.55);
+}
+.scene-darksynth .ds-ladder i {
+  position: absolute;
+  left: 0;
+  right: 28%;
+  top: -40px;
+  bottom: 0;
+  background:
+    repeating-linear-gradient(
+        to bottom,
+        #ff4a36 0 1px,
+        transparent 1px 40px
+      )
+      0 0 / 80% 100% no-repeat,
+    repeating-linear-gradient(
+        to bottom,
+        rgba(255, 74, 54, 0.55) 0 1px,
+        transparent 1px 8px
+      )
+      0 0 / 38% 100% no-repeat;
+  transition: opacity 0.4s ease;
+}
+.scene-darksynth .ds-ladder-a {
+  animation: ds-ladder 2.6s linear infinite;
+}
+.scene-darksynth .ds-ladder-b {
+  opacity: 0;
+}
+.scene-darksynth .ds-ladder b {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  margin-top: -5px;
+  border: 5px solid transparent;
+  border-right: 7px solid #ffd0c4;
+}
+.scene-darksynth .ds-bars {
+  display: inline-flex;
+  gap: 2px;
+  height: 10px;
+}
+.scene-darksynth .ds-bars span {
+  display: inline-flex;
+  gap: 2px;
+}
+.scene-darksynth .ds-bars i {
+  width: 5px;
+  height: 100%;
+  background: #ff3a26;
+  box-shadow: 0 0 4px rgba(255, 30, 10, 0.8);
+}
+.scene-darksynth .ds-vel span {
+  animation: ds-flicker 2.9s steps(1) infinite;
+}
+.scene-darksynth .ds-sig span {
+  animation: ds-flicker 3.7s steps(1) infinite reverse;
+}
+.scene-darksynth .ds-alert {
+  top: calc(var(--ds-hud-t) + 228px);
+  padding: 6px 8px;
+  border: 1px solid #ff2a1a;
+  background: rgba(70, 0, 0, 0.55);
+  color: #ffd8d0;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  animation: ds-alarm 1.6s steps(1) infinite;
+}
+.scene-darksynth .ds-alert i {
+  display: inline-block;
+  width: 12px;
+  height: 11px;
+  margin: 0 7px -1px 0;
+  background: #ff4a30;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.scene-darksynth .ds-log {
+  top: calc(var(--ds-hud-t) + 104px);
+  height: 64px;
+  border-left: 2px solid rgba(255, 40, 30, 0.6);
+  background: linear-gradient(90deg, rgba(60, 0, 0, 0.45), transparent);
+}
+.scene-darksynth .ds-msg {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  right: 0;
+  margin: 0;
+  font-size: 12px;
+  color: #ffcfc4;
+  opacity: 0;
+  animation: ds-msg 64s linear infinite;
+}
+.scene-darksynth .ds-msg:nth-child(2) {
+  animation-delay: -48s;
+}
+.scene-darksynth .ds-msg:nth-child(3) {
+  animation-delay: -32s;
+}
+.scene-darksynth .ds-msg:nth-child(4) {
+  animation-delay: -16s;
+}
+/* parado: a primeira mensagem fica à vista */
+.scene-darksynth .ds-msg:first-child {
+  opacity: 1;
+}
+.scene-darksynth .ds-msg small {
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+  color: #ff6250;
+}
+.scene-darksynth .ds-cursor {
+  position: absolute;
+  left: 10px;
+  bottom: 6px;
+  animation: ds-cursor 1.1s steps(1) infinite;
+}
+.scene-darksynth .ds-scanlbl {
+  top: calc(var(--ds-hud-t) + 184px);
+  padding: 3px 8px;
+  border: 1px solid #ff3a26;
+  background: rgba(255, 30, 20, 0.22);
+  color: #fff0ec;
+  text-align: center;
+  letter-spacing: 0.3em;
+  opacity: 0;
+  animation: ds-scanlbl 47s linear infinite;
+}
+
+/* radar (canto de baixo à esquerda) */
+.scene-darksynth .ds-radar {
+  bottom: 96px;
+  left: 6px;
+  width: clamp(100px, 12vh, 128px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 50, 50, 0.65);
+  background: radial-gradient(
+    circle,
+    rgba(70, 0, 0, 0.5),
+    rgba(8, 0, 0, 0.85)
+  );
+  box-shadow:
+    0 0 22px rgba(255, 0, 0, 0.35),
+    inset 0 0 22px rgba(255, 0, 0, 0.25);
+}
+.scene-darksynth .ds-radar > * {
+  position: absolute;
+}
+.scene-darksynth .ds-radar-grid {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: rgba(255, 50, 50, 0.35);
+  stroke-width: 0.6;
+}
+.scene-darksynth .ds-radar-sweep {
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    rgba(255, 40, 40, 0) 0deg 280deg,
+    rgba(255, 60, 60, 0.6) 360deg
+  );
+  animation: ds-spin linear infinite;
+}
+.scene-darksynth .ds-blip {
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: #ff6a5a;
+  box-shadow: 0 0 9px 2px #ff2020;
+  opacity: 0;
+  animation: ds-blip ease-out infinite;
+}
+.scene-darksynth .ds-radar-label {
+  top: calc(100% + 7px);
+  left: -10px;
+  right: -10px;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(255, 98, 80, 0.9);
+}
+
+/* OSD da fita VHS (faixa de baixo, telas de computador) */
+.scene-darksynth .ds-osd {
+  bottom: 9px;
+  display: none;
+  gap: 16px;
+  align-items: center;
+  font-family: var(--font-vt323), ui-monospace, monospace;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: rgba(255, 236, 230, 0.82);
+  text-shadow:
+    2px 0 rgba(255, 0, 40, 0.6),
+    -2px 0 rgba(0, 220, 255, 0.3);
+}
+@media (min-width: 1024px) {
+  .scene-darksynth .ds-osd {
+    display: flex;
+  }
+}
+.scene-darksynth .ds-osd-l {
+  left: 20px;
+}
+.scene-darksynth .ds-osd-r {
+  right: 20px;
+}
+.scene-darksynth .ds-play i {
+  display: inline-block;
+  width: 10px;
+  height: 13px;
+  margin-right: 7px;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.scene-darksynth .ds-clock {
+  display: inline-flex;
+  align-items: flex-start;
+}
+.scene-darksynth .ds-trk i {
+  display: inline-block;
+  width: 50px;
+  height: 8px;
+  margin-left: 8px;
+  background: repeating-linear-gradient(
+    90deg,
+    currentColor 0 6px,
+    transparent 6px 9px
+  );
+  clip-path: inset(0 30% 0 0);
+}
+
+/* legendas ao lado do olho (faixa do cabeçalho) */
+.scene-darksynth .ds-cap {
+  top: var(--ds-eye-y);
+  left: calc(50% + var(--ds-eye-w) * 0.95);
+  padding: 4px 10px;
+  transform: translateY(-50%);
+  border-left: 2px solid var(--ds-red);
+  background: linear-gradient(90deg, rgba(255, 30, 10, 0.26), transparent);
+  font-family: var(--font-share-tech), ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #ffd9d0;
+  text-shadow: 0 0 8px #ff1a0a;
+  opacity: 0;
+}
+.scene-darksynth .ds-cap-lost {
+  left: auto;
+  right: calc(50% + var(--ds-eye-w) * 0.95);
+  border-left: 0;
+  border-right: 2px solid var(--ds-red);
+  background: linear-gradient(270deg, rgba(255, 30, 10, 0.26), transparent);
+  animation: ds-k-lostcap 210s linear infinite;
+}
+.scene-darksynth .ds-cap-seen {
+  color: #fff;
+  font-size: 15px;
+  animation: ds-k-seencap var(--ds-cycle) linear infinite;
+}
+
+/* ---------- VHS ---------- */
+
+.scene-darksynth .ds-scan {
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.3) 0 1px,
+    transparent 1px 3px
+  );
+}
+.scene-darksynth .ds-roll {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14vh;
+  background: linear-gradient(
+    transparent,
+    rgba(255, 80, 80, 0.05) 40%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent
+  );
+  animation: ds-roll 9s linear infinite;
+}
+.scene-darksynth .ds-track {
+  inset: 0;
+}
+.scene-darksynth .ds-track i {
+  position: absolute;
+  top: 0;
+  left: -5%;
+  right: -5%;
+  height: 4vh;
+  opacity: 0;
+  background:
+    linear-gradient(transparent, rgba(0, 0, 0, 0.5) 50%, transparent),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.4) 0 2px,
+      transparent 2px 9px,
+      rgba(255, 40, 40, 0.5) 9px 11px,
+      transparent 11px 23px,
+      rgba(255, 255, 255, 0.15) 23px 31px,
+      transparent 31px 37px
+    );
+  animation: ds-track 13.7s linear infinite;
+}
+.scene-darksynth .ds-tear {
+  left: -4%;
+  right: -4%;
+  height: 2px;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.7) 18%,
+    rgba(255, 40, 40, 0.85) 50%,
+    rgba(90, 200, 255, 0.5) 53%,
+    transparent 92%
+  );
+  animation: ds-tear 7.3s steps(1) infinite;
+}
+.scene-darksynth .ds-tear-1 {
+  top: 23vh;
+}
+.scene-darksynth .ds-tear-2 {
+  top: 71vh;
+  animation-duration: 11.9s;
+  animation-delay: -5s;
+}
+.scene-darksynth .ds-headnoise {
+  left: -12px;
+  right: -12px;
+  bottom: 0;
+  height: 1.2vh;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.2) 0 3px,
+    transparent 3px 7px,
+    rgba(255, 40, 40, 0.3) 7px 9px,
+    transparent 9px 17px
+  );
+  animation: ds-noise 0.35s steps(2) infinite alternate;
+}
+
+/* ---------- Eventos raros e vitória ---------- */
+
+/* "ELE TE VIU": as bordas da tela fecham em vermelho, devagar */
+.scene-darksynth .ds-seen {
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 70% 75% at 50% 18%,
+    transparent 35%,
+    rgba(110, 0, 0, 0.55) 75%,
+    rgba(36, 0, 0, 0.88)
+  );
+  animation: ds-k-seen var(--ds-cycle) linear infinite;
+}
+/* sem sinal: a imagem cai e faixas de ruído descem */
+.scene-darksynth .ds-lost {
+  inset: 0;
+  opacity: 0;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.62);
+  animation: ds-k-lost 210s linear infinite;
+}
+.scene-darksynth .ds-lost i {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: -60px;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.13) 0 2px,
+    transparent 2px 7px,
+    rgba(255, 40, 40, 0.18) 7px 9px,
+    transparent 9px 20px
+  );
+  animation: ds-lostnoise 0.36s steps(3) infinite;
+}
+.scene-darksynth .ds-winflash {
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 90% 75% at 50% 0%,
+    #fff0ec,
+    rgba(255, 130, 115, 0.7) 45%,
+    rgba(255, 60, 50, 0.4)
+  );
+}
+
+/* ---------- Reações à roleta ---------- */
+
+html[data-wheel='spinning'] .scene-darksynth .ds-lid-top {
+  transform: translateY(-40%);
+}
+html[data-wheel='spinning'] .scene-darksynth .ds-lid-bot {
+  transform: translateY(38%);
+}
+html[data-wheel='spinning'] .scene-darksynth .ds-eye-pupil {
+  transform: scaleX(0.45);
+}
+html:is([data-wheel='spinning'], [data-wheel='won'])
+  .scene-darksynth
+  .ds-eye-focus {
+  transform: translateY(14%);
+}
+/* o olho para de passear e encara a roleta (volta ao centro na hora) */
+html:is([data-wheel='spinning'], [data-wheel='won'])
+  .scene-darksynth
+  .ds-eye-look {
+  animation: none;
+}
+html[data-wheel='spinning'] .scene-darksynth .ds-eye-halo-hot {
+  opacity: 1;
+}
+html[data-wheel='spinning'] .scene-darksynth .ds-eye-lock {
+  opacity: 1;
+  transform: none;
+}
+html[data-wheel='spinning'] .scene-darksynth .ds-laser {
+  animation-name: ds-fire;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+html[data-wheel='spinning'] .scene-darksynth .ds-ladder-a {
+  opacity: 0;
+}
+html[data-wheel='spinning'] .scene-darksynth .ds-ladder-b {
+  opacity: 1;
+  animation: ds-ladder 0.45s linear infinite;
+}
+html[data-wheel='spinning'] .scene-darksynth .ds-cap-lock {
+  animation: ds-caplock 1s steps(1) infinite;
+}
+html[data-wheel='won'] .scene-darksynth .ds-eye-win {
+  opacity: 1;
+  transition-duration: 0.1s;
+}
+html[data-wheel='won'] .scene-darksynth .ds-eye-flare {
+  animation: ds-flare 2.6s ease-out 1 both;
+}
+html[data-wheel='won'] .scene-darksynth .ds-winflash {
+  animation: ds-winflash 1.2s ease-out 1 both;
+}
+html[data-wheel='won'] .scene-darksynth .ds-cap-won {
+  animation: ds-capwon 0.7s steps(1) 1 both;
+}
+
+/* celular: sem HUD/OSD nem partículas grandes; legendas menores */
+@media (max-width: 640px) {
+  .scene-darksynth :is(.ds-motes, .ds-osd, .ds-cap-lost) {
+    display: none;
+  }
+  /* o título fica à esquerda do topo: o olho vai para 72% (o shader idem) */
+  .scene-darksynth :is(.ds-eye, .ds-lasers) {
+    left: 72%;
+  }
+  .scene-darksynth .ds-cap {
+    left: auto;
+    right: 8px;
+    top: calc(var(--ds-eye-y) + var(--ds-eye-w) * 0.42);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+  }
+}
+
+/* ---------- Componentes ---------- */
+
+html[data-theme='darksynth'] .ui-title {
+  font-family: var(--font-audiowide);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background-image: linear-gradient(
+    to bottom,
+    #ffffff 0%,
+    #ffd2ca 30%,
+    #ff3a2a 49%,
+    #5a0000 51%,
+    #ff2a1a 78%,
+    #ff9a84 100%
+  );
+  /* aberração cromática parada + brilho */
+  filter: drop-shadow(-2px 0 0 rgba(0, 225, 255, 0.28))
+    drop-shadow(2px 0 0 rgba(255, 0, 40, 0.5))
+    drop-shadow(0 0 14px rgba(255, 20, 10, 0.7));
+  animation: ds-title-glitch 9.7s steps(1) infinite;
+}
+html[data-theme='darksynth'] .ui-subtitle {
+  color: #ff7466;
+  letter-spacing: 0.02em;
+}
+/* rodapé: o tom neutro padrão ficava em ~3,8:1 sobre o vale escuro */
+html[data-theme='darksynth'] footer {
+  color: #cd8782;
+  text-shadow: 0 1px 3px #000;
+}
+html[data-theme='darksynth'] :is(.ui-card, .ui-chip) {
+  --ds-c: rgba(255, 52, 32, 0.9);
+  background:
+    linear-gradient(var(--ds-c), var(--ds-c)) top left / 18px 2px no-repeat,
+    linear-gradient(var(--ds-c), var(--ds-c)) top left / 2px 18px no-repeat,
+    linear-gradient(var(--ds-c), var(--ds-c)) top right / 18px 2px no-repeat,
+    linear-gradient(var(--ds-c), var(--ds-c)) top right / 2px 18px no-repeat,
+    linear-gradient(var(--ds-c), var(--ds-c)) bottom left / 18px 2px no-repeat,
+    linear-gradient(var(--ds-c), var(--ds-c)) bottom left / 2px 18px no-repeat,
+    linear-gradient(var(--ds-c), var(--ds-c)) bottom right / 18px 2px no-repeat,
+    linear-gradient(var(--ds-c), var(--ds-c)) bottom right / 2px 18px no-repeat,
+    linear-gradient(180deg, rgba(16, 1, 3, 0.86), rgba(5, 0, 1, 0.9));
+  border: 1px solid rgba(255, 34, 30, 0.34);
+  border-radius: 3px;
+  box-shadow:
+    0 0 34px rgba(255, 0, 0, 0.14),
+    inset 0 0 50px rgba(255, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 90, 70, 0.12);
+}
+html[data-theme='darksynth'] .ui-chip {
+  --ds-c: rgba(255, 52, 32, 0.7);
+}
+html[data-theme='darksynth'] .ui-card-title {
+  font-family: var(--font-audiowide);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #ff3d2e;
+  text-shadow: 0 0 10px rgba(255, 20, 10, 0.55);
+}
+html[data-theme='darksynth'] .ui-panel {
+  border-radius: 3px;
+  border-color: rgba(255, 34, 30, 0.3);
+  background-color: rgba(30, 0, 4, 0.35);
+}
+html[data-theme='darksynth'] .ui-input {
+  border-radius: 3px;
+  border-color: rgba(255, 40, 30, 0.3);
+  background-color: rgba(24, 0, 3, 0.6);
+}
+html[data-theme='darksynth'] .ui-cta {
+  font-family: var(--font-audiowide);
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(0, 0, 0, 0.16) 0 10px,
+      transparent 10px 20px
+    ),
+    linear-gradient(
+      90deg,
+      #3a0010,
+      #c8140c 28%,
+      #ff3a1e 50%,
+      #c8140c 72%,
+      #3a0010
+    );
+  color: #fff;
+  text-shadow:
+    0 0 10px #ff0000,
+    0 1px 0 rgba(0, 0, 0, 0.6);
+  box-shadow:
+    0 0 30px rgba(255, 30, 30, 0.5),
+    inset 0 0 0 1px rgba(255, 160, 140, 0.35);
+}
+/* reflexo varrendo o botão de tempos em tempos */
+html[data-theme='darksynth'] .ui-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(255, 232, 222, 0.32) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+  animation: ds-sheen 5.5s ease-in-out infinite;
+}
+html[data-theme='darksynth'] .ui-cta:disabled {
+  background: #22060a;
+  color: rgba(255, 205, 195, 0.7);
+  text-shadow: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 60, 40, 0.3);
+}
+html[data-theme='darksynth'] .ui-cta:disabled::after {
+  animation: none;
+  opacity: 0;
+}
+html[data-theme='darksynth'] :is(.ui-btn, .ui-hub) {
+  font-family: var(--font-audiowide);
+}
+html[data-theme='darksynth'] .ui-btn {
+  color: #fff;
+  border-radius: 3px;
+}
+html[data-theme='darksynth'] .ui-hub {
+  background: radial-gradient(
+    circle at 50% 38%,
+    #4a0607,
+    #160102 62%,
+    #050000
+  );
+  color: #ff5a46;
+  text-shadow: 0 0 8px rgba(255, 20, 0, 0.9);
+}
+html[data-theme='darksynth'] .ui-rim {
+  background: linear-gradient(
+    180deg,
+    #3a0000,
+    #c3120a 30%,
+    #ff2a1a 50%,
+    #8a0806 70%,
+    #1a0000
+  );
+  box-shadow:
+    0 0 60px rgba(255, 0, 0, 0.42),
+    0 30px 80px -20px rgba(0, 0, 0, 0.9);
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme='darksynth'] .ui-cta::after {
+    animation: none;
+  }
+  /* sem animação as legendas só apareciam pelo keyframe: ficam fixas */
+  html[data-wheel='spinning'] .scene-darksynth .ds-cap-lock,
+  html[data-wheel='won'] .scene-darksynth .ds-cap-won {
+    opacity: 1;
+  }
+}
+
+/* ---------- Ciclos raros (fração do ciclo) ---------- */
+
+/* "ELE TE VIU" (62–65% de 240 s): o olho cresce e encara */
+@keyframes ds-k-stare {
+  0%,
+  61.8% {
+    transform: none;
+  }
+  62.6%,
+  64.4% {
+    transform: scale(1.28);
+  }
+  65.2%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes ds-k-dilate {
+  0%,
+  62% {
+    transform: none;
+  }
+  62.8%,
+  64.2% {
+    transform: scaleX(2.6);
+  }
+  65%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes ds-k-seen {
+  0%,
+  61.6% {
+    opacity: 0;
+  }
+  62.8%,
+  64% {
+    opacity: 1;
+  }
+  65.6%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ds-k-seencap {
+  0%,
+  62.4% {
+    opacity: 0;
+    transform: translateY(-50%);
+  }
+  62.5% {
+    opacity: 1;
+    transform: translate(6px, -50%);
+  }
+  62.6% {
+    opacity: 0.2;
+  }
+  62.7%,
+  64.6% {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+  64.7%,
+  100% {
+    opacity: 0;
+    transform: translateY(-50%);
+  }
+}
+/* sem sinal (87–88,6% de 210 s) */
+@keyframes ds-k-lost {
+  0%,
+  87% {
+    opacity: 0;
+  }
+  87.15%,
+  88.4% {
+    opacity: 1;
+  }
+  88.6%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ds-k-lostcap {
+  0%,
+  87% {
+    opacity: 0;
+  }
+  87.15%,
+  88.6% {
+    opacity: 1;
+  }
+  88.8%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- Laços próprios ---------- */
+
+@keyframes ds-jolt {
+  0%,
+  96% {
+    transform: none;
+  }
+  96.3% {
+    transform: translateX(-5px);
+  }
+  96.7% {
+    transform: translateX(4px) skewX(-1deg);
+  }
+  97.1%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes ds-fall {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(50%);
+  }
+}
+@keyframes ds-rise {
+  from {
+    transform: translateY(50%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes ds-breathe {
+  from {
+    opacity: 0.7;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+/* sacadas: o olhar pula rápido e para um tempo */
+@keyframes ds-look {
+  0%,
+  18% {
+    transform: none;
+  }
+  19.2%,
+  36% {
+    transform: translate(-30%, 4%);
+  }
+  37.2%,
+  44% {
+    transform: translate(-8%, 10%);
+  }
+  45.2%,
+  62% {
+    transform: translate(28%, -2%);
+  }
+  63.2%,
+  71% {
+    transform: translate(12%, 8%);
+  }
+  72.2%,
+  100% {
+    transform: none;
+  }
+}
+@keyframes ds-blink-top {
+  0%,
+  49.4%,
+  50.6%,
+  91.6%,
+  92.2%,
+  92.8%,
+  93.4%,
+  100% {
+    transform: none;
+  }
+  50%,
+  92.5% {
+    transform: translateY(26%);
+  }
+  93.1% {
+    transform: translateY(26%);
+  }
+}
+@keyframes ds-blink-bot {
+  0%,
+  49.4%,
+  50.6%,
+  91.6%,
+  92.2%,
+  92.8%,
+  93.4%,
+  100% {
+    transform: none;
+  }
+  50%,
+  92.5% {
+    transform: translateY(-20%);
+  }
+  93.1% {
+    transform: translateY(-20%);
+  }
+}
+@keyframes ds-fire {
+  0% {
+    opacity: 0;
+    transform: rotate(calc(var(--ds-a) - 5deg));
+  }
+  5% {
+    opacity: 1;
+  }
+  22% {
+    opacity: 0.85;
+  }
+  30% {
+    opacity: 0;
+    transform: rotate(calc(var(--ds-a) + 2deg));
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(calc(var(--ds-a) + 5deg));
+  }
+}
+@keyframes ds-squad {
+  0% {
+    transform: translate(-14vw, 8px);
+  }
+  14% {
+    transform: translate(24vw, 18px);
+  }
+  30% {
+    transform: translate(66vw, 2px);
+  }
+  46%,
+  100% {
+    transform: translate(112vw, 12px);
+  }
+}
+@keyframes ds-meteor {
+  0% {
+    opacity: 0;
+    transform: translate(110vw, 12px) rotate(-7deg);
+  }
+  0.3% {
+    opacity: 1;
+  }
+  2.2% {
+    opacity: 1;
+  }
+  2.6%,
+  100% {
+    opacity: 0;
+    transform: translate(-30vw, 88px) rotate(-7deg);
+  }
+}
+@keyframes ds-bob {
+  to {
+    transform: translateY(4px);
+  }
+}
+@keyframes ds-beacon {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 0.15;
+  }
+  64% {
+    opacity: 0.9;
+  }
+  72% {
+    opacity: 0.2;
+  }
+}
+@keyframes ds-count {
+  to {
+    transform: translateY(-10em);
+  }
+}
+@keyframes ds-count6 {
+  to {
+    transform: translateY(-6em);
+  }
+}
+@keyframes ds-ladder {
+  to {
+    transform: translateY(40px);
+  }
+}
+@keyframes ds-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  23% {
+    opacity: 0.2;
+  }
+  31% {
+    opacity: 1;
+  }
+  58% {
+    opacity: 0.35;
+  }
+  62% {
+    opacity: 0.1;
+  }
+  70% {
+    opacity: 1;
+  }
+}
+@keyframes ds-alarm {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.3;
+  }
+}
+@keyframes ds-msg {
+  0% {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  0.4% {
+    opacity: 1;
+    transform: none;
+  }
+  0.7% {
+    opacity: 0.25;
+  }
+  1.1%,
+  23.6% {
+    opacity: 1;
+    transform: none;
+  }
+  24.2%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+@keyframes ds-cursor {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+/* em sincronia com a varredura do shader (0–4,8 s de cada 47 s) */
+@keyframes ds-scanlbl {
+  0% {
+    opacity: 0;
+  }
+  1.2%,
+  9.2% {
+    opacity: 1;
+  }
+  10.2%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ds-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes ds-blip {
+  0% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+  55% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes ds-caplock {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.35;
+  }
+}
+@keyframes ds-capwon {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  35% {
+    opacity: 0.3;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+/* clarão no olho: explode e some, deixando só .ds-eye-after */
+@keyframes ds-flare {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  6% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  30% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+/* dois pulsos suaves, como o raio do shader (0 e 0,42 s) */
+@keyframes ds-winflash {
+  0% {
+    opacity: 0;
+  }
+  4% {
+    opacity: 0.22;
+  }
+  22% {
+    opacity: 0.03;
+  }
+  35% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ds-sheen {
+  0%,
+  62% {
+    transform: translateX(-100%);
+  }
+  88%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes ds-roll {
+  from {
+    transform: translateY(-20vh);
+  }
+  to {
+    transform: translateY(110vh);
+  }
+}
+@keyframes ds-track {
+  0%,
+  71% {
+    opacity: 0;
+    transform: translate(0, 105vh);
+  }
+  71.5% {
+    opacity: 0.9;
+    transform: translate(-1vw, 92vh);
+  }
+  72.5% {
+    opacity: 0.6;
+    transform: translate(1.5vw, 74vh);
+  }
+  73.5% {
+    opacity: 0.95;
+    transform: translate(-0.5vw, 58vh);
+  }
+  74.5% {
+    opacity: 0.5;
+    transform: translate(1vw, 40vh);
+  }
+  75.5% {
+    opacity: 0.9;
+    transform: translate(0, 18vh);
+  }
+  76.5%,
+  100% {
+    opacity: 0;
+    transform: translate(-1vw, -8vh);
+  }
+}
+@keyframes ds-tear {
+  0%,
+  88% {
+    opacity: 0;
+    transform: none;
+  }
+  88.5% {
+    opacity: 1;
+    transform: translateX(-3vw);
+  }
+  89.2% {
+    opacity: 0.5;
+    transform: translateX(4vw) scaleY(3);
+  }
+  90% {
+    opacity: 0.9;
+    transform: translateX(-1vw);
+  }
+  90.8%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+@keyframes ds-noise {
+  from {
+    opacity: 0.35;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 0.85;
+    transform: translateX(5px);
+  }
+}
+@keyframes ds-lostnoise {
+  to {
+    transform: translateY(60px);
+  }
+}
+@keyframes ds-title-glitch {
+  0%,
+  93% {
+    transform: none;
+  }
+  93.4% {
+    transform: translateX(-3px) skewX(-10deg);
+  }
+  94% {
+    transform: translateX(4px);
+  }
+  94.6% {
+    transform: translateX(-1px) scaleY(0.9);
+  }
+  95.2%,
+  100% {
+    transform: none;
+  }
+}

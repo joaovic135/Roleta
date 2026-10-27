@@ -1,12 +1,16 @@
 # City Pop: prompts para imagens de fundo
 
-O tema já funciona só com a cena desenhada em SVG/CSS (`Scene.tsx` +
-`theme.css`), que é animada: anoitecer, noite, chuva de madrugada e amanhecer
-num ciclo de 4 minutos. Se quiser trocar o cenário por uma imagem gerada por
-IA, use um dos prompts abaixo (em inglês, que é como os geradores entendem
-melhor), salve o resultado como `public/themes/city-pop/bg.webp` (de
-preferência em WebP, qualidade ~80, abaixo de ~600 KB) e descomente o bloco no
-fim do `theme.css`. A chuva, o relâmpago e a vinheta continuam por cima.
+O tema já funciona só com a cena desenhada em SVG/CSS (`Scene.tsx`,
+`City.tsx`, `Actors.tsx`, `Cafe.tsx` + `theme.css`): uma noite de chuva vista
+de dentro do café "喫茶 月光", com trens, carros, fregueses, fogos e um ciclo
+de clima de 4 minutos (garoa → temporal com relâmpagos → fogos → garoa). Se
+quiser usar uma imagem gerada por IA como cidade de fundo, use um dos prompts
+abaixo (em inglês, que é como os geradores entendem melhor), salve o
+resultado como `public/themes/city-pop/bg.webp` (de preferência em WebP,
+qualidade ~80, abaixo de ~600 KB) e aponte para ela num
+`background: url('/themes/city-pop/bg.webp') center / cover` em
+`.scene-city-pop`, tirando as camadas desenhadas da cidade que ela substitui.
+A chuva, o vidro do café e a vinheta continuam por cima.
 
 Dicas:
 

@@ -1,32 +1,47 @@
 /* Tema Hearts of Iron: estilos ficam todos sob html[data-theme='hearts-of-iron']
-   Sala de guerra: carta topográfica sépia/oliva, painéis de couro com
-   rebites e frisos de latão, etiquetas de dossiê datilografadas, títulos em
-   estêncil, aro de medalha e mostrador de bússola no centro da roda.
+   (ou dentro de .scene-hearts-of-iron, que só existe com o tema ativo).
+   Sala de guerra: carta pintada sobre a mesa vista de cima e inclinada em
+   perspectiva (rotateX), objetos de latão, papel e baquelite nas margens,
+   painéis de couro com rebites, etiquetas datilografadas e títulos em
+   estêncil, aro de medalha e bússola no centro da roda.
 
-   Cena viva (Scene.tsx): um ciclo de 4 minutos (--hoi-cycle) sobre a mesa
-     0–10%  madrugada/amanhecer: neblina clara
-    10–40%  dia: luz quente do abajur, faixas de sol da janela cruzando a
-            carta, reflexo de lente no auge (~22%) e nuvens (23–46%)
-    40–52%  entardecer: tom alaranjado
-    52–90%  noite: lâmpada fria azul, luzes de cidades, holofotes e flak;
-            frente de chuva com relâmpagos (59–79%)
-   As setas vermelhas avançam de dia e as azuis à noite; radar, alfinetes e
-   linhas de suprimento não param; os papéis tremulam. */
+   Linha do tempo da cena (ver também Scene.tsx):
+   - Dia (--hoi-day, 240 s, janela fora da tela à direita):
+       0–10%  amanhecer com neblina; 10–40% sol pela persiana atravessando
+       a mesa, aviões passando, poeira no ar; 40–52% entardecer; 52–90%
+       noite: escuridão com a poça da luminária, luar com gotas, chuva,
+       holofotes, flak e relâmpagos (63%, 67,5%, 72%), luzes das cidades e
+       clarões de combate; 90–100% madrugada.
+   - Guerra (--hoi-war, 200 s): 9–17% setas vermelhas da pinça desenhadas
+       trecho a trecho; 17–43% províncias viram uma a uma de fora para dentro
+       até Velmora ficar CERCADA; 58–66% seta azul rompe o cerco; 64–94% as
+       províncias voltam, do centro para fora.
+   - Rodo de plotagem (60 s): empurra um bloco aos 16–22% e puxa de volta
+       aos 66–72%. Teletipo: uma linha a cada 3,5 s (16 despachos, 56 s).
+   - Roleta: girando = sirene, telefone, teletipo disparado, radar rápido,
+       frente em combate (e o pêndulo da luminária em Scene.tsx); vitória =
+       carimbo VITÓRIA em --win-color, tremida, frente acesa, brasa calma.
+
+   Desempenho: só transform/opacity animados; nada animado dentro de <svg>;
+   filtros só em desenhos estáticos; camadas de vitória/giro com display:none
+   fora dessas fases. */
 
 html[data-theme='hearts-of-iron'] .scene-hearts-of-iron {
   display: block;
 }
 
 html[data-theme='hearts-of-iron'] {
-  --hoi-cycle: 240s;
+  --hoi-day: 240s;
+  --hoi-war: 200s;
+  --hoi-u: calc(100vh / 1080);
   --hoi-paper: #e2d4ab;
   --hoi-paper-2: #cfbd8c;
   --hoi-ink: #2a2416;
   --hoi-brass: #c9a24a;
   --hoi-brass-hi: #f0d891;
   --hoi-brass-lo: #6e521c;
-  --hoi-red: #b8432f;
-  --hoi-blue: #5b7ea6;
+  --hoi-red: #d2482e;
+  --hoi-blue: #6e9ccc;
   --hoi-stamp: #c4513a;
 }
 html[data-theme='hearts-of-iron'] body {
@@ -37,605 +52,1310 @@ html[data-theme='hearts-of-iron'] body {
 /* ================= CENA ================= */
 
 html[data-theme='hearts-of-iron'] .theme-backdrop {
-  background:
-    radial-gradient(ellipse 80% 70% at 50% 45%, #253029 0%, #1a221f 60%, #121815 100%);
+  background: #2a2417;
 }
-html[data-theme='hearts-of-iron'] .scene-hearts-of-iron > * {
+.scene-hearts-of-iron .hoi-cam {
+  position: absolute;
+  inset: 0;
+  perspective: 1500px;
+  perspective-origin: 50% 20%;
+}
+.scene-hearts-of-iron .hoi-cam > * {
   position: absolute;
   pointer-events: none;
 }
-html[data-theme='hearts-of-iron'] .hoi-map {
+.scene-hearts-of-iron .hoi-fx {
+  inset: 0;
+}
+
+/* ---- mesa inclinada: a borda de cima fica no lugar e a de baixo vem
+   para perto da câmera (por isso a carta cresce para baixo) ---- */
+.scene-hearts-of-iron .hoi-plane {
+  left: -7%;
+  right: -7%;
+  top: -3%;
+  bottom: -9%;
+  transform-origin: 50% 0;
+  transform: rotateX(9deg);
+  container-type: size;
+}
+/* tabuleiro 16:9 cobrindo a mesa ("slice" alinhado ao topo) */
+.scene-hearts-of-iron .hoi-board {
+  position: absolute;
+  top: 0;
+  left: calc(50cqw - max(100cqw, 177.78cqh) / 2);
+  width: max(100cqw, 177.78cqh);
+  height: max(100cqh, 56.25cqw);
+}
+.scene-hearts-of-iron .hoi-board > * {
+  position: absolute;
+  overflow: visible;
+}
+.scene-hearts-of-iron .hoi-map {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: 100% 100%;
+}
+.scene-hearts-of-iron .hoi-grain {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent calc(33.3% - 3px), rgba(0, 0, 0, 0.2) calc(33.3% - 1px), rgba(255, 238, 200, 0.07) calc(33.3% + 1px), transparent calc(33.3% + 5px)),
+    linear-gradient(90deg, transparent calc(66.6% - 3px), rgba(0, 0, 0, 0.2) calc(66.6% - 1px), rgba(255, 238, 200, 0.07) calc(66.6% + 1px), transparent calc(66.6% + 5px)),
+    linear-gradient(transparent calc(42% - 3px), rgba(0, 0, 0, 0.18) calc(42% - 1px), rgba(255, 238, 200, 0.06) calc(42% + 1px), transparent calc(42% + 5px)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.4 0 0 0 0 0.22 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.07 0 0 0 0 0.02 0 0 0 0.5 -0.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+}
+
+/* ---- carta: textos por cima da imagem estática (mapArt.ts) ---- */
+.scene-hearts-of-iron .hoi-sea-name {
+  font: italic 400 11px var(--font-special-elite), serif;
+  fill: rgba(170, 206, 196, 0.42);
+  letter-spacing: 0.2em;
+}
+.scene-hearts-of-iron .hoi-note {
+  font: 400 15px var(--font-yellowtail), cursive;
+  fill: rgba(240, 206, 74, 0.8);
+}
+.scene-hearts-of-iron .hoi-sheet {
+  font: 400 8.5px var(--font-special-elite), monospace;
+  fill: rgba(236, 214, 160, 0.55);
+  letter-spacing: 0.22em;
+}
+.scene-hearts-of-iron .hoi-coords text {
+  font: 400 8px var(--font-special-elite), monospace;
+  fill: rgba(236, 214, 160, 0.5);
+  letter-spacing: 0.05em;
+}
+
+/* ---- frente ---- */
+.scene-hearts-of-iron .hoi-front-line {
+  fill: none;
+  stroke: var(--hoi-red);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+.scene-hearts-of-iron .hoi-front-teeth {
+  fill: var(--hoi-red);
+}
+.scene-hearts-of-iron .hoi-front-counter {
+  fill: none;
+  stroke: var(--hoi-blue);
+  stroke-width: 1.3;
+  stroke-dasharray: 5 3;
+  stroke-linejoin: round;
+}
+.scene-hearts-of-iron .hoi-hatch-line {
+  stroke: rgba(214, 74, 46, 0.42);
+  stroke-width: 2;
+}
+.scene-hearts-of-iron .hoi-hatch-blue {
+  stroke: rgba(110, 156, 204, 0.4);
+  stroke-width: 1.6;
+}
+.scene-hearts-of-iron .hoi-band {
+  fill: url(#hoi-hatch);
+}
+/* borrão do lápis de cera apagado: a linha antiga quase some */
+.scene-hearts-of-iron .hoi-erase {
+  fill: none;
+  stroke: rgba(108, 92, 58, 0.86);
+  stroke-width: 22;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.scene-hearts-of-iron .hoi-pocket {
+  fill: url(#hoi-hatch-blue);
+  stroke: var(--hoi-red);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+.scene-hearts-of-iron .hoi-cercada {
+  font: 400 10px var(--font-black-ops), sans-serif;
+  fill: #f0d38a;
+  stroke: #2a1d0c;
+  stroke-width: 2.4px;
+  paint-order: stroke;
+  letter-spacing: 0.14em;
+}
+
+/* ---- nomes das cidades e blocos que andam ---- */
+.scene-hearts-of-iron .hoi-city-names text {
+  font: 400 10px var(--font-special-elite), monospace;
+  fill: #efe1b6;
+  stroke: rgba(26, 20, 8, 0.85);
+  stroke-width: 2.6px;
+  paint-order: stroke;
+  letter-spacing: 0.03em;
+}
+.scene-hearts-of-iron .hoi-city-names .hoi-city-3 {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.scene-hearts-of-iron .hoi-unit-shadow {
+  fill: rgba(0, 0, 0, 0.45);
+}
+.scene-hearts-of-iron .hoi-unit-side {
+  fill: #5a3d1c;
+}
+.scene-hearts-of-iron .hoi-unit-red {
+  fill: #a83a24;
+  stroke: #e8b48a;
+  stroke-width: 0.6;
+}
+.scene-hearts-of-iron .hoi-unit-blue {
+  fill: #3f6390;
+  stroke: #b4cce6;
+  stroke-width: 0.6;
+}
+.scene-hearts-of-iron .hoi-unit-sym {
+  fill: none;
+  stroke: #f0e2bc;
+  stroke-width: 0.9;
+}
+
+/* ---- províncias que mudam de dono (opacidade, ciclo da guerra) ---- */
+.scene-hearts-of-iron .hoi-prov-flip {
+  opacity: 0;
+  animation: hoi-p-t1 var(--hoi-war) linear infinite;
+}
+/* sem animação (movimento reduzido) a guerra para no meio da pinça */
+.scene-hearts-of-iron :is(.hoi-p-t1, .hoi-p-t2, .hoi-p-t7, .hoi-p-e1, .hoi-p-w1) {
+  opacity: 1;
+}
+.scene-hearts-of-iron .hoi-p-t2 { animation-name: hoi-p-t2; }
+.scene-hearts-of-iron .hoi-p-t3 { animation-name: hoi-p-t3; }
+.scene-hearts-of-iron .hoi-p-t4 { animation-name: hoi-p-t4; }
+.scene-hearts-of-iron .hoi-p-t5 { animation-name: hoi-p-t5; }
+.scene-hearts-of-iron .hoi-p-t6 { animation-name: hoi-p-t6; }
+.scene-hearts-of-iron .hoi-p-t7 { animation-name: hoi-p-t7; }
+.scene-hearts-of-iron .hoi-p-w1 { animation-name: hoi-p-w1; }
+.scene-hearts-of-iron .hoi-p-w2 { animation-name: hoi-p-w2; }
+.scene-hearts-of-iron .hoi-p-w3 { animation-name: hoi-p-w3; }
+.scene-hearts-of-iron .hoi-p-e1 { animation-name: hoi-p-e1; }
+.scene-hearts-of-iron .hoi-p-e2 { animation-name: hoi-p-e2; }
+.scene-hearts-of-iron .hoi-p-e3 { animation-name: hoi-p-e3; }
+
+/* ---- setas desenhadas trecho a trecho (janela + conteúdo opostos) ---- */
+.scene-hearts-of-iron .hoi-wipe-o,
+.scene-hearts-of-iron .hoi-wipe-i {
+  position: absolute;
+  inset: 0;
+}
+.scene-hearts-of-iron .hoi-wipe-o {
+  overflow: hidden;
+  animation: hoi-wipe-o var(--hoi-war) linear infinite;
+  animation-delay: calc(var(--hoi-war) * var(--hoi-lag));
+}
+.scene-hearts-of-iron .hoi-wipe-i {
+  animation: hoi-wipe-i var(--hoi-war) linear infinite;
+  animation-delay: calc(var(--hoi-war) * var(--hoi-lag));
+}
+.scene-hearts-of-iron .hoi-wipe svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+/* sem animação (movimento reduzido) só as setas vermelhas aparecem */
+.scene-hearts-of-iron .hoi-arrow-blue .hoi-wipe-o {
+  opacity: 0;
+}
+.scene-hearts-of-iron .hoi-arrow-shadow {
+  fill: rgba(0, 0, 0, 0.4);
+  transform: translate(2px, 3px);
+}
+.scene-hearts-of-iron .hoi-arrow-body {
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+.scene-hearts-of-iron .hoi-arrow-red .hoi-arrow-body {
+  fill: rgba(196, 64, 40, 0.86);
+  stroke: rgba(255, 200, 166, 0.5);
+}
+.scene-hearts-of-iron .hoi-arrow-blue .hoi-arrow-body {
+  fill: rgba(70, 112, 166, 0.88);
+  stroke: rgba(200, 224, 255, 0.5);
+}
+.scene-hearts-of-iron .hoi-arrow-stripes {
+  fill: none;
+  stroke: rgba(255, 236, 200, 0.35);
+  stroke-width: 1.4;
+}
+
+/* ---- blocos que andam (ciclo da guerra) e rodo de plotagem ---- */
+.scene-hearts-of-iron .hoi-mover {
+  animation: hoi-m1 var(--hoi-war) ease-in-out infinite;
+}
+.scene-hearts-of-iron .hoi-m2 { animation-name: hoi-m2; }
+.scene-hearts-of-iron .hoi-m3 { animation-name: hoi-m3; }
+.scene-hearts-of-iron .hoi-m4 {
+  animation: hoi-m4 60s ease-in-out infinite;
+  animation-delay: -6s;
+}
+.scene-hearts-of-iron .hoi-rake {
+  transform: translateY(-50%);
+  animation: hoi-rake 60s ease-in-out infinite;
+  animation-delay: -6s;
+}
+.scene-hearts-of-iron .hoi-rake-pole {
+  fill: none;
+  stroke: #7a5230;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.scene-hearts-of-iron .hoi-rake-shadow {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.35);
+  stroke-width: 5;
+}
+.scene-hearts-of-iron .hoi-rake-head {
+  fill: #8a5e34;
+  stroke: #3a2410;
+  stroke-width: 0.8;
+}
+.scene-hearts-of-iron .hoi-rake-cap {
+  fill: #c9a24a;
+}
+
+/* pulsos dos alfinetes */
+.scene-hearts-of-iron .hoi-pulse {
+  width: 1.4%;
+  aspect-ratio: 1;
+  margin: -0.7% 0 0 -0.7%;
+  border-radius: 50%;
+  border: 2px solid rgba(240, 210, 130, 0.8);
+  opacity: 0;
+  animation: hoi-pulse 4.4s ease-out infinite;
+  animation-delay: calc(var(--hoi-i) * -1.1s);
+}
+
+/* comboio e navio */
+.scene-hearts-of-iron .hoi-truck-body {
+  fill: #2a2416;
+  stroke: #e7d6a8;
+  stroke-width: 0.6;
+}
+.scene-hearts-of-iron .hoi-truck {
+  animation: hoi-truck 26s linear infinite;
+}
+.scene-hearts-of-iron .hoi-ship-hull {
+  fill: #2c3a40;
+  stroke: #c9d8d4;
+  stroke-width: 0.7;
+}
+.scene-hearts-of-iron .hoi-ship-deck {
+  fill: #9aa8a4;
+}
+.scene-hearts-of-iron .hoi-ship-wake {
+  fill: rgba(200, 230, 220, 0.35);
+}
+.scene-hearts-of-iron .hoi-ship {
+  animation: hoi-ship 70s ease-in-out infinite alternate;
+}
+
+/* ---- camada que emite luz sobre a carta ---- */
+.scene-hearts-of-iron .hoi-plane-glow .hoi-citylights {
+  inset: 0;
+  opacity: 0;
+  animation: hoi-lights var(--hoi-day) linear infinite;
+}
+.scene-hearts-of-iron .hoi-lights {
   inset: 0;
   width: 100%;
   height: 100%;
 }
-
-/* ---- terreno ---- */
-html[data-theme='hearts-of-iron'] .hoi-shallow {
-  fill: #2b3834;
+.scene-hearts-of-iron .hoi-light-core {
+  fill: #ffe7a8;
 }
-html[data-theme='hearts-of-iron'] .hoi-land-1 {
-  fill: #37361f;
+.scene-hearts-of-iron .hoi-light-halo {
+  fill: rgba(255, 190, 96, 0.22);
 }
-html[data-theme='hearts-of-iron'] .hoi-land-2 {
-  fill: #403d25;
+.scene-hearts-of-iron .hoi-battle {
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s;
+  animation: hoi-nightvis var(--hoi-day) linear infinite;
 }
-html[data-theme='hearts-of-iron'] .hoi-land-3 {
-  fill: #4a452b;
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-battle {
+  animation: none;
+  opacity: 1;
 }
-html[data-theme='hearts-of-iron'] .hoi-land-4 {
-  fill: #554d31;
+.scene-hearts-of-iron .hoi-flash {
+  width: 3.4%;
+  aspect-ratio: 1;
+  margin: -1.7% 0 0 -1.7%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 250, 220, 0.95), rgba(255, 170, 70, 0.55) 35%, rgba(255, 110, 40, 0.14) 65%, transparent);
+  opacity: 0;
+  animation: hoi-flash 2.6s ease-out infinite;
+  animation-duration: calc(2.3s + var(--hoi-i) * 0.73s);
+  animation-delay: calc(var(--hoi-i) * -1.37s);
 }
-html[data-theme='hearts-of-iron'] .hoi-contour {
+.scene-hearts-of-iron .hoi-surge {
+  opacity: 0;
+}
+.scene-hearts-of-iron .hoi-surge path {
   fill: none;
-  stroke: rgba(222, 196, 132, 0.17);
-  stroke-width: 1;
-}
-html[data-theme='hearts-of-iron'] .hoi-coast {
-  fill: none;
-  stroke: rgba(214, 190, 130, 0.55);
-  stroke-width: 1.5;
-}
-html[data-theme='hearts-of-iron'] .hoi-grid {
-  fill: none;
-  stroke: rgba(226, 206, 156, 0.13);
-  stroke-width: 1;
-  stroke-dasharray: 2 3;
-}
-html[data-theme='hearts-of-iron'] .hoi-coords text {
-  font-family: var(--font-special-elite), monospace;
-  font-size: 11px;
-  fill: rgba(232, 212, 165, 0.5);
-  letter-spacing: 0.06em;
-}
-html[data-theme='hearts-of-iron'] .hoi-stain circle {
-  fill: none;
-  stroke: rgba(122, 78, 28, 0.32);
-  stroke-width: 4;
-}
-html[data-theme='hearts-of-iron'] .hoi-stain .hoi-stain-in {
-  stroke: rgba(122, 78, 28, 0.18);
-  stroke-width: 1.5;
-}
-html[data-theme='hearts-of-iron'] .hoi-ink {
-  fill: rgba(12, 14, 22, 0.6);
-}
-
-/* ---- frentes, setas e unidades ---- */
-html[data-theme='hearts-of-iron'] .hoi-front {
-  fill: none;
-  stroke-width: 2.2;
+  stroke: var(--win-color, #ffd27a);
+  stroke-width: 3;
   stroke-linejoin: round;
 }
-html[data-theme='hearts-of-iron'] .hoi-front-red {
-  stroke: var(--hoi-red);
-}
-html[data-theme='hearts-of-iron'] .hoi-front-blue {
-  stroke: var(--hoi-blue);
-}
-html[data-theme='hearts-of-iron'] .hoi-teeth-red {
-  fill: var(--hoi-red);
-}
-html[data-theme='hearts-of-iron'] .hoi-teeth-blue {
-  fill: var(--hoi-blue);
-}
-/* a linha de frente acompanha as setas, de leve */
-html[data-theme='hearts-of-iron'] :is(.hoi-front-red, .hoi-teeth-red) {
-  --ax: 7px;
-  --ay: 0px;
-  animation: hoi-advance var(--hoi-cycle) ease-in-out infinite;
-}
-html[data-theme='hearts-of-iron'] :is(.hoi-front-blue, .hoi-teeth-blue) {
-  --ax: -7px;
-  --ay: 0px;
-  animation: hoi-advance var(--hoi-cycle) ease-in-out infinite;
-  animation-delay: calc(var(--hoi-cycle) * -0.5);
-}
-html[data-theme='hearts-of-iron'] .hoi-arrow {
-  animation: hoi-advance var(--hoi-cycle) ease-in-out infinite;
-}
-html[data-theme='hearts-of-iron'] .hoi-arrow path {
-  stroke-width: 1.2;
-  stroke-linejoin: round;
-}
-html[data-theme='hearts-of-iron'] .hoi-arrow-red path {
-  fill: rgba(176, 62, 42, 0.8);
-  stroke: rgba(255, 196, 160, 0.35);
-}
-/* azuis avançam na metade oposta do ciclo (noite) */
-html[data-theme='hearts-of-iron'] .hoi-arrow-blue {
-  animation-delay: calc(var(--hoi-cycle) * -0.5);
-}
-html[data-theme='hearts-of-iron'] .hoi-arrow-blue path {
-  fill: rgba(78, 112, 156, 0.82);
-  stroke: rgba(196, 220, 255, 0.35);
-}
-html[data-theme='hearts-of-iron'] .hoi-counter rect {
-  stroke: #e7d8ae;
-  stroke-width: 1.2;
-}
-html[data-theme='hearts-of-iron'] .hoi-counter path {
-  fill: none;
-  stroke: #e7d8ae;
-  stroke-width: 1.4;
-}
-html[data-theme='hearts-of-iron'] .hoi-counter-red rect {
-  fill: #8e3424;
-}
-html[data-theme='hearts-of-iron'] .hoi-counter-blue rect {
-  fill: #3f5f86;
-}
 
-/* ---- linhas de suprimento (tracejado marchando) ---- */
-html[data-theme='hearts-of-iron'] .hoi-supply {
-  fill: none;
-  stroke: rgba(226, 192, 110, 0.75);
-  stroke-width: 2.4;
-  stroke-dasharray: 10 8;
-  animation: hoi-march 1.4s linear infinite;
+/* ---- luminária pendente: pêndulo (JS) com a escuridão e a poça ---- */
+.scene-hearts-of-iron .hoi-swing {
+  inset: -10%;
+  transform-origin: 50% -70%;
+  will-change: transform;
 }
-
-/* ---- alfinetes ---- */
-html[data-theme='hearts-of-iron'] .hoi-pin circle {
-  stroke: rgba(0, 0, 0, 0.55);
-  stroke-width: 1;
-}
-html[data-theme='hearts-of-iron'] .hoi-pin-red {
-  fill: #c4452f;
-  stroke: #c4452f;
-}
-html[data-theme='hearts-of-iron'] .hoi-pin-blue {
-  fill: #5f86b8;
-  stroke: #5f86b8;
-}
-html[data-theme='hearts-of-iron'] .hoi-pin-brass {
-  fill: #d7b25a;
-  stroke: #d7b25a;
-}
-html[data-theme='hearts-of-iron'] .hoi-pin .hoi-pin-needle {
-  stroke: #1a1a14;
-  stroke-width: 1.4;
-  stroke-linecap: round;
-}
-html[data-theme='hearts-of-iron'] .hoi-pin .hoi-pin-shine {
-  fill: rgba(255, 255, 255, 0.65);
-  stroke: none;
-}
-html[data-theme='hearts-of-iron'] .hoi-pin .hoi-pin-pulse {
-  fill: none;
-  stroke: inherit;
-  stroke-width: 1.5;
-  transform-box: fill-box;
-  transform-origin: center;
-  opacity: 0;
-  animation: hoi-pulse 4s ease-out infinite;
-}
-
-/* ---- luzes de cidade (noite) ---- */
-html[data-theme='hearts-of-iron'] .hoi-lights {
-  opacity: 0;
-  animation: hoi-lights var(--hoi-cycle) linear infinite;
-}
-html[data-theme='hearts-of-iron'] .hoi-lights-2 {
-  animation-delay: -5s;
-}
-html[data-theme='hearts-of-iron'] .hoi-lights-3 {
-  animation-delay: 6s;
-}
-html[data-theme='hearts-of-iron'] .hoi-light-core {
-  fill: #ffdf98;
-}
-html[data-theme='hearts-of-iron'] .hoi-light-halo {
-  fill: rgba(255, 196, 102, 0.16);
-}
-
-/* ---- papéis presos com fita ---- */
-html[data-theme='hearts-of-iron'] .hoi-paper {
-  width: 136px;
-  padding: 12px 12px 10px;
-  background:
-    linear-gradient(170deg, rgba(255, 255, 255, 0.18), transparent 40%),
-    linear-gradient(90deg, transparent 49.5%, rgba(80, 60, 20, 0.14) 50%, transparent 51%),
-    var(--hoi-paper);
-  color: var(--hoi-ink);
-  font: 400 11px/1.35 var(--font-special-elite), monospace;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.3) inset,
-    0 8px 18px rgba(0, 0, 0, 0.55),
-    0 1px 3px rgba(0, 0, 0, 0.5);
-  transform-origin: 50% 0;
-  animation: hoi-flutter 7s ease-in-out infinite;
-}
-html[data-theme='hearts-of-iron'] .hoi-paper b {
-  display: block;
-  font: 400 12px/1 var(--font-black-ops), sans-serif;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-  border-bottom: 1px solid rgba(42, 36, 22, 0.5);
-  padding-bottom: 5px;
-}
-html[data-theme='hearts-of-iron'] .hoi-paper p {
-  margin: 0;
-}
-html[data-theme='hearts-of-iron'] .hoi-tape {
+.scene-hearts-of-iron .hoi-swing > * {
   position: absolute;
-  top: -9px;
-  left: 50%;
-  width: 58px;
-  height: 18px;
-  margin-left: -29px;
-  background: rgba(232, 222, 186, 0.62);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-  transform: rotate(-4deg);
+  inset: 0;
 }
-html[data-theme='hearts-of-iron'] .hoi-legend {
-  left: 14px;
-  bottom: 22px;
-  rotate: -1.5deg;
+.scene-hearts-of-iron .hoi-dark {
+  background: radial-gradient(ellipse 38% 40% at 50% 46%, rgba(10, 14, 30, 0.1), rgba(10, 14, 30, 0.42) 60%, rgba(8, 11, 24, 0.7) 100%);
+  opacity: 0;
+  animation: hoi-night var(--hoi-day) linear infinite;
 }
-html[data-theme='hearts-of-iron'] .hoi-legend svg {
+.scene-hearts-of-iron .hoi-pool {
+  background: radial-gradient(ellipse 34% 34% at 50% 46%, rgba(255, 210, 134, 0.24), rgba(255, 190, 110, 0.08) 55%, transparent 100%);
+  animation: hoi-flicker 7.3s linear infinite;
+}
+
+/* ---- objetos (posição em unidades da altura da tela) ---- */
+.scene-hearts-of-iron .hoi-props,
+.scene-hearts-of-iron .hoi-emit {
+  inset: 0;
+}
+/* brilhos soltos (poça e brilho do abajur, brasa, lâmpada do teletipo,
+   mariposa) e clarões de combate: cada um no seu lugar. Sem isto os <span>
+   ficavam em linha, sem tamanho, e não apareciam */
+.scene-hearts-of-iron .hoi-emit > *,
+.scene-hearts-of-iron .hoi-battle > * {
+  position: absolute;
+}
+.scene-hearts-of-iron .hoi-prop {
+  position: absolute;
+}
+.scene-hearts-of-iron .hoi-prop > svg {
   display: block;
   width: 100%;
+  height: auto;
+}
+.scene-hearts-of-iron .hoi-dossier {
+  left: calc(var(--hoi-u) * -24);
+  top: calc(var(--hoi-u) * 134);
+  width: calc(var(--hoi-u) * 236);
+  rotate: -3deg;
+}
+.scene-hearts-of-iron .hoi-dossier text {
+  font-family: var(--font-special-elite), monospace;
+  fill: #2a2416;
+  font-size: 10.5px;
+}
+.scene-hearts-of-iron .hoi-dossier .hoi-dos-head {
+  font: 400 12px var(--font-black-ops), sans-serif;
+  letter-spacing: 0.1em;
+}
+.scene-hearts-of-iron .hoi-dossier .hoi-dos-tab {
+  font: 400 8px var(--font-black-ops), sans-serif;
+  text-anchor: middle;
+  letter-spacing: 0.12em;
+}
+.scene-hearts-of-iron .hoi-dossier .hoi-dos-cap {
+  font-size: 7px;
+  text-anchor: middle;
+}
+.scene-hearts-of-iron .hoi-dossier .hoi-dos-num {
+  text-anchor: end;
+  font-size: 11px;
+  fill: rgba(42, 36, 22, 0.7);
+}
+.scene-hearts-of-iron .hoi-dos-stamp rect {
+  fill: none;
+  stroke: rgba(176, 52, 34, 0.85);
+  stroke-width: 2.4;
+}
+.scene-hearts-of-iron .hoi-dos-stamp rect + rect {
+  stroke-width: 1;
+}
+.scene-hearts-of-iron .hoi-dossier .hoi-dos-stamp text {
+  font: 400 16px var(--font-black-ops), sans-serif;
+  fill: rgba(176, 52, 34, 0.85);
+  text-anchor: middle;
+  letter-spacing: 0.14em;
+}
+.scene-hearts-of-iron .hoi-mug {
+  left: calc(var(--hoi-u) * 22);
+  top: calc(var(--hoi-u) * 548);
+  width: calc(var(--hoi-u) * 128);
+}
+.scene-hearts-of-iron .hoi-ashtray {
+  left: calc(var(--hoi-u) * 172);
+  top: calc(var(--hoi-u) * 604);
+  width: calc(var(--hoi-u) * 140);
+}
+.scene-hearts-of-iron .hoi-compass {
+  left: calc(var(--hoi-u) * 132);
+  top: calc(var(--hoi-u) * 806);
+  width: calc(var(--hoi-u) * 176);
+  rotate: 8deg;
+}
+.scene-hearts-of-iron .hoi-compass-ticks {
+  stroke: #3a2c10;
+  stroke-width: 1;
+}
+.scene-hearts-of-iron .hoi-compass-letters text {
+  font: 400 11px var(--font-black-ops), sans-serif;
+  fill: #3a2c10;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+.scene-hearts-of-iron .hoi-needle {
+  position: absolute;
+  left: 34.5%;
+  top: 22%;
+  width: 3.4%;
+  height: 56%;
+  background: linear-gradient(#c4402a 0 50%, #e9e0c4 50% 100%);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  animation: hoi-needle 9s ease-in-out infinite alternate;
+}
+.scene-hearts-of-iron .hoi-phone {
+  right: calc(var(--hoi-u) * -22);
+  top: calc(var(--hoi-u) * 640);
+  width: calc(var(--hoi-u) * 160);
+  rotate: -8deg;
+}
+.scene-hearts-of-iron .hoi-phone-ring svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.scene-hearts-of-iron .hoi-phone-label {
+  font: 400 6px var(--font-special-elite), monospace;
+  fill: #2a2416;
+  text-anchor: middle;
+}
+.scene-hearts-of-iron .hoi-phone-waves {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0;
+}
+.scene-hearts-of-iron .hoi-phone-waves path {
+  fill: none;
+  stroke: rgba(255, 220, 160, 0.85);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+/* ---- teletipo: papel com despachos saindo da máquina ---- */
+.scene-hearts-of-iron .hoi-tty {
+  right: calc(var(--hoi-u) * -16);
+  top: calc(var(--hoi-u) * 84);
+  width: calc(var(--hoi-u) * 200);
+  height: calc(var(--hoi-u) * 540);
+  rotate: 1.5deg;
+}
+.scene-hearts-of-iron .hoi-tty-body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+}
+.scene-hearts-of-iron .hoi-tty-plate {
+  font: 400 7px var(--font-black-ops), sans-serif;
+  fill: #2a1f0a;
+  text-anchor: middle;
+  letter-spacing: 0.1em;
+}
+.scene-hearts-of-iron .hoi-tty-paper {
+  position: absolute;
+  left: 11%;
+  right: 13%;
+  top: calc(var(--hoi-u) * 150);
+  height: calc(var(--hoi-u) * 380);
+  background: linear-gradient(#e9e0c4, #e4d9ba 70%, #b9ab86);
+  box-shadow:
+    0 calc(var(--hoi-u) * 8) calc(var(--hoi-u) * 14) rgba(0, 0, 0, 0.5),
+    inset 0 calc(var(--hoi-u) * -30) calc(var(--hoi-u) * 24) rgba(60, 46, 20, 0.35);
+  clip-path: polygon(0 0, 100% 0, 100% 96%, 92% 99%, 84% 96.5%, 74% 99.5%, 62% 97%, 50% 100%, 38% 97%, 26% 99%, 14% 96.5%, 6% 99%, 0 97%);
+}
+.scene-hearts-of-iron .hoi-tty-window {
+  position: absolute;
+  inset: calc(var(--hoi-u) * 6) calc(var(--hoi-u) * 8) 0;
+  overflow: hidden;
+  font: 400 calc(var(--hoi-u) * 10.2) / calc(var(--hoi-u) * 15) var(--font-special-elite), monospace;
+  color: #2a2416;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.scene-hearts-of-iron .hoi-tty-calm,
+.scene-hearts-of-iron .hoi-tty-race {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.5s;
+}
+.scene-hearts-of-iron .hoi-tty-col,
+.scene-hearts-of-iron .hoi-tty-racecol {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+}
+.scene-hearts-of-iron .hoi-tty-window p {
+  margin: 0;
+  height: calc(var(--hoi-u) * 15);
+}
+/* 16 linhas novas por volta: a coluna desce uma linha a cada 3,5 s */
+.scene-hearts-of-iron .hoi-tty-col {
+  transform: translateY(calc(var(--hoi-u) * -15 * 16));
+  animation: hoi-tty-feed 56s steps(16, end) infinite;
+}
+.scene-hearts-of-iron .hoi-tty-cover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: calc(var(--hoi-u) * 15);
+  background: #e9e0c4;
+  transform: translateX(100%);
+  animation: hoi-tty-type 3.5s linear infinite;
+}
+/* cabeça de impressão na beirada do papel em branco */
+.scene-hearts-of-iron .hoi-tty-cover::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--hoi-u) * -2);
+  top: calc(var(--hoi-u) * -3);
+  width: calc(var(--hoi-u) * 7);
+  height: calc(var(--hoi-u) * 18);
+  border-radius: 2px;
+  background: linear-gradient(90deg, #1a1a14, #5a5848 50%, #1a1a14);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
+}
+.scene-hearts-of-iron .hoi-tty-head {
+  display: none;
+}
+.scene-hearts-of-iron .hoi-tty-race {
+  opacity: 0;
+}
+.scene-hearts-of-iron .hoi-tty-race p {
+  color: #8e2416;
+}
+
+/* ---- legenda presa com fita ---- */
+.scene-hearts-of-iron .hoi-legend {
+  left: calc(var(--hoi-u) * 14);
+  bottom: calc(var(--hoi-u) * 26);
+  width: calc(var(--hoi-u) * 140);
+  padding: calc(var(--hoi-u) * 12) calc(var(--hoi-u) * 12) calc(var(--hoi-u) * 10);
+  background:
+    linear-gradient(170deg, rgba(255, 255, 255, 0.18), transparent 40%),
+    var(--hoi-paper);
+  color: var(--hoi-ink);
+  font: 400 calc(var(--hoi-u) * 11) / 1.35 var(--font-special-elite), monospace;
+  box-shadow:
+    0 calc(var(--hoi-u) * 8) calc(var(--hoi-u) * 18) rgba(0, 0, 0, 0.55),
+    0 1px 3px rgba(0, 0, 0, 0.5);
+  rotate: -1.5deg;
+}
+.scene-hearts-of-iron .hoi-legend b {
+  display: block;
+  font: 400 calc(var(--hoi-u) * 12) / 1 var(--font-black-ops), sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: calc(var(--hoi-u) * 6);
+  border-bottom: 1px solid rgba(42, 36, 22, 0.5);
+  padding-bottom: calc(var(--hoi-u) * 5);
+}
+.scene-hearts-of-iron .hoi-legend svg {
+  display: block;
+  width: 100%;
+  height: auto;
   overflow: visible;
 }
-html[data-theme='hearts-of-iron'] .hoi-legend text {
+.scene-hearts-of-iron .hoi-legend text {
   fill: var(--hoi-ink);
   font-family: var(--font-special-elite), monospace;
-  font-size: 11.5px;
+  font-size: 11px;
 }
-html[data-theme='hearts-of-iron'] .hoi-lg-red,
-html[data-theme='hearts-of-iron'] .hoi-lg-blue {
+.scene-hearts-of-iron .hoi-lg-red {
+  stroke: #b8432f;
   stroke-width: 2;
 }
-html[data-theme='hearts-of-iron'] .hoi-lg-red {
-  stroke: var(--hoi-red);
+.scene-hearts-of-iron .hoi-lg-redfill {
+  fill: #b8432f;
 }
-html[data-theme='hearts-of-iron'] .hoi-lg-redfill {
-  fill: var(--hoi-red);
+.scene-hearts-of-iron .hoi-lg-hatch {
+  stroke: rgba(184, 67, 47, 0.6);
+  stroke-width: 10;
+  stroke-dasharray: 2 3;
 }
-html[data-theme='hearts-of-iron'] .hoi-lg-blue {
-  stroke: var(--hoi-blue);
+.scene-hearts-of-iron .hoi-lg-blue {
+  stroke: #46709e;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
 }
-html[data-theme='hearts-of-iron'] .hoi-lg-bluefill {
-  fill: var(--hoi-blue);
+.scene-hearts-of-iron .hoi-lg-rail {
+  fill: none;
+  stroke: #1d1910;
+  stroke-width: 1.4;
 }
-html[data-theme='hearts-of-iron'] .hoi-lg-supply {
-  stroke: #8a6a28;
-  stroke-width: 2.4;
-  stroke-dasharray: 5 4;
-}
-html[data-theme='hearts-of-iron'] .hoi-lg-unit {
+.scene-hearts-of-iron .hoi-lg-unit {
   fill: #8e3424;
 }
-html[data-theme='hearts-of-iron'] .hoi-lg-unitx {
+.scene-hearts-of-iron .hoi-lg-unitx {
+  fill: none;
   stroke: #e7d8ae;
-  stroke-width: 1.3;
+  stroke-width: 1;
 }
-html[data-theme='hearts-of-iron'] .hoi-legend i {
+.scene-hearts-of-iron .hoi-legend i {
   display: block;
-  margin-top: 4px;
+  margin-top: calc(var(--hoi-u) * 4);
   font-style: normal;
-  font-size: 10px;
+  font-size: calc(var(--hoi-u) * 10);
 }
-html[data-theme='hearts-of-iron'] .hoi-scale {
+.scene-hearts-of-iron .hoi-scale {
   display: block;
-  height: 5px;
-  margin-top: 3px;
+  height: calc(var(--hoi-u) * 5);
+  margin-top: calc(var(--hoi-u) * 3);
   border: 1px solid var(--hoi-ink);
   background: repeating-linear-gradient(90deg, var(--hoi-ink) 0 18px, transparent 18px 36px);
 }
-html[data-theme='hearts-of-iron'] .hoi-memo {
-  right: 16px;
-  top: 30%;
-  rotate: 2.5deg;
-  animation-duration: 9s;
-  animation-delay: -3s;
-}
-html[data-theme='hearts-of-iron'] .hoi-memo em {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 2px 6px;
-  border: 2px solid var(--hoi-stamp);
-  color: var(--hoi-stamp);
-  font: 400 11px/1 var(--font-black-ops), sans-serif;
-  font-style: normal;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  transform: rotate(-9deg);
-  opacity: 0.85;
-}
-html[data-theme='hearts-of-iron'] .hoi-banner {
-  top: 7px;
+.scene-hearts-of-iron .hoi-tape {
+  position: absolute;
+  top: calc(var(--hoi-u) * -9);
   left: 50%;
-  translate: -50% 0;
-  white-space: nowrap;
-  font: 400 11px/1 var(--font-special-elite), monospace;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: rgba(232, 212, 165, 0.45);
-}
-/* os papéis só cabem nas margens das telas bem largas */
-@media (max-width: 1699px) {
-  html[data-theme='hearts-of-iron'] :is(.hoi-legend, .hoi-memo) {
-    display: none;
-  }
-}
-@media (max-width: 1279px) {
-  html[data-theme='hearts-of-iron'] .hoi-banner {
-    display: none;
-  }
+  width: calc(var(--hoi-u) * 58);
+  height: calc(var(--hoi-u) * 18);
+  margin-left: calc(var(--hoi-u) * -29);
+  background: rgba(232, 222, 186, 0.62);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  rotate: -4deg;
 }
 
-/* ---- luz do ciclo e clima ---- */
-html[data-theme='hearts-of-iron'] .hoi-fx {
-  inset: 0;
-  will-change: opacity;
-}
-/* abajur quente (dia) */
-html[data-theme='hearts-of-iron'] .hoi-day {
-  background:
-    radial-gradient(ellipse 75% 70% at 50% 25%, rgba(255, 208, 132, 0.2), transparent 75%),
-    linear-gradient(rgba(226, 172, 92, 0.14), rgba(226, 172, 92, 0.14));
-  opacity: 0.9;
-  animation: hoi-day var(--hoi-cycle) linear infinite;
-}
-/* faixas de sol de uma janela atravessando a mesa */
-html[data-theme='hearts-of-iron'] .hoi-shafts {
-  inset: -15% auto -15% 0;
-  width: 70vw;
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(255, 230, 168, 0.12) 0 9vw,
-    transparent 9vw 11vw
-  );
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
-  opacity: 0.7;
-  transform: translateX(15vw) skewX(-24deg);
-  animation: hoi-shafts var(--hoi-cycle) linear infinite;
-}
-/* reflexo de lente no auge do dia (canto superior direito) */
-html[data-theme='hearts-of-iron'] .hoi-flare {
-  opacity: 0;
-  animation: hoi-flare var(--hoi-cycle) linear infinite;
-}
-html[data-theme='hearts-of-iron'] .hoi-flare span {
+/* fumaça do cigarro e vapor do café */
+.scene-hearts-of-iron .hoi-ember {
   position: absolute;
+  left: 92%;
+  top: 22%;
+  width: 5%;
+  aspect-ratio: 1;
   border-radius: 50%;
+  background: radial-gradient(circle, #fff1c4, #ff7a2a 55%, #a02a0a);
 }
-html[data-theme='hearts-of-iron'] .hoi-flare span:nth-child(1) {
-  top: -30vh;
-  right: -18vw;
-  width: 60vw;
-  height: 70vh;
-  background: radial-gradient(closest-side, rgba(255, 238, 190, 0.32), rgba(255, 200, 120, 0.1) 55%, transparent);
-}
-html[data-theme='hearts-of-iron'] .hoi-flare span:nth-child(2) {
-  top: 16vh;
-  right: 13vw;
-  width: 70px;
-  height: 70px;
-  background: radial-gradient(closest-side, transparent 55%, rgba(255, 220, 160, 0.2) 80%, transparent);
-}
-html[data-theme='hearts-of-iron'] .hoi-flare span:nth-child(3) {
-  top: 26vh;
-  right: 21vw;
-  width: 34px;
-  height: 34px;
-  background: rgba(190, 220, 255, 0.1);
-}
-/* neblina do amanhecer */
-html[data-theme='hearts-of-iron'] .hoi-fog {
-  background:
-    linear-gradient(to top, rgba(206, 210, 196, 0.22), transparent 40%),
-    linear-gradient(to bottom, rgba(206, 210, 196, 0.12), transparent 30%);
-  opacity: 0;
-  animation: hoi-fog var(--hoi-cycle) linear infinite;
-}
-/* entardecer */
-html[data-theme='hearts-of-iron'] .hoi-dusk {
-  background: linear-gradient(200deg, rgba(232, 118, 52, 0.24), rgba(140, 50, 40, 0.16) 55%, rgba(40, 20, 40, 0.28));
-  opacity: 0.3;
-  animation: hoi-dusk var(--hoi-cycle) linear infinite;
-}
-/* nuvens em camadas (parallax) */
-html[data-theme='hearts-of-iron'] .hoi-clouds {
-  opacity: 0.8;
-  animation: hoi-clouds var(--hoi-cycle) linear infinite;
-}
-html[data-theme='hearts-of-iron'] .hoi-clouds span {
+.scene-hearts-of-iron .hoi-smoke {
   position: absolute;
-  left: 0;
-  width: 46vw;
-  height: 30vh;
+  left: 76%;
+  top: -46%;
+  width: 34%;
+  height: 72%;
   border-radius: 50%;
   background:
-    radial-gradient(closest-side at 35% 55%, rgba(218, 218, 206, 0.16), transparent),
-    radial-gradient(closest-side at 65% 45%, rgba(218, 218, 206, 0.13), transparent);
-  animation: hoi-drift 110s linear infinite;
-}
-html[data-theme='hearts-of-iron'] .hoi-clouds span:nth-child(1) {
-  top: -6vh;
-  animation-duration: 95s;
-  animation-delay: -30s;
-}
-html[data-theme='hearts-of-iron'] .hoi-clouds span:nth-child(2) {
-  top: 58vh;
-  width: 60vw;
-  height: 38vh;
-  animation-duration: 150s;
-  animation-delay: -100s;
-}
-html[data-theme='hearts-of-iron'] .hoi-clouds span:nth-child(3) {
-  top: 22vh;
-  width: 34vw;
-  animation-duration: 75s;
-  animation-delay: -12s;
-}
-/* sombra escura de frente fria */
-html[data-theme='hearts-of-iron'] .hoi-clouds span:nth-child(4) {
-  top: 70vh;
-  width: 52vw;
-  background: radial-gradient(closest-side, rgba(8, 12, 16, 0.3), transparent);
-  animation-duration: 125s;
-  animation-delay: -64s;
-}
-/* noite: mesa escurece e uma lâmpada fria azulada acende */
-html[data-theme='hearts-of-iron'] .hoi-night {
-  background:
-    radial-gradient(ellipse 70% 65% at 50% 45%, rgba(6, 12, 30, 0.35), rgba(4, 8, 20, 0.72));
-  opacity: 0;
-  animation: hoi-night var(--hoi-cycle) linear infinite;
-}
-html[data-theme='hearts-of-iron'] .hoi-nightlamp {
-  background: radial-gradient(ellipse 55% 50% at 50% 42%, rgba(130, 170, 230, 0.16), transparent 72%);
-  opacity: 0;
-  animation: hoi-night var(--hoi-cycle) linear infinite;
-}
-/* holofotes varrendo o céu (só à noite) */
-html[data-theme='hearts-of-iron'] .hoi-search {
-  opacity: 0;
-  animation: hoi-nightvis var(--hoi-cycle) linear infinite;
-}
-html[data-theme='hearts-of-iron'] .hoi-search span {
-  position: absolute;
-  bottom: -4vh;
-  left: 1vw;
-  width: 260px;
-  height: 92vh;
-  margin-left: -130px;
-  background: linear-gradient(to top, rgba(214, 228, 255, 0.34), rgba(214, 228, 255, 0.08) 60%, rgba(214, 228, 255, 0) 92%);
-  clip-path: polygon(48% 100%, 52% 100%, 100% 0, 0 0);
+    radial-gradient(ellipse 40% 50% at 46% 70%, rgba(214, 214, 206, 0.32), transparent 70%),
+    radial-gradient(ellipse 30% 40% at 60% 30%, rgba(214, 214, 206, 0.2), transparent 70%);
   transform-origin: 50% 100%;
-  transform: rotate(18deg);
-  animation: hoi-swing 19s ease-in-out infinite alternate;
-}
-html[data-theme='hearts-of-iron'] .hoi-search span:nth-child(2) {
-  left: auto;
-  right: 2vw;
-  margin: 0 -130px 0 0;
-  animation-duration: 23s;
-  animation-delay: -9s;
-  animation-direction: alternate-reverse;
-}
-/* clarões de flak na faixa de cima (raros, à noite) */
-html[data-theme='hearts-of-iron'] .hoi-flak {
   opacity: 0;
-  animation: hoi-nightvis var(--hoi-cycle) linear infinite;
+  animation: hoi-smoke 8.4s ease-out infinite;
 }
-html[data-theme='hearts-of-iron'] .hoi-flak span {
+.scene-hearts-of-iron .hoi-smoke:nth-of-type(3) {
+  animation-delay: -2.8s;
+  animation-duration: 9.1s;
+}
+.scene-hearts-of-iron .hoi-smoke:nth-of-type(4) {
+  animation-delay: -5.7s;
+  animation-duration: 7.6s;
+}
+.scene-hearts-of-iron .hoi-steam {
   position: absolute;
-  top: 3vh;
-  left: 33vw;
-  width: 46px;
-  height: 46px;
+  left: 22%;
+  top: -10%;
+  width: 46%;
+  height: 70%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 246, 214, 0.95), rgba(255, 170, 80, 0.5) 45%, transparent);
+  background: radial-gradient(ellipse 45% 50% at 50% 60%, rgba(236, 232, 222, 0.22), transparent 70%);
   opacity: 0;
-  animation: hoi-flak 9s ease-out infinite;
+  animation: hoi-steam 6.2s ease-out infinite;
 }
-html[data-theme='hearts-of-iron'] .hoi-flak span:nth-child(2) {
-  top: 6vh;
-  left: 61vw;
-  width: 34px;
-  height: 34px;
-  animation-duration: 13s;
+.scene-hearts-of-iron .hoi-steam + .hoi-steam {
+  left: 34%;
+  animation-delay: -3.3s;
+  animation-duration: 7s;
+}
+
+/* ---- luzes do dia (janela à direita) ---- */
+.scene-hearts-of-iron .hoi-dark2 {
+  background: linear-gradient(135deg, transparent 6%, rgba(5, 8, 20, 0.45) 30%, rgba(5, 8, 20, 0.45) 72%, transparent 96%);
+  opacity: 0;
+  animation: hoi-night var(--hoi-day) linear infinite;
+}
+.scene-hearts-of-iron .hoi-sun {
+  background:
+    radial-gradient(ellipse 70% 60% at 82% 18%, rgba(255, 220, 150, 0.13), transparent 70%),
+    linear-gradient(rgba(255, 196, 120, 0.06), rgba(255, 196, 120, 0.06));
+  opacity: 0.85;
+  animation: hoi-sun var(--hoi-day) linear infinite;
+}
+.scene-hearts-of-iron .hoi-blinds {
+  top: -20vh;
+  left: 0;
+  width: 90vw;
+  height: 140vh;
+  opacity: 0.42;
+  transform: translateX(30vw);
+  animation: hoi-blinds var(--hoi-day) linear infinite;
+}
+.scene-hearts-of-iron .hoi-dusk {
+  background: linear-gradient(210deg, rgba(240, 120, 50, 0.26), rgba(150, 50, 40, 0.16) 55%, rgba(40, 20, 40, 0.3));
+  opacity: 0.25;
+  animation: hoi-dusk var(--hoi-day) linear infinite;
+}
+.scene-hearts-of-iron .hoi-fog {
+  background:
+    linear-gradient(to top, rgba(206, 210, 196, 0.2), transparent 40%),
+    linear-gradient(to bottom, rgba(206, 210, 196, 0.14), transparent 30%);
+  opacity: 0;
+  animation: hoi-fog var(--hoi-day) linear infinite;
+}
+.scene-hearts-of-iron .hoi-dayonly,
+.scene-hearts-of-iron .hoi-nightonly {
+  inset: 0;
+  overflow: hidden;
+}
+.scene-hearts-of-iron .hoi-dayonly {
+  opacity: 1;
+  animation: hoi-dayvis var(--hoi-day) linear infinite;
+}
+.scene-hearts-of-iron .hoi-nightonly {
+  opacity: 0;
+  animation: hoi-nightvis var(--hoi-day) linear infinite;
+}
+.scene-hearts-of-iron .hoi-dayonly > *,
+.scene-hearts-of-iron .hoi-nightonly > * {
+  position: absolute;
+}
+.scene-hearts-of-iron .hoi-planes {
+  left: 0;
+  top: 0;
+  width: calc(var(--hoi-u) * 300);
+  transform: translate(-60vw, 0);
+  animation: hoi-fly 52s linear infinite;
+  animation-delay: -14s;
+}
+.scene-hearts-of-iron .hoi-planes svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.scene-hearts-of-iron .hoi-plane-shadow {
+  fill: rgba(8, 10, 6, 0.42);
+}
+.scene-hearts-of-iron .hoi-mote {
+  left: 70%;
+  top: 30%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 240, 200, 0.9), rgba(255, 220, 160, 0) 70%);
+  animation: hoi-mote 23s ease-in-out infinite;
+}
+.scene-hearts-of-iron .hoi-mote:nth-of-type(2) {
+  left: 84%;
+  top: 12%;
+  animation-duration: 29s;
+  animation-delay: -9s;
+}
+.scene-hearts-of-iron .hoi-mote:nth-of-type(3) {
+  left: 6%;
+  top: 62%;
+  animation-duration: 31s;
+  animation-delay: -17s;
+}
+.scene-hearts-of-iron .hoi-mote:nth-of-type(4) {
+  left: 52%;
+  top: 4%;
+  animation-duration: 26s;
   animation-delay: -4s;
 }
-html[data-theme='hearts-of-iron'] .hoi-flak span:nth-child(3) {
-  top: 2vh;
-  left: 76vw;
-  animation-duration: 11s;
-  animation-delay: -7.5s;
+
+/* ---- noite: luar com gotas, chuva, holofotes, flak, relâmpago ---- */
+.scene-hearts-of-iron .hoi-moon {
+  inset: -10% -10% -10% 30%;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cg fill='rgba(10,16,30,0.5)'%3E%3Cellipse cx='20' cy='30' rx='3' ry='5'/%3E%3Cellipse cx='90' cy='14' rx='2' ry='4'/%3E%3Cellipse cx='140' cy='60' rx='3.5' ry='6'/%3E%3Cellipse cx='60' cy='96' rx='2.5' ry='4'/%3E%3Cellipse cx='120' cy='130' rx='3' ry='5'/%3E%3Cellipse cx='30' cy='150' rx='2' ry='3'/%3E%3Cellipse cx='164' cy='164' rx='2.5' ry='4.5'/%3E%3Crect x='89' y='18' width='1.2' height='22'/%3E%3Crect x='139' y='66' width='1.4' height='30'/%3E%3C/g%3E%3C/svg%3E"),
+    repeating-linear-gradient(160deg, rgba(150, 180, 240, 0.085) 0 34px, transparent 34px 50px);
+  -webkit-mask-image: linear-gradient(250deg, #000 20%, transparent 75%);
+  mask-image: linear-gradient(250deg, #000 20%, transparent 75%);
 }
-/* frente de chuva */
-html[data-theme='hearts-of-iron'] .hoi-rain {
-  overflow: hidden;
-  opacity: 0;
-  animation: hoi-rain var(--hoi-cycle) linear infinite;
+.scene-hearts-of-iron .hoi-rain {
+  inset: -20% -20% 0 -20%;
+  rotate: 12deg;
+  background-image: repeating-linear-gradient(to right, rgba(170, 200, 240, 0.16) 0 1px, transparent 1px 53px);
+  -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 30px, transparent 30px 96px);
+  mask-image: repeating-linear-gradient(to bottom, #000 0 30px, transparent 30px 96px);
+  animation: hoi-rain 0.5s linear infinite;
 }
-html[data-theme='hearts-of-iron'] .hoi-rain-sheet {
+.scene-hearts-of-iron .hoi-search {
+  inset: 0;
+}
+.scene-hearts-of-iron .hoi-search span {
   position: absolute;
-  left: 0;
-  top: -140px;
-  width: 100%;
-  height: calc(100% + 140px);
-  animation: hoi-fall 0.5s linear infinite;
+  right: -30vw;
+  top: 30vh;
+  width: 120vw;
+  height: 26vh;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(214, 228, 255, 0.16), rgba(214, 228, 255, 0.05) 60%, transparent);
+  transform-origin: 100% 50%;
+  animation: hoi-search 17s ease-in-out infinite alternate;
 }
-html[data-theme='hearts-of-iron'] .hoi-rain-sheet path {
-  fill: none;
-  stroke: rgba(192, 212, 238, 0.32);
-  stroke-width: 1.2;
-  stroke-linecap: round;
+.scene-hearts-of-iron .hoi-search span + span {
+  top: 50vh;
+  animation-duration: 23s;
+  animation-delay: -8s;
+  animation-direction: alternate-reverse;
 }
-html[data-theme='hearts-of-iron'] .hoi-lightning {
-  background: radial-gradient(ellipse 90% 70% at 72% 0%, rgba(226, 234, 255, 0.5), rgba(180, 200, 240, 0.12) 60%, transparent);
+.scene-hearts-of-iron .hoi-flak {
+  right: -10vw;
+  top: -10vh;
+  width: 50vw;
+  height: 70vh;
+  background: radial-gradient(closest-side, rgba(255, 170, 80, 0.22), transparent);
   opacity: 0;
-  animation: hoi-lightning var(--hoi-cycle) linear infinite;
+  animation: hoi-flak 11s linear infinite;
+}
+.scene-hearts-of-iron .hoi-lightning {
+  background: radial-gradient(ellipse 80% 90% at 100% 20%, rgba(226, 234, 255, 0.25), rgba(180, 200, 240, 0.06) 60%, transparent);
+  opacity: 0;
+  animation: hoi-lightning var(--hoi-day) linear infinite;
+}
+.scene-hearts-of-iron .hoi-vignette {
+  background: radial-gradient(ellipse 80% 78% at 50% 46%, transparent 52%, rgba(10, 8, 4, 0.55) 100%);
 }
 
-/* ---- radar no canto inferior direito ---- */
-html[data-theme='hearts-of-iron'] .hoi-radar {
-  right: -110px;
-  bottom: -110px;
-  width: 330px;
+/* ---- emissores: abajur, brasa, teletipo, radar, mariposa ---- */
+.scene-hearts-of-iron .hoi-lamp {
+  left: calc(var(--hoi-u) * -28);
+  top: calc(var(--hoi-u) * -30);
+  width: calc(var(--hoi-u) * 212);
+}
+.scene-hearts-of-iron .hoi-lamp-pool {
+  left: calc(var(--hoi-u) * -300);
+  top: calc(var(--hoi-u) * -260);
+  width: calc(var(--hoi-u) * 760);
+  height: calc(var(--hoi-u) * 760);
+  background: radial-gradient(closest-side, rgba(255, 206, 120, 0.3), rgba(255, 184, 96, 0.12) 45%, rgba(255, 170, 80, 0.04) 75%, transparent);
+  animation: hoi-lampflick 11s linear infinite;
+}
+.scene-hearts-of-iron .hoi-lamp-glow {
+  left: calc(var(--hoi-u) * -50);
+  top: calc(var(--hoi-u) * -40);
+  width: calc(var(--hoi-u) * 300);
+  height: calc(var(--hoi-u) * 140);
+  rotate: -14deg;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(150, 255, 190, 0.22), rgba(255, 220, 140, 0.1) 60%, transparent);
+}
+.scene-hearts-of-iron .hoi-glow {
+  border-radius: 50%;
+}
+.scene-hearts-of-iron .hoi-glow-ember {
+  left: calc(var(--hoi-u) * 268);
+  top: calc(var(--hoi-u) * 600);
+  width: calc(var(--hoi-u) * 70);
+  height: calc(var(--hoi-u) * 70);
+  background: radial-gradient(closest-side, rgba(255, 200, 120, 0.9), rgba(255, 110, 40, 0.35) 30%, rgba(255, 90, 30, 0.08) 65%, transparent);
+  animation: hoi-ember 5.3s ease-in-out infinite;
+}
+.scene-hearts-of-iron .hoi-glow-tty {
+  right: calc(var(--hoi-u) * -6);
+  top: calc(var(--hoi-u) * 168);
+  width: calc(var(--hoi-u) * 60);
+  height: calc(var(--hoi-u) * 60);
+  background: radial-gradient(closest-side, rgba(255, 220, 150, 0.95), rgba(255, 170, 60, 0.4) 30%, rgba(255, 150, 40, 0.08) 65%, transparent);
+  animation: hoi-ttylamp 3.5s steps(1) infinite;
+}
+.scene-hearts-of-iron .hoi-moth {
+  left: calc(var(--hoi-u) * 70);
+  top: calc(var(--hoi-u) * 40);
+  width: calc(var(--hoi-u) * 9);
+  height: calc(var(--hoi-u) * 6);
+  border-radius: 50% 50% 40% 40%;
+  background: rgba(40, 32, 20, 0.85);
+  opacity: 0;
+  transform-origin: calc(var(--hoi-u) * 40) calc(var(--hoi-u) * 30);
+  animation: hoi-moth var(--hoi-day) linear infinite;
+}
+
+/* radar no canto de baixo à direita */
+.scene-hearts-of-iron .hoi-radar {
+  right: calc(var(--hoi-u) * -118);
+  bottom: calc(var(--hoi-u) * -118);
+  width: calc(var(--hoi-u) * 350);
   aspect-ratio: 1;
+}
+.scene-hearts-of-iron .hoi-radar::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(110, 230, 150, 0.16), rgba(110, 230, 150, 0.05) 55%, transparent);
+}
+.scene-hearts-of-iron .hoi-radar-screen {
+  position: absolute;
+  inset: 6%;
   border-radius: 50%;
   overflow: hidden;
   background:
     linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(130, 230, 160, 0.25) 50%, transparent calc(50% + 0.5px)),
     linear-gradient(transparent calc(50% - 0.5px), rgba(130, 230, 160, 0.25) 50%, transparent calc(50% + 0.5px)),
-    repeating-radial-gradient(circle, transparent 0 40px, rgba(130, 230, 160, 0.22) 40px 41.5px),
-    radial-gradient(circle, #13291e, #08140e 72%);
-  box-shadow:
-    0 0 0 5px #6e521c,
-    0 0 0 7px #241a08,
-    0 0 0 11px #b8913f,
-    0 0 0 13px #3a2c10,
-    0 10px 40px rgba(0, 0, 0, 0.7);
+    repeating-radial-gradient(circle, transparent 0 calc(var(--hoi-u) * 40), rgba(130, 230, 160, 0.22) calc(var(--hoi-u) * 40) calc(var(--hoi-u) * 41.5)),
+    radial-gradient(circle, #163322, #08140e 72%);
 }
-html[data-theme='hearts-of-iron'] .hoi-radar-sweep {
+.scene-hearts-of-iron .hoi-radar-bezel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-hearts-of-iron .hoi-radar-marks text {
+  font: 400 13px var(--font-share-tech), monospace;
+  fill: rgba(170, 255, 200, 0.7);
+  text-anchor: middle;
+}
+.scene-hearts-of-iron .hoi-radar-sweep {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0 290deg, rgba(120, 230, 150, 0.06) 300deg, rgba(150, 255, 180, 0.5) 360deg);
+  background: conic-gradient(from 0deg, transparent 0 280deg, rgba(120, 230, 150, 0.07) 300deg, rgba(160, 255, 190, 0.55) 360deg);
   transform: rotate(250deg);
   animation: hoi-spin 6s linear infinite;
 }
-html[data-theme='hearts-of-iron'] .hoi-blip {
+.scene-hearts-of-iron .hoi-radar-fast {
+  display: none;
+  animation-duration: 1.2s;
+}
+.scene-hearts-of-iron .hoi-blip {
   position: absolute;
   top: 28%;
   left: 24%;
-  width: 7px;
-  height: 7px;
+  width: 3%;
+  aspect-ratio: 1;
   border-radius: 50%;
-  background: #b6ffc8;
+  background: #c4ffd2;
   box-shadow: 0 0 8px 2px rgba(140, 255, 170, 0.7);
   opacity: 0.2;
   animation: hoi-blip 6s linear infinite;
   animation-delay: -1.1s;
 }
-html[data-theme='hearts-of-iron'] .hoi-blip:nth-of-type(3) {
+.scene-hearts-of-iron .hoi-blip:nth-of-type(4) {
   top: 18%;
   left: 44%;
   animation-delay: -0.3s;
 }
-html[data-theme='hearts-of-iron'] .hoi-blip:nth-of-type(4) {
+.scene-hearts-of-iron .hoi-blip:nth-of-type(5) {
   top: 42%;
   left: 14%;
   animation-delay: -2s;
 }
+.scene-hearts-of-iron .hoi-blip:nth-of-type(6) {
+  top: 36%;
+  left: 34%;
+  animation-delay: -1.5s;
+}
 
-/* ---- dobras do papel, grão e vinheta ---- */
-html[data-theme='hearts-of-iron'] .hoi-creases {
+/* ---- relógio de cartões ao lado da sirene ---- */
+.scene-hearts-of-iron .hoi-clock {
+  left: calc(50% + var(--hoi-u) * 42);
+  top: calc(var(--hoi-u) * 5);
+  width: calc(var(--hoi-u) * 92);
+  padding: calc(var(--hoi-u) * 4) calc(var(--hoi-u) * 5) calc(var(--hoi-u) * 3);
+  border-radius: calc(var(--hoi-u) * 4);
+  background: linear-gradient(#e9cf86, #b8913f 45%, #6e521c);
+  box-shadow:
+    0 0 0 1px #241a08,
+    0 calc(var(--hoi-u) * 4) calc(var(--hoi-u) * 10) rgba(0, 0, 0, 0.6);
+}
+.scene-hearts-of-iron .hoi-clock-win {
+  position: relative;
+  height: calc(var(--hoi-u) * 22);
+  overflow: hidden;
+  border-radius: 2px;
+  background: linear-gradient(#1c1a14, #0a0906 50%, #1c1a14 50.5%, #0d0c09);
+  box-shadow: inset 0 1px 3px #000;
+}
+/* emenda dos cartões no meio */
+.scene-hearts-of-iron .hoi-clock-win::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.85);
+}
+.scene-hearts-of-iron .hoi-clock-strip {
+  /* sem animação: 14:00, a mesma tarde da cena parada */
+  transform: translateY(-37.5%);
+  animation: hoi-clock var(--hoi-day) step-end infinite;
+}
+.scene-hearts-of-iron .hoi-clock-strip b {
+  display: block;
+  height: calc(var(--hoi-u) * 22);
+  font: 400 calc(var(--hoi-u) * 17) / calc(var(--hoi-u) * 22) var(--font-share-tech), monospace;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: #f2e8cc;
+}
+.scene-hearts-of-iron .hoi-clock i {
+  display: block;
+  margin-top: calc(var(--hoi-u) * 1);
+  font: italic 400 calc(var(--hoi-u) * 7) / 1 var(--font-special-elite), monospace;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-transform: uppercase;
+  color: #2a1f0a;
+}
+
+/* ---- sirene (topo, centro) ---- */
+.scene-hearts-of-iron .hoi-alarm {
+  left: 50%;
+  top: 0;
+  width: calc(var(--hoi-u) * 64);
+  margin-left: calc(var(--hoi-u) * -32);
+}
+.scene-hearts-of-iron .hoi-alarm-lamp {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.scene-hearts-of-iron .hoi-alarm-beams,
+.scene-hearts-of-iron .hoi-alarm-glow {
+  display: none;
+  position: absolute;
+}
+.scene-hearts-of-iron .hoi-alarm-beams {
+  left: 50%;
+  top: 30%;
+  width: 0;
+  height: 0;
+}
+/* dois fachos estreitos girando em volta da sirene (camadas pequenas) */
+.scene-hearts-of-iron .hoi-alarm-beams span {
+  position: absolute;
+  left: 0;
+  top: -20vh;
+  width: 130vh;
+  height: 40vh;
+  background: radial-gradient(ellipse 100% 50% at 0% 50%, rgba(255, 60, 40, 0.34), rgba(255, 40, 30, 0.1) 55%, transparent 80%);
+  transform-origin: 0 50%;
+}
+.scene-hearts-of-iron .hoi-alarm-glow {
+  left: -100%;
+  top: -60%;
+  width: 300%;
+  height: 300%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 90, 70, 0.7), rgba(255, 40, 30, 0.2) 45%, transparent);
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron :is(.hoi-alarm-beams, .hoi-alarm-glow) {
+  display: block;
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-alarm-beams {
+  animation: hoi-fadein 0.6s ease-out both;
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-alarm-beams span {
+  animation: hoi-spin 1.5s linear infinite;
+}
+html[data-wheel] .scene-hearts-of-iron .hoi-alarm-beams span + span {
+  animation-delay: -0.75s;
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-alarm-glow {
+  animation: hoi-alarmglow 0.75s ease-in-out infinite alternate;
+}
+
+/* ---- girando: telefone, teletipo, radar ---- */
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-phone-ring {
+  animation: hoi-ring 1.6s linear infinite;
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-phone-waves {
+  animation: hoi-waves 1.6s linear infinite;
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-tty-calm {
+  opacity: 0.08;
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-tty-race {
+  opacity: 1;
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-tty-racecol {
+  animation: hoi-tty-race 1.2s linear infinite;
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-glow-tty {
+  animation: hoi-ttylamp 0.6s steps(1) infinite;
+}
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-radar-fast {
+  display: block;
+  animation: hoi-spin 1.2s linear infinite, hoi-fadein 0.6s ease-out both;
+}
+
+/* ---- vitória: carimbo, tremida, frente acesa ---- */
+.scene-hearts-of-iron .hoi-stamp,
+.scene-hearts-of-iron .hoi-winflash {
+  display: none;
+}
+.scene-hearts-of-iron .hoi-stamp {
+  position: absolute;
+  left: calc(var(--hoi-u) * 6);
+  top: calc(var(--hoi-u) * 330);
+  width: calc(var(--hoi-u) * 176);
+  aspect-ratio: 280 / 120;
+  rotate: -11deg;
+}
+.scene-hearts-of-iron .hoi-stamp > * {
+  position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.scene-hearts-of-iron .hoi-stamp-b1,
+.scene-hearts-of-iron .hoi-stamp-b2 {
+  fill: none;
+  stroke: var(--win-color, #c4513a);
+}
+.scene-hearts-of-iron .hoi-stamp-b1 {
+  stroke-width: 7;
+}
+.scene-hearts-of-iron .hoi-stamp-b2 {
+  stroke-width: 2.5;
+}
+.scene-hearts-of-iron .hoi-stamp-word {
+  font: 400 54px var(--font-black-ops), sans-serif;
+  fill: var(--win-color, #c4513a);
+  text-anchor: middle;
+  letter-spacing: 0.08em;
+}
+.scene-hearts-of-iron .hoi-stamp-sub {
+  font: 400 12px var(--font-special-elite), monospace;
+  fill: var(--win-color, #c4513a);
+  text-anchor: middle;
+  letter-spacing: 0.24em;
+}
+.scene-hearts-of-iron .hoi-stamp > .hoi-stamp-tool {
+  inset: -14% -6% auto;
+  width: 112%;
+  height: auto;
+  opacity: 0;
+}
+.scene-hearts-of-iron .hoi-stamp > .hoi-stamp-ring {
+  inset: -40% 10%;
+  width: auto;
+  height: auto;
+  border-radius: 50%;
+  border: 3px solid var(--win-color, #c4513a);
+  opacity: 0;
+}
+.scene-hearts-of-iron .hoi-stamp > .hoi-stamp-slip {
+  display: none;
+  inset: -16% -7% -18%;
+  width: auto;
+  height: auto;
   background:
-    linear-gradient(90deg, transparent calc(33.3% - 3px), rgba(0, 0, 0, 0.22) calc(33.3% - 1px), rgba(255, 238, 200, 0.07) calc(33.3% + 1px), transparent calc(33.3% + 5px)),
-    linear-gradient(90deg, transparent calc(66.6% - 3px), rgba(0, 0, 0, 0.22) calc(66.6% - 1px), rgba(255, 238, 200, 0.07) calc(66.6% + 1px), transparent calc(66.6% + 5px)),
-    linear-gradient(transparent calc(50% - 3px), rgba(0, 0, 0, 0.2) calc(50% - 1px), rgba(255, 238, 200, 0.06) calc(50% + 1px), transparent calc(50% + 5px)),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.45 0 0 0 0 0.25 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse 85% 80% at 50% 48%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+    linear-gradient(176deg, rgba(255, 255, 255, 0.22), transparent 45%),
+    linear-gradient(#e6dab6, #d3c294);
+  box-shadow:
+    0 calc(var(--hoi-u) * 6) calc(var(--hoi-u) * 14) rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(90, 70, 30, 0.3);
+}
+.scene-hearts-of-iron .hoi-winflash {
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 40%, var(--win-color, #ffd27a), transparent 75%);
+  opacity: 0;
+}
+html[data-wheel='won'] .scene-hearts-of-iron :is(.hoi-stamp, .hoi-winflash) {
+  display: block;
+}
+html[data-wheel='won'] .scene-hearts-of-iron .hoi-stamp-tool {
+  animation: hoi-stamp-tool 1s ease-in both;
+}
+html[data-wheel='won'] .scene-hearts-of-iron .hoi-stamp-mark {
+  animation: hoi-stamp-mark 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.26s both;
+}
+html[data-wheel='won'] .scene-hearts-of-iron .hoi-stamp-ring {
+  animation: hoi-stamp-ring 0.9s ease-out 0.26s both;
+}
+html[data-wheel='won'] .scene-hearts-of-iron .hoi-winflash {
+  animation: hoi-winflash 1.4s ease-out 0.26s both;
+}
+html[data-wheel='won'] .scene-hearts-of-iron .hoi-cam {
+  animation: hoi-thump 0.5s linear 0.26s both;
+}
+html[data-wheel='won'] .scene-hearts-of-iron .hoi-surge {
+  animation: hoi-surge 2.4s ease-out 0.4s both;
+}
+html[data-wheel='won'] .scene-hearts-of-iron :is(.hoi-alarm-beams, .hoi-alarm-glow) {
+  display: block;
+  animation: hoi-fadeout 1.2s ease-out both;
+}
+/* no vencedor a sirene corta: fachos e varredura rápida congelam onde estão
+   (mesma animação, pausada: sem pulo de ângulo) e somem no fade; nada fica
+   girando escondido enquanto o modal estiver aberto */
+html[data-wheel='won'] .scene-hearts-of-iron .hoi-radar-fast {
+  display: block;
+  animation: hoi-spin 1.2s linear infinite, hoi-fadeout 1.6s ease-out both;
+  animation-play-state: paused, running;
+}
+html[data-wheel='won'] .scene-hearts-of-iron .hoi-alarm-beams span {
+  animation: hoi-spin 1.5s linear infinite;
+  animation-play-state: paused;
+}
+
+/* ---- telas: objetos só onde há margem ---- */
+@media (max-width: 1699px) {
+  .scene-hearts-of-iron :is(.hoi-props, .hoi-emit, .hoi-dark2) {
+    display: none;
+  }
+  /* sem dossiê à vista: o carimbo bate no topo, na faixa livre */
+  .scene-hearts-of-iron .hoi-stamp {
+    left: 55%;
+    top: calc(var(--hoi-u) * 22);
+    width: calc(var(--hoi-u) * 220);
+    rotate: -5deg;
+  }
+  .scene-hearts-of-iron .hoi-stamp > .hoi-stamp-slip {
+    display: block;
+  }
+  html[data-wheel='won'] .scene-hearts-of-iron .hoi-stamp-slip {
+    animation: hoi-slip 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+}
+@media (max-width: 640px) {
+  .scene-hearts-of-iron :is(.hoi-dayonly, .hoi-search, .hoi-flak, .hoi-moon, .hoi-rain) {
+    display: none;
+  }
+  .scene-hearts-of-iron .hoi-stamp {
+    left: 50%;
+    margin-left: calc(var(--hoi-u) * -80);
+    top: calc(var(--hoi-u) * 60);
+    width: calc(var(--hoi-u) * 160);
+  }
+  .scene-hearts-of-iron .hoi-alarm {
+    left: auto;
+    right: calc(var(--hoi-u) * 6);
+    margin-left: 0;
+  }
+  .scene-hearts-of-iron .hoi-clock {
+    left: auto;
+    right: calc(var(--hoi-u) * 80);
+  }
 }
 
 /* ================= COMPONENTES ================= */
@@ -650,7 +1370,7 @@ html[data-theme='hearts-of-iron'] .ui-title {
   color: #eadcb2;
   text-shadow:
     0 2px 0 #14140b,
-    0 0 22px rgba(0, 0, 0, 0.7);
+    0 0 22px rgba(0, 0, 0, 0.8);
 }
 html[data-theme='hearts-of-iron'] .ui-title::before {
   content: 'Operação';
@@ -659,12 +1379,19 @@ html[data-theme='hearts-of-iron'] .ui-title::before {
   font: 400 0.75rem/1 var(--font-special-elite), monospace;
   letter-spacing: 0.5em;
   color: var(--hoi-brass);
-  text-shadow: none;
+  text-shadow: 0 1px 2px #000;
 }
+/* subtítulo numa tira de papel datilografada (legível sobre a carta) */
 html[data-theme='hearts-of-iron'] .ui-subtitle {
+  display: inline-block;
+  padding: 0.18rem 0.6rem 0.12rem;
   font-family: var(--font-special-elite), monospace;
-  color: #c3b892;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  color: var(--hoi-ink);
+  background: linear-gradient(175deg, #ebdfba, var(--hoi-paper-2));
+  box-shadow:
+    inset 0 0 0 1px rgba(90, 70, 30, 0.3),
+    0 2px 6px rgba(0, 0, 0, 0.6);
+  transform: rotate(-0.6deg);
 }
 html[data-theme='hearts-of-iron'] .ui-subtitle-text,
 html[data-theme='hearts-of-iron'] .ui-subtitle-spider {
@@ -676,16 +1403,16 @@ html[data-theme='hearts-of-iron'] .ui-subtitle::after {
 
 /* painéis de couro oliva com friso de latão, costura e rebites nos cantos */
 html[data-theme='hearts-of-iron'] .ui-card {
-  --rivet: radial-gradient(circle at 45% 40%, #fbe7a8 0 1px, #c9a24a 2px, #6e521c 3.6px, rgba(0, 0, 0, 0.55) 4.6px, transparent 5.6px);
+  --hoi-rivet: radial-gradient(circle at 45% 40%, #fbe7a8 0 1px, #c9a24a 2px, #6e521c 3.6px, rgba(0, 0, 0, 0.55) 4.6px, transparent 5.6px);
   border-radius: 6px;
   border: 1px solid #8a6e30;
   background:
-    var(--rivet) left 4px top 4px / 14px 14px no-repeat,
-    var(--rivet) right 4px top 4px / 14px 14px no-repeat,
-    var(--rivet) left 4px bottom 4px / 14px 14px no-repeat,
-    var(--rivet) right 4px bottom 4px / 14px 14px no-repeat,
+    var(--hoi-rivet) left 4px top 4px / 14px 14px no-repeat,
+    var(--hoi-rivet) right 4px top 4px / 14px 14px no-repeat,
+    var(--hoi-rivet) left 4px bottom 4px / 14px 14px no-repeat,
+    var(--hoi-rivet) right 4px bottom 4px / 14px 14px no-repeat,
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    linear-gradient(165deg, #3d3e27 0%, #2c2d1c 50%, #222315 100%);
+    linear-gradient(165deg, rgba(61, 62, 39, 0.94) 0%, rgba(44, 45, 28, 0.94) 50%, rgba(34, 35, 21, 0.95) 100%);
   outline: 1px dashed rgba(201, 162, 74, 0.3);
   outline-offset: -7px;
   box-shadow:
@@ -693,10 +1420,14 @@ html[data-theme='hearts-of-iron'] .ui-card {
     inset 0 0 0 2px rgba(0, 0, 0, 0.35),
     0 14px 34px rgba(0, 0, 0, 0.6);
 }
-/* tooltip e lista de sugestões: sem costura (ficam por cima do conteúdo) */
+/* tooltip, lista de sugestões e modal: couro opaco */
+html[data-theme='hearts-of-iron'] .ui-card:is(.absolute *, .absolute, [role='dialog'], dialog) {
+  background-color: #2c2d1c;
+}
 html[data-theme='hearts-of-iron'] .ui-card:is(.absolute *, .absolute) {
   outline: none;
 }
+/* volume: plaqueta de latão escuro */
 html[data-theme='hearts-of-iron'] .ui-chip {
   border-radius: 4px;
   border: 1px solid #8a6e30;
@@ -765,6 +1496,7 @@ html[data-theme='hearts-of-iron'] .ui-cta {
   background:
     radial-gradient(circle at 45% 40%, #fbe7a8 0 1px, #c9a24a 2px, #6e521c 3.4px, transparent 4.6px) left 7px center / 12px 12px no-repeat,
     radial-gradient(circle at 45% 40%, #fbe7a8 0 1px, #c9a24a 2px, #6e521c 3.4px, transparent 4.6px) right 7px center / 12px 12px no-repeat,
+    repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.07) 0 10px, transparent 10px 20px),
     linear-gradient(#ac4a30, #86321f 55%, #5f2114);
   box-shadow:
     inset 0 1px 0 rgba(255, 210, 170, 0.35),
@@ -871,10 +1603,6 @@ html[data-theme='hearts-of-iron'] .ui-hub:focus-visible {
   outline: 3px solid #f3e6c0;
   outline-offset: 7px;
 }
-html[data-theme='hearts-of-iron'] .ui-hub .animate-spin {
-  border-color: rgba(42, 31, 10, 0.22);
-  border-top-color: #a8402a;
-}
 
 /* modal do vencedor: carimbo de "missão sorteada" */
 html[data-theme='hearts-of-iron'] [role='dialog'].ui-card::after {
@@ -904,32 +1632,21 @@ html[data-theme='hearts-of-iron'] [role='dialog'].ui-card > div > p:first-child 
 
 /* ================= KEYFRAMES ================= */
 
-@keyframes hoi-day {
+/* ---- dia (240 s) ---- */
+@keyframes hoi-sun {
   0% { opacity: 0.3; }
-  10% { opacity: 0.85; }
+  10% { opacity: 0.8; }
   18%, 36% { opacity: 1; }
   46% { opacity: 0.35; }
   52%, 90% { opacity: 0; }
   100% { opacity: 0.3; }
 }
-@keyframes hoi-shafts {
-  0%, 6% { opacity: 0; transform: translateX(-75vw) skewX(-24deg); }
-  14%, 34% { opacity: 0.9; }
-  44% { opacity: 0; transform: translateX(110vw) skewX(-24deg); }
-  100% { opacity: 0; transform: translateX(110vw) skewX(-24deg); }
-}
-@keyframes hoi-flare {
-  0%, 14% { opacity: 0; }
-  22% { opacity: 1; }
-  30% { opacity: 0.85; }
-  38%, 100% { opacity: 0; }
-}
-@keyframes hoi-fog {
-  0% { opacity: 0.7; }
-  8% { opacity: 0.85; }
-  18%, 90% { opacity: 0; }
-  96% { opacity: 0.4; }
-  100% { opacity: 0.7; }
+@keyframes hoi-blinds {
+  0%, 5% { opacity: 0; transform: translateX(45vw); }
+  13% { opacity: 0.46; }
+  34% { opacity: 0.5; }
+  45% { opacity: 0; transform: translateX(-75vw); }
+  100% { opacity: 0; transform: translateX(-75vw); }
 }
 @keyframes hoi-dusk {
   0%, 36% { opacity: 0; }
@@ -939,16 +1656,17 @@ html[data-theme='hearts-of-iron'] [role='dialog'].ui-card > div > p:first-child 
   97% { opacity: 0.3; }
   100% { opacity: 0; }
 }
-@keyframes hoi-clouds {
-  0%, 18% { opacity: 0; }
-  23%, 40% { opacity: 1; }
-  46%, 55% { opacity: 0; }
-  59%, 80% { opacity: 1; }
-  86%, 100% { opacity: 0; }
+@keyframes hoi-fog {
+  0% { opacity: 0.7; }
+  8% { opacity: 0.85; }
+  18%, 90% { opacity: 0; }
+  96% { opacity: 0.4; }
+  100% { opacity: 0.7; }
 }
-@keyframes hoi-drift {
-  from { transform: translateX(-60vw); }
-  to { transform: translateX(160vw); }
+@keyframes hoi-dayvis {
+  0%, 8% { opacity: 0; }
+  14%, 40% { opacity: 1; }
+  46%, 100% { opacity: 0; }
 }
 @keyframes hoi-night {
   0% { opacity: 0.45; }
@@ -957,26 +1675,17 @@ html[data-theme='hearts-of-iron'] [role='dialog'].ui-card > div > p:first-child 
   96% { opacity: 0.7; }
   100% { opacity: 0.45; }
 }
+@keyframes hoi-nightvis {
+  0%, 53% { opacity: 0; }
+  57%, 86% { opacity: 1; }
+  90%, 100% { opacity: 0; }
+}
 @keyframes hoi-lights {
   0% { opacity: 0.6; }
   6%, 46% { opacity: 0; }
   52%, 89% { opacity: 1; }
   95% { opacity: 0.7; }
   100% { opacity: 0.6; }
-}
-@keyframes hoi-nightvis {
-  0%, 53% { opacity: 0; }
-  57%, 86% { opacity: 1; }
-  90%, 100% { opacity: 0; }
-}
-@keyframes hoi-rain {
-  0%, 58% { opacity: 0; }
-  61%, 76% { opacity: 1; }
-  79%, 100% { opacity: 0; }
-}
-@keyframes hoi-fall {
-  from { transform: translateY(0); }
-  to { transform: translateY(140px); }
 }
 @keyframes hoi-lightning {
   0%, 62.9% { opacity: 0; }
@@ -991,33 +1700,92 @@ html[data-theme='hearts-of-iron'] [role='dialog'].ui-card > div > p:first-child 
   72.3% { opacity: 0.7; }
   72.7%, 100% { opacity: 0; }
 }
-@keyframes hoi-swing {
-  from { transform: rotate(-22deg); }
-  to { transform: rotate(26deg); }
+@keyframes hoi-moth {
+  0%, 55% { opacity: 0; transform: rotate(0deg); }
+  58% { opacity: 1; }
+  86% { opacity: 1; }
+  89%, 100% { opacity: 0; transform: rotate(-2520deg); }
+}
+@keyframes hoi-fly {
+  0% { transform: translate(105vw, 1vh) rotate(-5deg); }
+  24% { transform: translate(-30vw, -12vh) rotate(-5deg); }
+  100% { transform: translate(-30vw, -12vh) rotate(-5deg); }
+}
+@keyframes hoi-mote {
+  0%, 100% { transform: translate(0, 0); opacity: 0; }
+  20% { opacity: 0.9; }
+  50% { transform: translate(-60px, 40px); opacity: 0.5; }
+  80% { opacity: 0.8; }
+}
+@keyframes hoi-rain {
+  from { transform: translateY(0); }
+  to { transform: translateY(96px); }
+}
+@keyframes hoi-search {
+  from { transform: rotate(-16deg); }
+  to { transform: rotate(14deg); }
 }
 @keyframes hoi-flak {
-  0%, 3% { opacity: 0; transform: scale(0.3); }
-  4% { opacity: 1; transform: scale(1); }
-  9%, 100% { opacity: 0; transform: scale(1.5); }
+  0%, 30% { opacity: 0; }
+  31% { opacity: 1; }
+  36%, 62% { opacity: 0; }
+  63% { opacity: 0.7; }
+  68%, 100% { opacity: 0; }
 }
-@keyframes hoi-advance {
-  0%, 6% { transform: translate(0, 0); }
-  36%, 48% { transform: translate(var(--ax), var(--ay)); }
-  86%, 100% { transform: translate(0, 0); }
+
+/* ---- luminárias e brasas ---- */
+@keyframes hoi-flicker {
+  0%, 100% { opacity: 1; }
+  31% { opacity: 1; }
+  32% { opacity: 0.55; }
+  33% { opacity: 0.95; }
+  34% { opacity: 0.7; }
+  35%, 70% { opacity: 1; }
+  71% { opacity: 0.8; }
+  73% { opacity: 1; }
 }
-@keyframes hoi-march {
-  from { transform: translateX(0); }
-  to { transform: translateX(18px); }
+@keyframes hoi-lampflick {
+  0%, 100% { opacity: 1; }
+  44% { opacity: 1; }
+  45% { opacity: 0.72; }
+  46% { opacity: 0.95; }
+  47.5% { opacity: 0.8; }
+  49%, 88% { opacity: 1; }
+  89% { opacity: 0.86; }
+  90% { opacity: 1; }
 }
-@keyframes hoi-pulse {
-  0% { opacity: 0.9; transform: scale(0.7); }
-  70%, 100% { opacity: 0; transform: scale(3); }
+@keyframes hoi-ember {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  12% { opacity: 1; transform: scale(1.12); }
+  30% { opacity: 0.7; transform: scale(1); }
 }
-@keyframes hoi-flutter {
-  0%, 100% { transform: rotate(-0.7deg); }
-  45% { transform: rotate(0.6deg) translateY(1px); }
-  70% { transform: rotate(-0.2deg) skewX(0.6deg); }
+@keyframes hoi-ttylamp {
+  0% { opacity: 1; }
+  12% { opacity: 0.55; }
+  20% { opacity: 1; }
+  44% { opacity: 0.6; }
+  52% { opacity: 1; }
+  70%, 100% { opacity: 0.85; }
 }
+@keyframes hoi-smoke {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.5) rotate(0deg); }
+  15% { opacity: 1; }
+  60% { opacity: 0.55; }
+  100% { opacity: 0; transform: translate(-30%, -70%) scale(1.5) rotate(-28deg); }
+}
+@keyframes hoi-steam {
+  0% { opacity: 0; transform: translate(0, 10%) scale(0.6); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(12%, -60%) scale(1.3); }
+}
+@keyframes hoi-needle {
+  0% { transform: rotate(-9deg); }
+  40% { transform: rotate(6deg); }
+  65% { transform: rotate(-2deg); }
+  100% { transform: rotate(4deg); }
+}
+
+/* ---- radar ---- */
 @keyframes hoi-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -1027,8 +1795,242 @@ html[data-theme='hearts-of-iron'] [role='dialog'].ui-card > div > p:first-child 
   60%, 100% { opacity: 0.12; transform: scale(0.8); }
 }
 
-/* Sem animação: a cena para numa tarde quente (sol da janela, nuvens leves,
-   início do entardecer). Os valores base acima já são esse momento. */
+/* ---- teletipo: avança uma linha a cada 3,5 s e bate os caracteres ---- */
+@keyframes hoi-tty-feed {
+  from { transform: translateY(calc(var(--hoi-u) * -15 * 16)); }
+  to { transform: translateY(0); }
+}
+@keyframes hoi-tty-type {
+  0% { transform: translateX(0); animation-timing-function: steps(22, end); }
+  68%, 100% { transform: translateX(100%); }
+}
+@keyframes hoi-tty-race {
+  from { transform: translateY(calc(var(--hoi-u) * -15 * 8)); }
+  to { transform: translateY(0); }
+}
+
+/* hora do teatro: madrugada 05–07 h (0–10%), dia 07–17 h (10–40%),
+   entardecer 17–19 h (40–52%), noite 19–03 h (52–90%), 03–05 h (90–100%) */
+@keyframes hoi-clock {
+  0% { transform: translateY(0); }
+  5% { transform: translateY(-4.1667%); }
+  10% { transform: translateY(-8.3333%); }
+  13% { transform: translateY(-12.5%); }
+  16% { transform: translateY(-16.6667%); }
+  19% { transform: translateY(-20.8333%); }
+  22% { transform: translateY(-25%); }
+  25% { transform: translateY(-29.1667%); }
+  28% { transform: translateY(-33.3333%); }
+  31% { transform: translateY(-37.5%); }
+  34% { transform: translateY(-41.6667%); }
+  37% { transform: translateY(-45.8333%); }
+  40% { transform: translateY(-50%); }
+  46% { transform: translateY(-54.1667%); }
+  52% { transform: translateY(-58.3333%); }
+  56.75% { transform: translateY(-62.5%); }
+  61.5% { transform: translateY(-66.6667%); }
+  66.25% { transform: translateY(-70.8333%); }
+  71% { transform: translateY(-75%); }
+  75.75% { transform: translateY(-79.1667%); }
+  80.5% { transform: translateY(-83.3333%); }
+  85.25% { transform: translateY(-87.5%); }
+  90% { transform: translateY(-91.6667%); }
+  95%, 100% { transform: translateY(-95.8333%); }
+}
+
+/* ---- guerra (200 s): províncias ---- */
+@keyframes hoi-p-t1 {
+  0%, 16.5% { opacity: 0; }
+  17.5%, 81.5% { opacity: 1; }
+  82.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-t2 {
+  0%, 23.5% { opacity: 0; }
+  24.5%, 70.5% { opacity: 1; }
+  71.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-t3 {
+  0%, 42.5% { opacity: 0; }
+  43.5%, 63.5% { opacity: 1; }
+  64.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-t4 {
+  0%, 39.5% { opacity: 0; }
+  40.5%, 66.5% { opacity: 1; }
+  67.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-t5 {
+  0%, 32.5% { opacity: 0; }
+  33.5%, 73.5% { opacity: 1; }
+  74.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-t6 {
+  0%, 26.5% { opacity: 0; }
+  27.5%, 83.5% { opacity: 1; }
+  84.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-t7 {
+  0%, 19.5% { opacity: 0; }
+  20.5%, 89.5% { opacity: 1; }
+  90.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-w1 {
+  0%, 21.5% { opacity: 0; }
+  22.5%, 91.5% { opacity: 1; }
+  92.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-w2 {
+  0%, 28.5% { opacity: 0; }
+  29.5%, 85.5% { opacity: 1; }
+  86.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-w3 {
+  0%, 36.5% { opacity: 0; }
+  37.5%, 76.5% { opacity: 1; }
+  77.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-e1 {
+  0%, 18.5% { opacity: 0; }
+  19.5%, 93.5% { opacity: 1; }
+  94.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-e2 {
+  0%, 25.5% { opacity: 0; }
+  26.5%, 87.5% { opacity: 1; }
+  88.5%, 100% { opacity: 0; }
+}
+@keyframes hoi-p-e3 {
+  0%, 34.5% { opacity: 0; }
+  35.5%, 78.5% { opacity: 1; }
+  79.5%, 100% { opacity: 0; }
+}
+
+/* ---- guerra: setas (janela e conteúdo andam juntos, em 6 trechos) ---- */
+@keyframes hoi-wipe-o {
+  0%, 9% { transform: translate(var(--hoi-wx), var(--hoi-wy)); opacity: 1; animation-timing-function: steps(6, end); }
+  17%, 46% { transform: translate(0, 0); opacity: 1; }
+  50% { transform: translate(0, 0); opacity: 0; }
+  50.5%, 100% { transform: translate(var(--hoi-wx), var(--hoi-wy)); opacity: 0; }
+}
+@keyframes hoi-wipe-i {
+  0%, 9% { transform: translate(calc(var(--hoi-wx) * -1), calc(var(--hoi-wy) * -1)); animation-timing-function: steps(6, end); }
+  17%, 50% { transform: translate(0, 0); }
+  50.5%, 100% { transform: translate(calc(var(--hoi-wx) * -1), calc(var(--hoi-wy) * -1)); }
+}
+
+/* ---- guerra: blocos (deslocamento em % do próprio recorte) ---- */
+@keyframes hoi-m1 {
+  0%, 14% { transform: translate(0, 0); }
+  30%, 72% { transform: translate(700%, 18%); }
+  86%, 100% { transform: translate(0, 0); }
+}
+@keyframes hoi-m2 {
+  0%, 16% { transform: translate(0, 0); }
+  34%, 70% { transform: translate(-880%, 90%); }
+  88%, 100% { transform: translate(0, 0); }
+}
+@keyframes hoi-m3 {
+  0%, 38% { transform: translate(0, 0); }
+  43%, 60% { transform: translate(0, -100%); }
+  68%, 88% { transform: translate(0, 130%); }
+  96%, 100% { transform: translate(0, 0); }
+}
+/* rodo (60 s): desce atrás do bloco, empurra, sobe; depois puxa de volta */
+@keyframes hoi-rake {
+  0%, 10% { transform: translateY(-50%); }
+  14%, 16% { transform: translateY(0); }
+  22%, 24% { transform: translateY(10%); }
+  30%, 60% { transform: translateY(-50%); }
+  64%, 66% { transform: translateY(22.7%); }
+  72%, 74% { transform: translateY(12.7%); }
+  80%, 100% { transform: translateY(-50%); }
+}
+@keyframes hoi-m4 {
+  0%, 16% { transform: translateY(0); }
+  22%, 66% { transform: translateY(100%); }
+  72%, 100% { transform: translateY(0); }
+}
+@keyframes hoi-pulse {
+  0% { opacity: 0.9; transform: scale(0.5); }
+  70%, 100% { opacity: 0; transform: scale(2.6); }
+}
+@keyframes hoi-truck {
+  0% { transform: translate(0, 0); opacity: 0; }
+  6% { opacity: 1; }
+  70% { transform: translate(600%, 70%); opacity: 1; }
+  76%, 100% { transform: translate(600%, 70%); opacity: 0; }
+}
+@keyframes hoi-ship {
+  from { transform: translate(0, 0); }
+  to { transform: translate(140%, 40%); }
+}
+@keyframes hoi-flash {
+  0%, 70% { opacity: 0; transform: scale(0.4); }
+  73% { opacity: 1; transform: scale(1); }
+  90%, 100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* ---- roleta ---- */
+@keyframes hoi-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes hoi-fadeout {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes hoi-alarmglow {
+  from { opacity: 0.45; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1.1); }
+}
+@keyframes hoi-ring {
+  0%, 50%, 100% { transform: rotate(0deg); }
+  5%, 15%, 25%, 35%, 45% { transform: rotate(-3deg) translateY(-1px); }
+  10%, 20%, 30%, 40% { transform: rotate(3deg) translateY(1px); }
+}
+@keyframes hoi-waves {
+  0%, 50%, 100% { opacity: 0; }
+  8%, 42% { opacity: 1; }
+}
+@keyframes hoi-stamp-tool {
+  0% { opacity: 0; transform: translate(-20%, -60%) scale(2.6); }
+  26% { opacity: 1; transform: translate(0, 0) scale(1); }
+  40% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-30%, -90%) scale(2.2); }
+}
+@keyframes hoi-slip {
+  from { opacity: 0; transform: translate(-10%, -70%) rotate(-9deg); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hoi-stamp-mark {
+  from { opacity: 0; transform: scale(1.12); }
+  to { opacity: 0.94; transform: scale(1); }
+}
+@keyframes hoi-stamp-ring {
+  from { opacity: 0.7; transform: scale(0.6); }
+  to { opacity: 0; transform: scale(2.2); }
+}
+@keyframes hoi-winflash {
+  0% { opacity: 0; }
+  12% { opacity: 0.22; }
+  100% { opacity: 0.05; }
+}
+@keyframes hoi-thump {
+  0% { transform: translate(0, 0); }
+  12% { transform: translate(0, 4px); }
+  30% { transform: translate(0, -2px); }
+  50% { transform: translate(0, 1px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes hoi-surge {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  100% { opacity: 0.45; }
+}
+
+/* Movimento reduzido: themes.css desliga as animações. A cena para numa
+   tarde: sol pela persiana, abajur aceso, guerra no meio da pinça (setas
+   desenhadas, algumas províncias já viradas), teletipo com despachos. */
 @media (prefers-reduced-motion: reduce) {
   html[data-theme='hearts-of-iron'] .scene-hearts-of-iron *,
   html[data-theme='hearts-of-iron'] .scene-hearts-of-iron *::before {
@@ -1037,18 +2039,7 @@ html[data-theme='hearts-of-iron'] [role='dialog'].ui-card > div > p:first-child 
   html[data-theme='hearts-of-iron'] .ui-cta:active:not(:disabled) {
     transform: none;
   }
+  .scene-hearts-of-iron .hoi-tty-col {
+    transform: translateY(calc(var(--hoi-u) * -15 * 4));
+  }
 }
-
-/* ---- Imagem de fundo opcional (ver PROMPTS.md) ----
-   Gere a arte, salve em public/themes/hearts-of-iron/bg.webp e descomente:
-
-html[data-theme='hearts-of-iron'] .theme-backdrop {
-  background:
-    linear-gradient(rgba(18, 24, 21, 0.35), rgba(18, 24, 21, 0.55)),
-    url('/themes/hearts-of-iron/bg.webp') center / cover no-repeat,
-    #1a221f;
-}
-html[data-theme='hearts-of-iron'] :is(.hoi-map:not(.hoi-map-lights), .hoi-creases) {
-  display: none;
-}
-*/

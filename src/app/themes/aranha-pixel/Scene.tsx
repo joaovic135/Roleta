@@ -1,19 +1,21 @@
-// Cena do tema Homem-Aranha Pixel: cidade em pixel art 32-bit com ciclo de
-// dia (madrugada -> dia -> pôr do sol -> noite) e clima (sol forte com lens
-// flare, chuva com relâmpagos). Tudo é gerado aqui com um sorteio de semente
-// fixa (igual no servidor e no navegador) e vira poucos <path> por cor. As
-// animações ficam em theme.css e mexem só em transform/opacity de camadas
-// grandes: as cores mudam por cross-fade entre cópias da mesma camada.
+// Cena do tema Homem-Aranha Pixel: um jogo de plataforma 32-bit rodando
+// atrás da roleta. Duas camadas:
+// - cenário em SVG (este arquivo): cidade com ciclo de dia (madrugada ->
+//   dia -> pôr do sol -> noite), clima (sol forte com lens flare, chuva com
+//   relâmpagos), viaduto do metrô, holofotes e estrelas. Tudo gerado com
+//   semente fixa e agrupado em poucos <path> por cor; animações em
+//   theme.css só em transform/opacity (cores mudam por cross-fade).
+// - atores num canvas 2D em pixels da cena (Actors.tsx + game.ts): o herói
+//   Tecelão (agachado em cima dos cards, balançando na teia entre eles),
+//   metrô, carros e perseguição policial, pedestres com guarda-chuva na
+//   chuva, pombos, dirigível com painel de LED, aranha no fio, neon nos
+//   prédios das bordas, moedas de bônus e o placar de fliperama (1UP,
+//   RECORDE, combo, FASE CONCLUÍDA! e fogos na cor da fatia vencedora).
+// Linha do tempo: ciclo do dia de 240 s (começa à tarde, pôr do sol em
+// ~30 s), clima de 420 s; eventos dos atores de 31 s a 230 s (game.ts).
 import type { CSSProperties } from 'react'
-
-const seeded = (seed: number) => () => {
-  seed = (seed + 0x6d2b79f5) | 0
-  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-}
-const block = (x: number, y: number, w: number, h: number) =>
-  `M${x} ${y}h${w}v${h}h-${w}z`
+import Actors from './Actors'
+import { CITY, H, STREET, W, block, seeded } from './city'
 
 // tinta: cor (ou chave) -> path com todos os pixels daquela cor
 type Paint = Record<string, string>
@@ -100,116 +102,8 @@ const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(3)}%`
 const cssVars = (v: Record<string, string | number>) => v as CSSProperties
 
 // ---------------------------------------------------------------- cidade
-// Caixa da cidade: 760 x 160 "pixels", sempre com pixels quadrados
-const W = 760
-const H = 160
-const STREET = 144
-
-const WIN_COLORS = ['#fcd25d', '#f8873b']
-type Win = { x: number; y: number; c: string; g: string }
-
-const buildCity = () => {
-  const rand = seeded(2024)
-  const s = {
-    far: '',
-    farWin: '',
-    near: '',
-    rim: '',
-    shade: '',
-    glass: '',
-    walk: block(0, STREET, W, 3),
-    road: block(0, STREET + 3, W, H - STREET - 3),
-    dash: '',
-  }
-  const wins: Win[] = []
-  const roofs: [number, number, number][] = []
-  const masts: [number, number][] = []
-
-  // prédios distantes: silhueta contínua, janelinhas de 1 pixel
-  let x = -2
-  while (x < W) {
-    const w = 12 + Math.floor(rand() * 20)
-    const h = 58 + Math.floor(rand() * 72)
-    const top = STREET - h
-    s.far += block(x, top, w, h)
-    for (let wy = top + 3; wy < STREET - 2; wy += 4)
-      for (let wx = x + 2; wx < x + w - 2; wx += 3)
-        if (rand() < 0.13) s.farWin += block(wx, wy, 1, 1)
-    x += w
-  }
-
-  // prédios próximos: mais altos nas bordas (o meio fica atrás dos cards)
-  x = -3
-  while (x < W) {
-    const w = 12 + Math.floor(rand() * 17)
-    const cx = x + w / 2
-    const edge = Math.max(0, 1 - Math.min(cx, W - cx) / 210)
-    const h = Math.floor(26 + rand() * 46 + edge * (20 + rand() * 40))
-    const top = STREET - h
-    s.near += block(x, top, w, h)
-    s.rim += block(x, top, 1, h) + block(x, top, w, 1)
-    s.shade += block(x + w - 2, top + 1, 2, h - 1)
-    roofs.push([x, w, top])
-    const roll = rand()
-    if (roll < 0.3) {
-      const mx = x + Math.floor(w / 2)
-      s.near += block(mx, top - 9, 1, 9) + block(mx - 1, top - 3, 3, 3)
-      masts.push([mx, top - 10])
-    } else if (roll < 0.48 && w >= 13) {
-      // caixa d'água no telhado
-      const tx = x + 3
-      s.near += block(tx, top - 9, 7, 6) + block(tx + 1, top - 10, 5, 1)
-      s.shade += block(tx + 1, top - 3, 1, 3) + block(tx + 5, top - 3, 1, 3)
-      s.rim += block(tx, top - 9, 1, 6)
-    }
-    // janelas
-    const region = cx < 200 ? 'L' : cx >= 560 ? 'R' : 'C'
-    const density = region === 'C' ? 0.24 : 0.4
-    const baseG = Math.floor(rand() * 3)
-    for (let wy = top + 4; wy < STREET - 5; wy += 5)
-      for (let wx = x + 3; wx < x + w - 4; wx += 4) {
-        if (rand() >= density) continue
-        const r = rand()
-        const c = WIN_COLORS[r < 0.66 ? 0 : 1]
-        let g: string
-        if (region !== 'C' && rand() < 0.13)
-          g = ['flick', 'blink1', 'blink2', 'tv', 'tv'][Math.floor(rand() * 5)]
-        else if (region === 'C') g = `C${rand() < 0.5 ? 0 : 1}`
-        else g = `${region}${rand() < 0.7 ? baseG : Math.floor(rand() * 3)}`
-        wins.push({ x: wx, y: wy, c, g })
-        s.glass += block(wx, wy, 2, 2)
-      }
-    x += w + Math.floor(rand() * 3)
-  }
-
-  // rua: faixa tracejada e postes
-  for (let dx = 4; dx < W; dx += 18) s.dash += block(dx, 153, 9, 1)
-  const lamps: number[] = []
-  for (let lx = 22; lx < W; lx += 84) {
-    s.shade += block(lx, 131, 1, 13) + block(lx, 131, 4, 1)
-    s.shade += block(lx + 3, 132, 3, 1)
-    lamps.push(lx)
-  }
-
-  // chaminés: uma em cada borda (fumaça visível fora dos cards)
-  const chimneys: [number, number][] = []
-  for (const [lo, hi] of [
-    [24, 90],
-    [672, 740],
-  ]) {
-    const roof = roofs.find(
-      ([rx, rw]) => rx + rw / 2 >= lo && rx + rw / 2 <= hi,
-    )
-    if (!roof) continue
-    const [rx, rw, rt] = roof
-    const chx = rx + rw - 6
-    s.near += block(chx, rt - 6, 3, 6)
-    s.rim += block(chx, rt - 6, 3, 1)
-    chimneys.push([chx, rt - 7])
-  }
-  return { s, wins, roofs, masts, lamps, chimneys }
-}
-const CITY = buildCity()
+// geometria em city.ts (o canvas dos atores usa os mesmos telhados)
+type Win = (typeof CITY.wins)[number]
 
 // cores de cada hora do dia (cada cópia da cidade é uma camada)
 type CityKey = keyof typeof CITY.s
@@ -224,6 +118,9 @@ const CITY_PHASES: Record<string, Partial<Record<CityKey, string>>> = {
     walk: '#4a3e68',
     road: '#2a2340',
     dash: '#b89870',
+    via: '#3f3468',
+    viaDark: '#221a40',
+    rail: '#8c78b0',
   },
   sunset: {
     far: '#4a2a63',
@@ -235,6 +132,9 @@ const CITY_PHASES: Record<string, Partial<Record<CityKey, string>>> = {
     walk: '#3a2050',
     road: '#1c1030',
     dash: '#a8643a',
+    via: '#2f1a4c',
+    viaDark: '#160a26',
+    rail: '#c0704a',
   },
   day: {
     far: '#8191c6',
@@ -246,6 +146,9 @@ const CITY_PHASES: Record<string, Partial<Record<CityKey, string>>> = {
     walk: '#7e809c',
     road: '#45465e',
     dash: '#f8d878',
+    via: '#5a6a9e',
+    viaDark: '#323e6e',
+    rail: '#c8d0ec',
   },
 }
 const CITY_NIGHT: Partial<Record<CityKey, string>> = {
@@ -257,6 +160,9 @@ const CITY_NIGHT: Partial<Record<CityKey, string>> = {
   walk: '#1c1630',
   road: '#0f0b1b',
   dash: '#4a3e30',
+  via: '#1a1430',
+  viaDark: '#0a0716',
+  rail: '#3a3060',
 }
 const cityPaint = CITY.s as Paint
 
@@ -669,108 +575,6 @@ const BAT = art(['X.......X', 'XX.X.X.XX', '.XXXXXXX.', '..X...X..'], {
   X: '#07040e',
 })
 
-// herói da teia: sprite original 12x19 (máscara vermelha com lentes
-// brancas, tronco vermelho, laterais e pernas azuis), pendurado pela mão
-// direita erguida. A mão fica no pixel (9, 0), onde a teia se prende.
-const HERO_ROWS = [
-  '........KK..',
-  '.......KRRK.',
-  '.......KRK..',
-  '..KKKK.KRK..',
-  '.KRRRRKKBK..',
-  '.KWWRWWKBK..',
-  '.KRWRWRKBK..',
-  '..KRRRKBBK..',
-  '.KBKRKBRBK..',
-  'KBBRRRRRBK..',
-  'KBKRRRRRKBK.',
-  'KK.KBRRBK.KK',
-  '...KBBBBK...',
-  '..KBBKKBBK..',
-  '.KBBK..KBBK.',
-  '.KBK....KBK.',
-  'KRRK....KRRK',
-  'KRK......KRK',
-  'KKK......KKK',
-]
-const HERO = art(HERO_ROWS, {
-  K: '#0a0612',
-  R: '#e02a10',
-  B: '#1048d8',
-  W: '#ffffff',
-})
-// à noite vira silhueta, só com as lentes brilhando
-const HERO_NIGHT = art(HERO_ROWS, {
-  K: '#05030a',
-  R: '#05030a',
-  B: '#05030a',
-  W: '#dfe8ff',
-})
-
-// carros (sprites voltados para a direita; os da contramão são espelhados)
-const CAR_ROWS = [
-  '.....RRRRRRR........',
-  '....RGGGRGGGRR......',
-  '..RRRRRRRRRRRRRRR...',
-  '.TRRRRRRRRRRRRRRRRH.',
-  '.DDDDDDDDDDDDDDDDDD.',
-  '...WWW.......WWW....',
-]
-const CARS = [
-  {
-    body: '#d82800',
-    dark: '#801000',
-    lane: 153,
-    dir: 1,
-    dur: 23,
-    delay: -4,
-    at: '22%',
-  },
-  {
-    body: '#f8b800',
-    dark: '#a06800',
-    lane: 153,
-    dir: 1,
-    dur: 31,
-    delay: -19,
-    at: '64%',
-  },
-  {
-    body: '#0058f8',
-    dark: '#002a90',
-    lane: 147,
-    dir: -1,
-    dur: 27,
-    delay: -9,
-    at: '40%',
-  },
-  {
-    body: '#e4e4f4',
-    dark: '#8a8aa8',
-    lane: 147,
-    dir: -1,
-    dur: 37,
-    delay: -30,
-    at: '86%',
-  },
-]
-const carPaint = (body: string, dark: string, flip: boolean) =>
-  art(flip ? CAR_ROWS.map((r) => r.split('').reverse().join('')) : CAR_ROWS, {
-    R: body,
-    D: dark,
-    G: '#9fd4ff',
-    T: '#ff2a2a',
-    H: '#fff6b0',
-    W: '#0a0a12',
-  })
-const beam = (flip: boolean) =>
-  raster(16, 6, (x, y) => {
-    const fx = flip ? 15 - x : x
-    const spread = 1 + Math.floor(fx / 5)
-    if (Math.abs(y - 3) > spread || (x + y) % 2) return null
-    return 'rgba(255,246,176,0.6)'
-  })
-
 // fumaça de chaminé
 const PUFF = art(['.XXX..', 'XXXXX.', 'XXXXXX', '.XXXX.'], { X: '#d8cce8' })
 
@@ -883,6 +687,9 @@ export default function AranhaPixelScene() {
       </div>
 
       <div className="ap-sun">
+        {/* brilho do sol: laranja no fim da tarde, branco ao meio-dia */}
+        <div className="ap-sunglow ap-sunsun" />
+        <div className="ap-sunglow ap-sunglow-day ap-ph-day" />
         <Svg
           className="ap-fill ap-sunsun"
           vb={`0 0 ${SUN} ${SUN}`}
@@ -914,7 +721,7 @@ export default function AranhaPixelScene() {
                   vb={`0 0 ${size} ${size}`}
                   p={p}
                   style={cssVars({
-                    '--n': size,
+                    '--ap-n': size,
                     transform: `scale(${(1 / (1 - k)).toFixed(4)}) translate(-50%, -50%)`,
                   })}
                 />
@@ -928,7 +735,7 @@ export default function AranhaPixelScene() {
         <div
           key={id}
           className={`ap-clouds ap-clouds-${id}`}
-          style={cssVars({ '--rows': rows })}
+          style={cssVars({ '--ap-rows': rows })}
         >
           <Svg
             className="ap-fill"
@@ -973,20 +780,13 @@ export default function AranhaPixelScene() {
         ))}
       </div>
 
-      {/* herói da teia: 4 balanços seguidos, presos acima do céu */}
-      <div className="ap-swing">
-        <div className="ap-swing-anchor">
-          <div className="ap-swing-rotor">
-            <div className="ap-swing-line" />
-            <div className="ap-swing-hero">
-              <Svg className="ap-hero" vb="0 0 12 19" p={HERO} />
-              <Svg
-                className="ap-hero ap-ph-night"
-                vb="0 0 12 19"
-                p={HERO_NIGHT}
-              />
-            </div>
-          </div>
+      {/* holofotes atrás dos prédios: acendem quando a roleta gira */}
+      <div className="ap-beams">
+        <div className="ap-beam ap-beam-l">
+          <div />
+        </div>
+        <div className="ap-beam ap-beam-r">
+          <div />
         </div>
       </div>
 
@@ -1016,35 +816,6 @@ export default function AranhaPixelScene() {
             fills={fills}
           />
         ))}
-        {/* carros na mesma caixa da rua: nunca saem da pista */}
-        {CARS.map(({ body, dark, lane, dir, dur, delay, at }, i) => {
-          const flip = dir < 0
-          return (
-            <div
-              key={i}
-              className={`ap-car ${flip ? 'ap-car-l' : 'ap-car-r'}`}
-              style={{
-                top: pct(lane, H),
-                transform: `translateX(${at})`,
-                animationDuration: `${dur}s`,
-                animationDelay: `${delay}s`,
-              }}
-            >
-              <Svg
-                className="ap-car-body"
-                vb="0 0 20 6"
-                p={carPaint(body, dark, flip)}
-                style={{ left: flip ? pct(16, W) : '0' }}
-              />
-              <Svg
-                className="ap-car-beam ap-ph-night"
-                vb="0 0 16 6"
-                p={beam(flip)}
-                style={{ left: flip ? '0' : pct(19, W) }}
-              />
-            </div>
-          )
-        })}
         <div className="ap-fog ap-ph-fog">
           <Svg
             className="ap-fog-band"
@@ -1069,13 +840,13 @@ export default function AranhaPixelScene() {
                 .join(' ')}
               vb={r.vb}
               p={winPaint((w) => w.g === g)}
-              style={cssVars({ ...r.style, '--o': o })}
+              style={cssVars({ ...r.style, '--ap-o': o })}
             />
           )
         })}
         <div
           className="ap-fill ap-wg ap-wg-special"
-          style={cssVars({ '--o': 0.016 })}
+          style={cssVars({ '--ap-o': 0.016 })}
         >
           <Svg
             className="ap-fill ap-flick"
@@ -1148,6 +919,9 @@ export default function AranhaPixelScene() {
         <div className="ap-rain-far" style={{ backgroundImage: RAIN_FAR }} />
         <div className="ap-rain-near" style={{ backgroundImage: RAIN_NEAR }} />
       </div>
+
+      {/* atores do jogo (canvas em pixels da cena) */}
+      <Actors />
 
       <div className="ap-dew ap-ph-dew">
         <Svg

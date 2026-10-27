@@ -1,29 +1,49 @@
 /* ---------- MIRAI FUNK (未来のファンク) ----------
-   Pôster duotone: verde-água claro em cima, verde-escuro embaixo, cidade
-   preta com janelinhas, tipografia branca enorme em itálico.
+   Pôster duotone vivo: verde-água claro em cima, verde-escuro embaixo,
+   cidade preta com janelinhas, tipografia branca enorme em itálico que
+   vira em CSS 3D como a abertura de um videoclipe.
 
-   Cena viva num ciclo único de --mf-cycle (4 min):
-     0–30%   dia: céu verde-água, flare gráfico no sol (≈ 8–30%)
-     21–25%  trem passando pela via elevada
-     30–46%  o sol desce atrás da cidade; paleta do entardecer entra
-     42–52%  janelas acendem, cada grupo no seu tempo (piscam ao ligar)
-     52–64%  a paleta da noite (verde quase preto) cobre o entardecer
-     57–69%  avião piscando no alto
-     62–88%  lua, céu cheio de estrelas cintilando
-     66%/80% estrelas cadentes
-     68–86%  garoa em traços chapados, dois relâmpagos rápidos
-     73–77%  trem noturno (só as janelas aparecem)
-     86–100% amanhecer: a noite some, o entardecer some, o sol volta
-   Cada camada anima só opacity/transform; a fase de cada uma é
-   --mf-t0 - --mf-k (fração do ciclo), aplicada como animation-delay
-   negativo. Os estilos-base (sem animação) são o "momento congelado" do
-   prefers-reduced-motion: entardecer com as janelas acesas. */
+   Ciclo único de --mf-cycle (4 min) = um LP de 6 faixas de 40 s:
+     0–16,7%    A1 未来のファンク  dia, sol listrado, gaivotas
+     6–30%      flare gráfico no sol; 10% e 30% trem-bala passando
+     16,7–33%   A2 恋のルーレット
+     33–50%     A3 夕焼けシティ: o sol desce atrás da cidade (34–47%),
+                paleta do entardecer (33–46%), janelas acendendo em grupos
+                (44–50%), neon ラジオ liga (41%), carro voador (37–39,5%)
+     48–52%     troca de lado: braço do toca-discos levanta, o LP vira em
+                3D para o lado B, faixa do céu inverte num clarão (50%)
+     50–67%     B1 月面ディスコ: noite (50–61%), lua (52–60%), fogos
+                (56–60%), avião (57–69%), trem noturno com rastro (62%)
+     67–83%     B2 雨のメモリー: garoa (67–84%), relâmpagos suaves (74/80%),
+                estrela cadente (70%), trem na chuva (78%)
+     83–100%    B3 夜明けのビート: amanhecer (86–100%), estrela cadente
+                (86%), sol volta (90–100%); o LP volta ao lado A (98–2%)
+   Laços próprios: título do cabeçalho vira a cada faixa; coluna vertical
+   (66 s, 3 frases); nuvens (170–260 s); gaivotas (73 s); equalizador da
+   rádio (1,3–2,9 s por barra); batida e cronômetro da faixa; LP girando
+   (4,8 s por volta); carros (9 s e 13 s); rádio do cais pulsando na batida
+   e pernas balançando; estrelas cintilando.
+   Roleta: girando, o título dá lugar a faixas correndo, linhas de
+   concentração giram em volta da roda, janelas pulsam na batida, ON AIR
+   acende, LP borrado, o ouvinte do cais dança. Vencedor: clarão duotone
+   suave (2 pulsos), 大当たり na --win-color batendo letra por letra, anéis
+   e fogos nessa cor uma vez, o ouvinte pula três vezes, depois só um
+   brilho calmo até o resultado fechar. Camadas de giro/vencedor ficam com
+   visibility: hidden fora do estado delas (não viram camada na GPU).
+
+   Só opacity/transform animam. A fase de cada camada do ciclo é
+   --mf-t0 - --mf-k (fração), aplicada como animation-delay negativo. Os
+   estilos-base (sem animação) são o "momento congelado" do
+   prefers-reduced-motion: entardecer com as janelas acesas e A1 no
+   título. */
 
 html[data-theme='mirai-funk'] {
   --mf-cycle: 240s;
   /* começa no dia, a poucos segundos do flare */
   --mf-t0: -0.04;
   --mf-horizon: 58vh;
+  /* margem livre de cada lado do conteúdo (máx. 1600 px + 16 px) */
+  --mf-m: max(16px, calc(50vw - 784px));
   --mf-teal: #1fb0a2;
   --mf-teal-2: #00a79d;
   --mf-floor: #1b4d45;
@@ -31,6 +51,8 @@ html[data-theme='mirai-funk'] {
   --mf-black: #040807;
   --mf-white: #ffffff;
   --mf-mint: #e8fbf8;
+  --mf-jp: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic',
+    YuGothic, Meiryo, 'Noto Sans JP', sans-serif;
 }
 html[data-theme='mirai-funk'] body {
   --wheel-font: var(--font-archivo-black);
@@ -85,48 +107,17 @@ html[data-theme='mirai-funk'] .mf-sky-night {
   animation-name: mf-night;
 }
 
-/* faixa preta no topo, como a borda de um pôster */
-html[data-theme='mirai-funk'] .mf-rules {
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 9px;
-  border-top: 5px solid var(--mf-black);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.75);
-}
-
-/* tipografia de fundo no cabeçalho (só em telas largas) */
-html[data-theme='mirai-funk'] .mf-type {
-  display: none;
-  top: 1.15rem;
-  left: 40%;
-  flex-direction: column;
-  gap: 0.15rem;
-  color: var(--mf-white);
-  transform: skewX(-8deg);
-}
-@media (min-width: 1024px) {
-  html[data-theme='mirai-funk'] .mf-type {
-    display: flex;
-  }
-}
-html[data-theme='mirai-funk'] .mf-type-jp {
-  font-size: 2.9rem;
-  line-height: 1;
-  font-weight: 900;
-  font-style: italic;
-  letter-spacing: 0.04em;
-}
-html[data-theme='mirai-funk'] .mf-type-thin {
-  font-family: var(--font-geist-sans);
-  font-style: italic;
-  font-weight: 300;
-  font-size: 0.78rem;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  padding-left: 0.3rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.8);
-  padding-top: 0.25rem;
+/* retícula de impressão nos cantos de cima */
+html[data-theme='mirai-funk'] .mf-halftone {
+  inset: 0 0 calc(100vh - var(--mf-horizon)) 0;
+  background: radial-gradient(rgba(255, 255, 255, 0.2) 32%, transparent 36%)
+    0 0 / 9px 9px;
+  -webkit-mask-image:
+    radial-gradient(circle at 0 0, #000, transparent 30vw),
+    radial-gradient(circle at 100% 0, rgba(0, 0, 0, 0.8), transparent 24vw);
+  mask-image:
+    radial-gradient(circle at 0 0, #000, transparent 30vw),
+    radial-gradient(circle at 100% 0, rgba(0, 0, 0, 0.8), transparent 24vw);
 }
 
 /* estrelas: poeira fixa + céu noturno cintilando */
@@ -168,13 +159,13 @@ html[data-theme='mirai-funk'] .mf-shooting {
 }
 html[data-theme='mirai-funk'] .mf-shooting-1 {
   top: 5vh;
-  left: 14vw;
-  transform: rotate(16deg);
+  left: 3vw;
+  transform: rotate(18deg);
 }
 html[data-theme='mirai-funk'] .mf-shooting-2 {
-  top: 12vh;
-  right: 22vw;
-  transform: rotate(160deg);
+  top: 3vh;
+  right: 30vw;
+  transform: rotate(162deg);
 }
 html[data-theme='mirai-funk'] .mf-shooting > i {
   display: block;
@@ -186,7 +177,8 @@ html[data-theme='mirai-funk'] .mf-shooting > i {
   animation-name: mf-shoot;
 }
 
-/* sol chapado (listrado embaixo) e lua crescente, presos acima do horizonte */
+/* sol listrado com halos chapados (anéis de luz em degraus) e lua com
+   retícula; presos acima do horizonte */
 html[data-theme='mirai-funk'] .mf-sunbox {
   top: 0;
   left: 0;
@@ -194,13 +186,28 @@ html[data-theme='mirai-funk'] .mf-sunbox {
   height: var(--mf-horizon);
   overflow: hidden;
 }
-html[data-theme='mirai-funk'] .mf-sun {
+html[data-theme='mirai-funk'] .mf-sun,
+html[data-theme='mirai-funk'] .mf-moon {
   position: absolute;
-  right: 4vw;
+  --mf-sun: 15vh;
+  right: 5vw;
   top: 11vh;
-  width: 15vh;
+  width: var(--mf-sun);
   aspect-ratio: 1;
+}
+html[data-theme='mirai-funk'] .mf-sun {
+  opacity: 0;
+  animation-name: mf-sun;
+}
+html[data-theme='mirai-funk'] .mf-sun-disc,
+html[data-theme='mirai-funk'] .mf-sun-halo,
+html[data-theme='mirai-funk'] .mf-moon-disc,
+html[data-theme='mirai-funk'] .mf-moon-halo {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
+}
+html[data-theme='mirai-funk'] .mf-sun-disc {
   background: var(--mf-white);
   -webkit-mask-image:
     linear-gradient(#000 0 58%, transparent 58%),
@@ -208,29 +215,66 @@ html[data-theme='mirai-funk'] .mf-sun {
   mask-image:
     linear-gradient(#000 0 58%, transparent 58%),
     repeating-linear-gradient(#000 0 9%, transparent 9% 12%);
-  opacity: 0;
-  animation-name: mf-sun;
+}
+html[data-theme='mirai-funk'] .mf-sun-halo {
+  inset: -38%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 255, 255, 0.28) 0 62%,
+    rgba(255, 255, 255, 0.16) 62% 76%,
+    rgba(255, 255, 255, 0.08) 76% 90%,
+    transparent 90%
+  );
 }
 html[data-theme='mirai-funk'] .mf-moon {
-  position: absolute;
-  right: 11vw;
+  --mf-sun: 9vh;
+  right: 7vw;
   top: 9vh;
-  width: 8vh;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  /* a sombra é cortada sob o próprio círculo: sobra a lua crescente */
-  box-shadow: 2.2vh 1.3vh 0 0 var(--mf-mint);
   animation-name: mf-moon;
+}
+html[data-theme='mirai-funk'] .mf-moon-disc {
+  /* crescente: a sombra é cortada sob o próprio círculo */
+  box-shadow: inset -2.4vh 1.2vh 0 0 var(--mf-mint);
+  background: radial-gradient(rgba(232, 251, 248, 0.32) 30%, transparent 34%)
+    0 0 / 6px 6px;
+}
+html[data-theme='mirai-funk'] .mf-moon-halo {
+  inset: -45%;
+  background: radial-gradient(
+    closest-side,
+    rgba(232, 251, 248, 0.14) 0 58%,
+    rgba(232, 251, 248, 0.07) 58% 80%,
+    transparent 80%
+  );
+}
+@media (min-width: 1800px) {
+  /* sol e lua no meio da margem direita, por trás do mastro da rádio */
+  html[data-theme='mirai-funk'] .mf-sun,
+  html[data-theme='mirai-funk'] .mf-moon {
+    --mf-sun: min(calc(var(--mf-m) * 0.78), 15vh);
+    right: calc(var(--mf-m) / 2 - var(--mf-sun) / 2);
+    top: 12vh;
+  }
+  html[data-theme='mirai-funk'] .mf-moon {
+    --mf-sun: min(calc(var(--mf-m) * 0.5), 9vh);
+    top: 9vh;
+  }
 }
 
 /* flare gráfico: raios finos girando devagar, anéis e fantasmas chapados */
 html[data-theme='mirai-funk'] .mf-flare {
   width: 64vh;
   aspect-ratio: 1;
-  right: calc(4vw + 7.5vh - 32vh);
+  right: calc(5vw + 7.5vh - 32vh);
   top: calc(18.5vh - 32vh);
   opacity: 0;
   animation-name: mf-flare;
+}
+@media (min-width: 1800px) {
+  html[data-theme='mirai-funk'] .mf-flare {
+    right: calc(var(--mf-m) / 2 - 32vh);
+    top: calc(12vh + min(calc(var(--mf-m) * 0.39), 7.5vh) - 32vh);
+  }
 }
 html[data-theme='mirai-funk'] .mf-flare svg {
   position: absolute;
@@ -239,16 +283,93 @@ html[data-theme='mirai-funk'] .mf-flare svg {
   height: 100%;
 }
 html[data-theme='mirai-funk'] .mf-flare-rays {
-  fill: rgba(255, 255, 255, 0.32);
+  fill: rgba(255, 255, 255, 0.3);
   animation: mf-rotate 90s linear infinite;
 }
 html[data-theme='mirai-funk'] .mf-flare-ghosts {
-  fill: rgba(255, 255, 255, 0.42);
+  fill: rgba(255, 255, 255, 0.4);
 }
 html[data-theme='mirai-funk'] .mf-flare-ghosts .mf-flare-ring {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.6);
+  stroke: rgba(255, 255, 255, 0.55);
   stroke-width: 2;
+}
+
+/* nuvens chapadas: três tamanhos e velocidades; o grupo apaga à noite */
+html[data-theme='mirai-funk'] .mf-clouds {
+  inset: 0;
+  opacity: 0.55;
+  animation-name: mf-clouds;
+}
+html[data-theme='mirai-funk'] .mf-cloud {
+  position: absolute;
+  left: 0;
+  width: 30vh;
+  aspect-ratio: 200 / 64;
+  transform: translateX(-40vh);
+  animation: mf-cloud 170s linear infinite;
+}
+html[data-theme='mirai-funk'] .mf-cloud-top {
+  fill: rgba(255, 255, 255, 0.92);
+}
+html[data-theme='mirai-funk'] .mf-cloud-belly {
+  fill: #93e6da;
+}
+/* posições-base = quadro parado do movimento reduzido */
+html[data-theme='mirai-funk'] .mf-cloud-1 {
+  top: 15vh;
+  transform: translateX(calc(100vw - 34vh));
+  animation-delay: -38s;
+}
+html[data-theme='mirai-funk'] .mf-cloud-2 {
+  top: 24vh;
+  width: 21vh;
+  transform: translateX(1vw);
+  animation-duration: 215s;
+  animation-delay: -150s;
+}
+html[data-theme='mirai-funk'] .mf-cloud-3 {
+  top: 11.5vh;
+  width: 16vh;
+  transform: translateX(62vw);
+  animation-duration: 260s;
+  animation-delay: -205s;
+}
+
+/* gaivotas: dois bandos em V cruzando o cabeçalho da direita para a
+   esquerda; as asas batem trocando o quadro da tira (steps) */
+html[data-theme='mirai-funk'] .mf-birds {
+  top: 3vh;
+  left: 0;
+  width: 100%;
+  height: 12vh;
+  transform: translateX(105vw);
+  animation: mf-birds 73s linear infinite;
+  animation-delay: -6s;
+}
+html[data-theme='mirai-funk'] .mf-flock {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 230px;
+  height: 84px;
+  overflow: hidden;
+}
+html[data-theme='mirai-funk'] .mf-flock-b {
+  left: 300px;
+  top: 4vh;
+  transform: scale(0.7);
+}
+html[data-theme='mirai-funk'] .mf-flap {
+  display: block;
+  width: 200%;
+  height: 100%;
+  fill: var(--mf-black);
+  animation: mf-flap 0.62s steps(2) infinite;
+}
+html[data-theme='mirai-funk'] .mf-flock-b .mf-flap {
+  animation-duration: 0.54s;
+  animation-delay: -0.2s;
 }
 
 /* avião: uma luz piscando que cruza o alto */
@@ -266,6 +387,95 @@ html[data-theme='mirai-funk'] .mf-plane > i {
   animation: mf-blink 1.1s linear infinite;
 }
 
+/* carro voador (raro): cruza o cabeçalho ao entardecer */
+html[data-theme='mirai-funk'] .mf-car {
+  top: 4.5vh;
+  left: 0;
+  width: 150px;
+  height: 42px;
+  opacity: 0;
+  animation-name: mf-car;
+}
+html[data-theme='mirai-funk'] .mf-car svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='mirai-funk'] .mf-car-body {
+  fill: var(--mf-black);
+}
+html[data-theme='mirai-funk'] .mf-car-glass {
+  fill: #93e6da;
+}
+html[data-theme='mirai-funk'] .mf-car-light {
+  fill: var(--mf-white);
+}
+html[data-theme='mirai-funk'] .mf-car-under {
+  fill: rgba(232, 251, 248, 0.55);
+}
+html[data-theme='mirai-funk'] .mf-car-trail {
+  position: absolute;
+  right: 88%;
+  top: 56%;
+  width: 46vw;
+  height: 3px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.85), transparent);
+}
+
+/* fogos chapados (noite de B1); os da vitória ficam na cor vencedora */
+html[data-theme='mirai-funk'] .mf-fw {
+  width: 22vh;
+  aspect-ratio: 1;
+  opacity: 0;
+  fill: var(--mf-white);
+}
+/* halo chapado em dois degraus atrás do estouro */
+html[data-theme='mirai-funk'] .mf-fw-halo {
+  fill-opacity: 0.1;
+}
+html[data-theme='mirai-funk'] .mf-fw-1 {
+  left: 3vw;
+  top: 3vh;
+  animation-name: mf-fw-1;
+}
+html[data-theme='mirai-funk'] .mf-fw-2 {
+  right: 6vw;
+  top: 1vh;
+  width: 17vh;
+  fill: #93e6da;
+  animation-name: mf-fw-2;
+}
+html[data-theme='mirai-funk'] .mf-fw-3 {
+  left: 60vw;
+  top: 0;
+  width: 14vh;
+  animation-name: mf-fw-3;
+}
+html[data-theme='mirai-funk'] .mf-fw-win {
+  width: 26vh;
+  fill: var(--win-color, #fff);
+}
+html[data-theme='mirai-funk'] .mf-fw-win.mf-fw-1 {
+  left: 18vw;
+  top: 0;
+}
+html[data-theme='mirai-funk'] .mf-fw-win.mf-fw-2 {
+  right: 18vw;
+  top: 0;
+  width: 18vh;
+}
+@media (min-width: 1800px) {
+  html[data-theme='mirai-funk'] .mf-fw-win.mf-fw-1 {
+    left: calc(var(--mf-m) / 2 - 11vh);
+    top: 6vh;
+  }
+  html[data-theme='mirai-funk'] .mf-fw-win.mf-fw-2 {
+    right: calc(var(--mf-m) / 2 - 9vh);
+    top: 3vh;
+  }
+}
+
 /* cidade */
 html[data-theme='mirai-funk'] .mf-city {
   left: 0;
@@ -277,8 +487,25 @@ html[data-theme='mirai-funk'] .mf-city-far {
   fill: #138476;
   animation-name: mf-far;
 }
-html[data-theme='mirai-funk'] .mf-city-black,
-html[data-theme='mirai-funk'] .mf-train-body {
+/* névoa no pé da cidade do fundo (perspectiva atmosférica) */
+html[data-theme='mirai-funk'] .mf-haze {
+  left: 0;
+  right: 0;
+  top: calc(var(--mf-horizon) - 16vh);
+  height: 16vh;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(232, 251, 248, 0.16) 70%,
+    rgba(232, 251, 248, 0.26)
+  );
+}
+/* contorno claro desalinhado, como impressão fora de registro */
+html[data-theme='mirai-funk'] .mf-city-misreg {
+  fill: rgba(232, 251, 248, 0.22);
+  transform: translate(3px, -3px);
+}
+html[data-theme='mirai-funk'] .mf-city-black {
   fill: var(--mf-black);
 }
 html[data-theme='mirai-funk'] .mf-win-lit {
@@ -300,43 +527,458 @@ html[data-theme='mirai-funk'] .mf-city-nightwin {
 html[data-theme='mirai-funk'] .mf-city-nightwin.mf-flicker {
   animation-name: mf-nightwin-flicker;
 }
-html[data-theme='mirai-funk'] .mf-beacons,
-html[data-theme='mirai-funk'] .mf-train-track {
-  inset: 0;
+/* brilho das janelas: cópia borrada (filtro estático, só a opacidade
+   anima) */
+html[data-theme='mirai-funk'] .mf-city-bloom {
+  filter: blur(5px);
+  opacity: 0.5;
+  animation-name: mf-bloom;
+}
+/* batida: todas as janelas acesas pulsando (só girando) */
+html[data-theme='mirai-funk'] .mf-city-beat {
+  opacity: 0;
 }
 html[data-theme='mirai-funk'] .mf-beacons {
+  inset: 0;
   animation-name: mf-beacons;
 }
 html[data-theme='mirai-funk'] .mf-beacon-blink {
   fill: var(--mf-white);
   animation: mf-blink 1.6s linear infinite;
 }
+
+/* trem-bala: a camada inteira desliza; janelas e rastros só à noite */
 html[data-theme='mirai-funk'] .mf-train {
+  inset: 0;
   transform: translateX(-100%);
   animation-name: mf-train;
 }
+/* trem-bala branco (aparece contra a cidade preta), faixa verde-água */
+html[data-theme='mirai-funk'] .mf-train-body {
+  fill: #e8fbf8;
+}
+html[data-theme='mirai-funk'] .mf-train-stripe {
+  fill: var(--mf-teal-2);
+}
 html[data-theme='mirai-funk'] .mf-train-win {
-  fill: #dcfbf5;
+  fill: #0c4540;
+}
+html[data-theme='mirai-funk'] .mf-train-shade {
+  fill: rgba(4, 8, 7, 0.62);
+}
+html[data-theme='mirai-funk'] .mf-train-lit {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation-name: mf-trainlit;
+}
+html[data-theme='mirai-funk'] .mf-train-glow {
+  fill: #e8fbf8;
 }
 
-/* reflexo listrado e linha preta do horizonte */
-html[data-theme='mirai-funk'] .mf-reflection {
-  left: 0;
-  width: 100%;
-  top: calc(var(--mf-horizon) + 1.2vh);
-  height: 20vh;
-  fill: #123c36;
-  opacity: 0.8;
-  -webkit-mask-image: repeating-linear-gradient(#000 0 5px, transparent 5px 9px);
-  mask-image: repeating-linear-gradient(#000 0 5px, transparent 5px 9px);
-  animation-name: mf-reflect;
+/* torre da rádio MIRAI FM: margem direita, na frente da cidade */
+html[data-theme='mirai-funk'] .mf-tower {
+  display: none;
+  --mf-th: 36vh;
+  top: calc(var(--mf-horizon) - var(--mf-th));
+  right: calc(var(--mf-m) / 2 - var(--mf-th) * 0.1429);
+  width: calc(var(--mf-th) * 0.2857);
+  height: var(--mf-th);
 }
-html[data-theme='mirai-funk'] .mf-ground {
+@media (min-width: 1800px) {
+  html[data-theme='mirai-funk'] .mf-tower {
+    display: block;
+  }
+}
+html[data-theme='mirai-funk'] .mf-tower-body {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='mirai-funk'] .mf-tower-black {
+  fill: var(--mf-black);
+}
+html[data-theme='mirai-funk'] .mf-tower-dim {
+  fill: #0f3833;
+}
+html[data-theme='mirai-funk'] .mf-tower-lobby {
+  fill: #5cd3c3;
+}
+html[data-theme='mirai-funk'] .mf-tower-glow {
+  position: absolute;
+  left: -30%;
+  right: -30%;
+  top: 18%;
+  bottom: 14%;
+  background: radial-gradient(
+    closest-side,
+    rgba(147, 230, 218, 0.34),
+    rgba(147, 230, 218, 0.12) 60%,
+    transparent
+  );
+}
+/* equalizador: cada coluna recorta uma tira de janelas acesas; a tira
+   desce e sobe de linha em linha (steps), como as barras de um aparelho */
+html[data-theme='mirai-funk'] .mf-eq {
+  position: absolute;
+  left: 14.17%;
+  width: 71.67%;
+  top: 26.67%;
+  height: 51.43%;
+}
+html[data-theme='mirai-funk'] .mf-eq-col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc((var(--mf-c) + 0.2) * 100% / 7);
+  width: calc(60% / 7);
+  overflow: hidden;
+}
+html[data-theme='mirai-funk'] .mf-eq-col > b {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+      to bottom,
+      transparent 22%,
+      #f2fffc 22% 78%,
+      transparent 78%
+    )
+    0 0 / 100% calc(100% / 18);
+  transform: translateY(44.444%);
+  animation: mf-eq 1.9s steps(1) infinite;
+}
+html[data-theme='mirai-funk'] .mf-eq-col:nth-child(2) > b {
+  animation-duration: 2.3s;
+  animation-delay: -0.7s;
+}
+html[data-theme='mirai-funk'] .mf-eq-col:nth-child(3) > b {
+  animation-duration: 1.5s;
+  animation-delay: -1.1s;
+}
+html[data-theme='mirai-funk'] .mf-eq-col:nth-child(4) > b {
+  animation-duration: 2.7s;
+  animation-delay: -0.3s;
+}
+html[data-theme='mirai-funk'] .mf-eq-col:nth-child(5) > b {
+  animation-duration: 1.7s;
+  animation-delay: -1.6s;
+}
+html[data-theme='mirai-funk'] .mf-eq-col:nth-child(6) > b {
+  animation-duration: 2.1s;
+  animation-delay: -0.9s;
+}
+html[data-theme='mirai-funk'] .mf-eq-col:nth-child(7) > b {
+  animation-duration: 1.3s;
+  animation-delay: -0.5s;
+}
+html[data-theme='mirai-funk'] .mf-tower-sign,
+html[data-theme='mirai-funk'] .mf-onair {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--font-archivo-black);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1;
+  white-space: nowrap;
+}
+html[data-theme='mirai-funk'] .mf-tower-sign {
+  top: 11%;
+  font-size: calc(var(--mf-th) * 0.02);
+  color: var(--mf-white);
+  letter-spacing: 0.04em;
+}
+html[data-theme='mirai-funk'] .mf-onair {
+  top: 18.2%;
+  left: 30%;
+  right: 30%;
+  padding: 1px 0;
+  font-size: calc(var(--mf-th) * 0.017);
+  color: var(--mf-black);
+  background: #93e6da;
+  opacity: 0.22;
+  transition: opacity 0.3s;
+}
+/* letreiro vertical em neon, saindo da lateral da torre */
+html[data-theme='mirai-funk'] .mf-neon {
+  position: absolute;
+  left: -15%;
+  top: 34%;
+  width: 24%;
+  animation-name: mf-neon;
+  animation-duration: var(--mf-cycle);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: calc(var(--mf-cycle) * var(--mf-t0));
+}
+html[data-theme='mirai-funk'] .mf-neon > b {
+  position: relative;
+  display: block;
+  padding: 0.35em 0.12em;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font: 900 calc(var(--mf-th) * 0.04) / 1 var(--mf-jp);
+  color: #f2fffc;
+  background: var(--mf-black);
+  border: 2px solid #93e6da;
+  text-shadow:
+    0 0 3px #93e6da,
+    0 0 8px #2bb3a3;
+}
+html[data-theme='mirai-funk'] .mf-neon-halo {
+  position: absolute;
+  inset: -60% -180%;
+  background: radial-gradient(
+    closest-side,
+    rgba(147, 230, 218, 0.4),
+    transparent
+  );
+}
+html[data-theme='mirai-funk'] .mf-beacon {
+  position: absolute;
+  left: 48.5%;
+  top: -0.6%;
+  width: 3.5%;
+  aspect-ratio: 1;
+  background: var(--mf-white);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+  animation: mf-blink 1.4s linear infinite;
+}
+
+/* via expressa na beira d'água (linha preta do horizonte) */
+html[data-theme='mirai-funk'] .mf-highway {
   left: 0;
   right: 0;
   top: var(--mf-horizon);
   height: 1.2vh;
   background: var(--mf-black);
+  overflow: hidden;
+}
+html[data-theme='mirai-funk'] .mf-lanes {
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  animation-name: mf-lanes;
+}
+html[data-theme='mirai-funk'] .mf-lane {
+  position: absolute;
+  left: 0;
+  top: 18%;
+  width: 200%;
+  height: 64%;
+}
+html[data-theme='mirai-funk'] .mf-lane-e {
+  fill: #ffffff;
+  animation: mf-lane-e 9s linear infinite;
+}
+html[data-theme='mirai-funk'] .mf-lane-w {
+  fill: #5cd3c3;
+  transform: translateX(-50%);
+  animation: mf-lane-w 13s linear infinite;
+}
+
+/* reflexo listrado, colunas de luz das janelas e da lua na água */
+html[data-theme='mirai-funk'] .mf-reflection,
+html[data-theme='mirai-funk'] .mf-reflection-lit {
+  left: 0;
+  width: 100%;
+  top: calc(var(--mf-horizon) + 1.2vh);
+  height: 20vh;
+  -webkit-mask-image: repeating-linear-gradient(#000 0 5px, transparent 5px 9px);
+  mask-image: repeating-linear-gradient(#000 0 5px, transparent 5px 9px);
+}
+html[data-theme='mirai-funk'] .mf-reflection {
+  fill: #123c36;
+  opacity: 0.8;
+  animation-name: mf-reflect;
+}
+/* à noite: luz das janelas e da via expressa derramada na água (a máscara
+   listrada da camada vira ondinhas) */
+html[data-theme='mirai-funk'] .mf-reflection-lit {
+  opacity: 0.4;
+  background: linear-gradient(
+    to bottom,
+    rgba(147, 230, 218, 0.5),
+    rgba(147, 230, 218, 0.12) 30%,
+    transparent 70%
+  );
+  animation-name: mf-reflect-lit;
+}
+html[data-theme='mirai-funk'] .mf-moonpath {
+  top: calc(var(--mf-horizon) + 2vh);
+  right: calc(7vw + 1vh);
+  width: 7vh;
+  height: 26vh;
+  animation-name: mf-moonpath;
+}
+@media (min-width: 1800px) {
+  html[data-theme='mirai-funk'] .mf-moonpath {
+    right: calc(var(--mf-m) / 2 - 3.5vh);
+  }
+}
+html[data-theme='mirai-funk'] .mf-moonpath > i {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(232, 251, 248, 0.7) 0 3px,
+    transparent 3px 11px
+  );
+  -webkit-mask-image: radial-gradient(closest-side, #000 30%, transparent);
+  mask-image: radial-gradient(closest-side, #000 30%, transparent);
+  animation: mf-shimmer 3.4s ease-in-out infinite alternate;
+}
+html[data-theme='mirai-funk'] .mf-ground {
+  left: 0;
+  right: 0;
+  top: calc(var(--mf-horizon) + 1.2vh);
+  height: 2px;
+  background: rgba(232, 251, 248, 0.25);
+}
+
+/* toca-discos: LP meio para fora da tela, na água da margem direita */
+html[data-theme='mirai-funk'] .mf-deck {
+  display: none;
+  --mf-r: min(var(--mf-m), 19vh);
+  left: calc(100vw - var(--mf-r));
+  top: calc(
+    var(--mf-horizon) + (100vh - var(--mf-horizon)) / 2 - var(--mf-r) + 1vh
+  );
+  width: calc(var(--mf-r) * 2);
+  height: calc(var(--mf-r) * 2);
+  perspective: calc(var(--mf-r) * 6);
+}
+@media (min-width: 1800px) {
+  html[data-theme='mirai-funk'] .mf-deck {
+    display: block;
+  }
+}
+html[data-theme='mirai-funk'] .mf-record,
+html[data-theme='mirai-funk'] .mf-disc,
+html[data-theme='mirai-funk'] .mf-side,
+html[data-theme='mirai-funk'] .mf-sheen,
+html[data-theme='mirai-funk'] .mf-disc-blur {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+html[data-theme='mirai-funk'] .mf-record {
+  transform-style: preserve-3d;
+  animation-name: mf-flip;
+  animation-duration: var(--mf-cycle);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: calc(var(--mf-cycle) * var(--mf-t0));
+}
+html[data-theme='mirai-funk'] .mf-disc {
+  transform-style: preserve-3d;
+  animation: mf-rotate 4.8s linear infinite;
+}
+html[data-theme='mirai-funk'] .mf-side {
+  display: grid;
+  place-items: center;
+  backface-visibility: hidden;
+  background: repeating-radial-gradient(
+      circle,
+      #050b0a 0 2px,
+      #10201d 2px 3px,
+      #050b0a 3px 5px
+    );
+  box-shadow: 0 0 0 2px var(--mf-black);
+}
+html[data-theme='mirai-funk'] .mf-side-b {
+  transform: rotateY(180deg);
+}
+html[data-theme='mirai-funk'] .mf-label {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4%;
+  width: 36%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--mf-black) 0 5%, transparent 5.5%),
+    radial-gradient(circle, transparent 0 88%, rgba(255, 255, 255, 0.6) 88% 91%, transparent 91%),
+    var(--mf-teal-2);
+  color: var(--mf-white);
+  line-height: 1;
+}
+html[data-theme='mirai-funk'] .mf-side-b .mf-label {
+  background:
+    radial-gradient(circle, var(--mf-black) 0 5%, transparent 5.5%),
+    radial-gradient(circle, transparent 0 88%, rgba(4, 8, 7, 0.6) 88% 91%, transparent 91%),
+    var(--mf-mint);
+  color: var(--mf-black);
+}
+html[data-theme='mirai-funk'] .mf-label > b {
+  font: 900 calc(var(--mf-r) * 0.12) / 1 var(--mf-jp);
+  margin-bottom: 18%;
+}
+html[data-theme='mirai-funk'] .mf-label > i {
+  font: italic 700 calc(var(--mf-r) * 0.042) / 1 var(--font-geist-sans);
+  letter-spacing: 0.12em;
+}
+/* reflexo fixo nos sulcos (não gira com o disco) */
+html[data-theme='mirai-funk'] .mf-sheen {
+  backface-visibility: hidden;
+  transform: translateZ(1px);
+  background: conic-gradient(
+    from 20deg,
+    transparent 0 6%,
+    rgba(255, 255, 255, 0.16) 11%,
+    transparent 17% 50%,
+    rgba(255, 255, 255, 0.12) 61%,
+    transparent 67%
+  );
+  -webkit-mask-image: radial-gradient(circle, transparent 0 19%, #000 19.5%);
+  mask-image: radial-gradient(circle, transparent 0 19%, #000 19.5%);
+}
+html[data-theme='mirai-funk'] .mf-sheen-b {
+  transform: rotateY(180deg) translateZ(1px);
+}
+/* girando a roleta: disco borrado bem rápido por cima */
+html[data-theme='mirai-funk'] .mf-disc-blur {
+  opacity: 0;
+  transition: opacity 0.4s;
+  background:
+    radial-gradient(circle, var(--mf-black) 0 2%, transparent 2.5%),
+    radial-gradient(circle, rgba(147, 230, 218, 0.9) 0 17%, transparent 18.5%),
+    repeating-conic-gradient(
+      #050b0a 0 7deg,
+      #1a3531 9deg 11deg,
+      #050b0a 14deg 20deg
+    );
+}
+/* braço do toca-discos: levanta na troca de lado */
+html[data-theme='mirai-funk'] .mf-arm {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: 93% 5%;
+  animation-name: mf-arm;
+  animation-duration: var(--mf-cycle);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: calc(var(--mf-cycle) * var(--mf-t0));
+}
+html[data-theme='mirai-funk'] .mf-arm-base {
+  fill: var(--mf-black);
+  stroke: #93e6da;
+  stroke-width: 2;
+}
+html[data-theme='mirai-funk'] .mf-arm-rod {
+  stroke: #dfe9e7;
+  stroke-width: 3.2;
+}
+html[data-theme='mirai-funk'] .mf-arm-head {
+  fill: var(--mf-white);
+  stroke: var(--mf-black);
+  stroke-width: 1.5;
 }
 
 /* garoa: traços retos inclinados; a camada interna cai em laço */
@@ -371,60 +1013,787 @@ html[data-theme='mirai-funk'] .mf-flash {
   animation-name: mf-flash;
 }
 
+/* linhas de concentração (só girando): círculo grande centrado na roda */
+html[data-theme='mirai-funk'] .mf-lines {
+  --mf-lr: hypot(50vw + 125px, 50vh);
+  left: calc(50vw - 125px - var(--mf-lr));
+  top: calc(50vh - var(--mf-lr));
+  width: calc(var(--mf-lr) * 2);
+  height: calc(var(--mf-lr) * 2);
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+html[data-theme='mirai-funk'] .mf-lines svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: rgba(255, 255, 255, 0.3);
+}
+
+/* cais com o ouvinte (canto de baixo da margem esquerda, sob a coluna);
+   caixa de 160 x 110 unidades, deque em y = 60 */
+html[data-theme='mirai-funk'] .mf-pier {
+  display: none;
+  --mf-s: min(calc(var(--mf-m) * 0.6), 10vh);
+  left: 0;
+  bottom: 3.5vh;
+  width: min(var(--mf-m), calc((82vh - var(--mf-s) * 7) * 1.45));
+  aspect-ratio: 160 / 110;
+}
+@media (min-width: 1800px) {
+  html[data-theme='mirai-funk'] .mf-pier {
+    display: block;
+  }
+}
+html[data-theme='mirai-funk'] .mf-pier > *,
+html[data-theme='mirai-funk'] .mf-pier svg {
+  position: absolute;
+}
+html[data-theme='mirai-funk'] .mf-pier svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+html[data-theme='mirai-funk'] .mf-pier-base,
+html[data-theme='mirai-funk'] .mf-pier-sit {
+  inset: 0;
+}
+html[data-theme='mirai-funk'] .mf-pier-wood {
+  fill: #08201c;
+}
+html[data-theme='mirai-funk'] .mf-pier-edge {
+  fill: rgba(147, 230, 218, 0.6);
+}
+html[data-theme='mirai-funk'] .mf-pier-post {
+  fill: var(--mf-black);
+}
+html[data-theme='mirai-funk'] .mf-pier-bulb {
+  fill: #f2fffc;
+}
+html[data-theme='mirai-funk'] .mf-pier-rim,
+html[data-theme='mirai-funk'] .mf-pier-ink {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+html[data-theme='mirai-funk'] .mf-pier-rim {
+  stroke: rgba(232, 251, 248, 0.7);
+  stroke-width: 7.5;
+}
+html[data-theme='mirai-funk'] .mf-pier-ink {
+  stroke: var(--mf-black);
+  stroke-width: 4.5;
+}
+html[data-theme='mirai-funk'] .mf-pier-fill {
+  fill: var(--mf-black);
+  stroke: rgba(232, 251, 248, 0.7);
+  stroke-width: 1.4;
+}
+/* poste aceso: halo chapado em degraus e poça de luz no deque */
+html[data-theme='mirai-funk'] .mf-lamp-light {
+  left: -6%;
+  top: -14%;
+  width: 52%;
+  height: 84%;
+  background:
+    radial-gradient(
+      circle at 34% 29%,
+      rgba(242, 255, 252, 0.5) 0 4%,
+      rgba(232, 251, 248, 0.2) 4% 16%,
+      rgba(232, 251, 248, 0.08) 16% 30%,
+      transparent 30%
+    ),
+    radial-gradient(
+      ellipse 40% 7% at 38% 77%,
+      rgba(147, 230, 218, 0.45),
+      transparent
+    );
+  animation-name: mf-lamp;
+}
+/* pernas balançando por cima da água (pivô no joelho) */
+html[data-theme='mirai-funk'] .mf-pier-legs {
+  left: 33.75%;
+  top: 50.9%;
+  width: 12.5%;
+  height: 27.3%;
+  transform-origin: 20% 6.7%;
+  animation: mf-legs 1.02s ease-in-out infinite alternate;
+}
+html[data-theme='mirai-funk'] .mf-pier-box {
+  left: 10%;
+  top: 42.4%;
+  width: 12.5%;
+  height: 12.1%;
+  transform-origin: 50% 100%;
+  animation: mf-boom 0.508s ease-out infinite;
+}
+html[data-theme='mirai-funk'] .mf-pier-boxbody {
+  fill: var(--mf-black);
+  stroke: rgba(232, 251, 248, 0.7);
+  stroke-width: 0.8;
+}
+html[data-theme='mirai-funk'] .mf-pier-speaker {
+  fill: #2bb3a3;
+}
+html[data-theme='mirai-funk'] .mf-pier-boxlight {
+  fill: #f2fffc;
+}
+/* dança e comemoração: janela de um quadro (40 x 60) em pé no deque */
+html[data-theme='mirai-funk'] .mf-pier-dance,
+html[data-theme='mirai-funk'] .mf-pier-cheer {
+  left: 16.25%;
+  top: 3.6%;
+  width: 25%;
+  height: 54.5%;
+  visibility: hidden;
+}
+html[data-theme='mirai-funk'] .mf-pier-dance {
+  overflow: hidden;
+}
+html[data-theme='mirai-funk'] .mf-pier-dance svg {
+  width: 400%;
+}
+html[data-theme='mirai-funk'] .mf-pier-sit,
+html[data-theme='mirai-funk'] .mf-pier-legs {
+  transition: opacity 0.2s;
+}
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-pier-sit,
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-pier-legs,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-pier-sit,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-pier-legs {
+  opacity: 0;
+}
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-pier-dance,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-pier-cheer {
+  visibility: visible;
+}
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-pier-dance svg {
+  animation: mf-flap 1.016s steps(4) infinite;
+}
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-pier-cheer {
+  animation: mf-hop 0.42s ease-out 3 backwards;
+}
+
+/* ---------- Moldura do pôster ---------- */
+
+/* filete e marcas de corte numa caixa só, do tamanho da tela (vira uma
+   camada; os pedaços vazios dela não gastam memória) */
+html[data-theme='mirai-funk'] .mf-frame {
+  inset: 0;
+}
+html[data-theme='mirai-funk'] .mf-rules,
+html[data-theme='mirai-funk'] .mf-crop {
+  position: absolute;
+}
+/* faixa preta no topo, como a borda de um pôster */
+html[data-theme='mirai-funk'] .mf-rules {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 9px;
+  border-top: 5px solid var(--mf-black);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.75);
+}
+/* marcas de corte nos cantos */
+html[data-theme='mirai-funk'] .mf-crop {
+  width: 16px;
+  height: 16px;
+  border: 0 solid rgba(232, 251, 248, 0.7);
+}
+html[data-theme='mirai-funk'] .mf-crop-tl {
+  top: 16px;
+  left: 10px;
+  border-width: 1px 0 0 1px;
+}
+html[data-theme='mirai-funk'] .mf-crop-tr {
+  top: 16px;
+  right: 10px;
+  border-width: 1px 1px 0 0;
+}
+html[data-theme='mirai-funk'] .mf-crop-bl {
+  bottom: 10px;
+  left: 10px;
+  border-width: 0 0 1px 1px;
+}
+html[data-theme='mirai-funk'] .mf-crop-br {
+  bottom: 10px;
+  right: 10px;
+  border-width: 0 1px 1px 0;
+}
+/* ficha técnica no rodapé, dos dois lados do texto do site */
+html[data-theme='mirai-funk'] .mf-notes {
+  display: none;
+  bottom: 12px;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-geist-sans);
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  white-space: nowrap;
+  color: rgba(232, 251, 248, 0.72);
+}
+@media (min-width: 1700px) {
+  html[data-theme='mirai-funk'] .mf-notes {
+    display: flex;
+  }
+}
+html[data-theme='mirai-funk'] .mf-notes-l {
+  left: 34px;
+}
+html[data-theme='mirai-funk'] .mf-notes-r {
+  right: 34px;
+}
+html[data-theme='mirai-funk'] .mf-swatches {
+  display: flex;
+}
+html[data-theme='mirai-funk'] .mf-swatches > i {
+  width: 10px;
+  height: 10px;
+  background: var(--mf-teal);
+}
+html[data-theme='mirai-funk'] .mf-swatches > i:nth-child(2) {
+  background: var(--mf-floor);
+}
+html[data-theme='mirai-funk'] .mf-swatches > i:nth-child(3) {
+  background: var(--mf-black);
+}
+html[data-theme='mirai-funk'] .mf-swatches > i:nth-child(4) {
+  background: var(--mf-white);
+}
+html[data-theme='mirai-funk'] .mf-barcode {
+  width: 64px;
+  height: 12px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(232, 251, 248, 0.8) 0 1px,
+    transparent 1px 3px,
+    rgba(232, 251, 248, 0.8) 3px 5px,
+    transparent 5px 6px,
+    rgba(232, 251, 248, 0.8) 6px 7px,
+    transparent 7px 10px
+  );
+}
+
+/* ---------- Tipografia cinética ---------- */
+
+/* título da faixa no cabeçalho (só em telas largas), centrado no vão
+   livre entre o título do site e o volume */
+html[data-theme='mirai-funk'] .mf-title {
+  display: none;
+  --mf-ch: clamp(40px, 3.2vw, 62px);
+  top: 12px;
+  left: calc(50% + 70px);
+  transform: translateX(-50%) skewX(-9deg);
+}
+@media (min-width: 1200px) {
+  html[data-theme='mirai-funk'] .mf-title {
+    display: block;
+  }
+}
+/* a linha é a câmera: uma perspectiva só e recorte acima e abaixo da face
+   da frente (as faces vizinhas do prisma ficam escondidas) */
+html[data-theme='mirai-funk'] .mf-title-row {
+  display: flex;
+  gap: 2px;
+  height: var(--mf-ch);
+  perspective: calc(var(--mf-ch) * 9);
+  clip-path: inset(0 -40%);
+  transition: opacity 0.35s;
+}
+html[data-theme='mirai-funk'] .mf-reel {
+  position: relative;
+  flex: none;
+  width: calc(var(--mf-ch) * 0.86);
+  height: var(--mf-ch);
+  transform-style: preserve-3d;
+  translate: 0 0 calc(var(--mf-ch) * -0.866);
+  animation: mf-reel6 var(--mf-cycle) infinite;
+  animation-delay: calc(var(--mf-cycle) * var(--mf-t0) + var(--mf-j) * 85ms);
+}
+html[data-theme='mirai-funk'] .mf-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  backface-visibility: hidden;
+  transform: rotateX(calc(var(--mf-i) * -60deg))
+    translateZ(calc(var(--mf-ch) * 0.866));
+  font: 900 calc(var(--mf-ch) * 0.8) / 1 var(--mf-jp);
+  color: var(--mf-white);
+  text-shadow: 3px 3px 0 var(--mf-black);
+}
+html[data-theme='mirai-funk'] .mf-face-inv {
+  background: var(--mf-white);
+  color: var(--mf-black);
+  text-shadow: none;
+}
+html[data-theme='mirai-funk'] .mf-reel-no {
+  width: calc(var(--mf-ch) * 1.2);
+  margin-right: 10px;
+}
+html[data-theme='mirai-funk'] .mf-reel-no .mf-face {
+  background: var(--mf-black);
+  font: 400 calc(var(--mf-ch) * 0.5) / 1 var(--font-archivo-black);
+  letter-spacing: 0.02em;
+  text-shadow: none;
+}
+/* linha fina: cronômetro, romaji · tradução · BPM e batida */
+html[data-theme='mirai-funk'] .mf-ticker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+  height: 16px;
+  color: var(--mf-white);
+  font-family: var(--font-geist-sans);
+  font-size: max(8px, calc(var(--mf-ch) * 0.17));
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 16px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: opacity 0.35s;
+}
+html[data-theme='mirai-funk'] .mf-time {
+  display: flex;
+  flex: none;
+  align-items: center;
+  width: calc(var(--mf-ch) * 1.2);
+  gap: 1px;
+  font-family: var(--font-archivo-black);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+html[data-theme='mirai-funk'] .mf-play {
+  width: 0;
+  height: 0;
+  margin-right: 6px;
+  border-left: 7px solid var(--mf-white);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+html[data-theme='mirai-funk'] .mf-odo,
+html[data-theme='mirai-funk'] .mf-sub {
+  display: block;
+  height: 16px;
+  overflow: hidden;
+}
+html[data-theme='mirai-funk'] .mf-odo > span {
+  display: block;
+  width: 1ch;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  animation: mf-odo 10s steps(10) infinite;
+  animation-delay: calc(var(--mf-cycle) * var(--mf-t0));
+}
+html[data-theme='mirai-funk'] .mf-odo-10 > span {
+  animation-duration: 40s;
+  animation-timing-function: steps(4);
+}
+html[data-theme='mirai-funk'] .mf-sub {
+  flex: none;
+  width: calc(var(--mf-ch) * 6.02 + 12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+  box-sizing: content-box;
+}
+html[data-theme='mirai-funk'] .mf-sub-strip {
+  display: block;
+  animation: mf-sub6 var(--mf-cycle) infinite;
+  animation-delay: calc(var(--mf-cycle) * var(--mf-t0) + 700ms);
+}
+html[data-theme='mirai-funk'] .mf-sub-strip > b {
+  display: block;
+  height: 16px;
+  font-weight: inherit;
+}
+html[data-theme='mirai-funk'] .mf-beat {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 7px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.32) 0 8px,
+    transparent 8px 12px
+  );
+}
+html[data-theme='mirai-funk'] .mf-beat > i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 7px;
+  background: var(--mf-white);
+  animation: mf-beat 2s steps(4) infinite;
+}
+/* camadas que só aparecem girando / no vencedor: escondidas de fato
+   (visibility) fora disso, para não virarem camadas na GPU à toa. Entram
+   com fade de opacidade e saem num corte seco, como num clipe (a troca
+   de visibility não é transição, para nada animar fora da GPU) */
+html[data-theme='mirai-funk'] .mf-race,
+html[data-theme='mirai-funk'] .mf-column-race,
+html[data-theme='mirai-funk'] .mf-lines,
+html[data-theme='mirai-funk'] .mf-disc-blur,
+html[data-theme='mirai-funk'] .mf-city-beat {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+html[data-theme='mirai-funk'] .mf-jackpot,
+html[data-theme='mirai-funk'] .mf-column-win,
+html[data-theme='mirai-funk'] .mf-win-rings,
+html[data-theme='mirai-funk'] .mf-fw-win,
+html[data-theme='mirai-funk'] .mf-invert {
+  visibility: hidden;
+  opacity: 0;
+}
+/* o brilho do céu entra e sai devagar (uma camada só) */
+html[data-theme='mirai-funk'] .mf-win-glow {
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+/* girando: faixa de texto correndo no lugar do título */
+html[data-theme='mirai-funk'] .mf-race {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(900px, 56vw);
+  height: var(--mf-ch);
+  margin-left: calc(min(900px, 56vw) / -2);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 12% 88%,
+    transparent
+  );
+  mask-image: linear-gradient(90deg, transparent, #000 12% 88%, transparent);
+}
+html[data-theme='mirai-funk'] .mf-race-track {
+  display: flex;
+  width: max-content;
+}
+html[data-theme='mirai-funk'] .mf-race-track > span {
+  padding-right: 0.4em;
+  font: 900 calc(var(--mf-ch) * 0.8) / var(--mf-ch) var(--mf-jp);
+  color: var(--mf-white);
+  text-shadow: 3px 3px 0 var(--mf-black);
+  white-space: nowrap;
+}
+/* vencedor: 大当たり na cor vencedora, batendo letra por letra */
+html[data-theme='mirai-funk'] .mf-jackpot {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  display: flex;
+  gap: 2px;
+  transform: translateX(-50%);
+}
+html[data-theme='mirai-funk'] .mf-jackpot::before {
+  content: '';
+  position: absolute;
+  inset: -30% -18%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--win-color, #fff) 50%, transparent),
+    transparent
+  );
+}
+html[data-theme='mirai-funk'] .mf-jackpot > b {
+  position: relative;
+  font: 900 calc(var(--mf-ch) * 1.25) / 1.1 var(--mf-jp);
+  color: var(--win-color, #fff);
+  text-shadow:
+    -2px -2px 0 var(--mf-white),
+    2px -2px 0 var(--mf-white),
+    -2px 2px 0 var(--mf-white),
+    2px 2px 0 var(--mf-white),
+    6px 6px 0 var(--mf-black);
+}
+
+/* coluna de letras gigantes na margem esquerda (tategaki) */
+html[data-theme='mirai-funk'] .mf-column {
+  display: none;
+  --mf-s: min(calc(var(--mf-m) * 0.6), 10vh);
+  left: calc(var(--mf-m) / 2 - var(--mf-s) / 2);
+  top: 14vh;
+  width: var(--mf-s);
+  height: calc(var(--mf-s) * 7);
+}
+@media (min-width: 1800px) {
+  html[data-theme='mirai-funk'] .mf-column {
+    display: block;
+  }
+}
+/* a coluna inteira é a câmera (uma perspectiva só) */
+html[data-theme='mirai-funk'] .mf-column-type {
+  perspective: calc(var(--mf-s) * 8);
+  transition: opacity 0.35s;
+}
+/* casa da coluna: prisma triangular em rotateY (painel trivision) */
+html[data-theme='mirai-funk'] .mf-tri {
+  position: relative;
+  display: block;
+  width: var(--mf-s);
+  height: var(--mf-s);
+  transform-style: preserve-3d;
+  translate: 0 0 calc(var(--mf-s) * -0.2887);
+  animation: mf-tri3 66s infinite;
+  animation-delay: calc(var(--mf-j) * 110ms - 9s);
+}
+html[data-theme='mirai-funk'] .mf-tri-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  backface-visibility: hidden;
+  transform: rotateY(calc(var(--mf-i) * -120deg))
+    translateZ(calc(var(--mf-s) * 0.2887));
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font: 900 calc(var(--mf-s) * 0.84) / 1 var(--mf-jp);
+  color: var(--mf-white);
+  text-shadow: 4px 4px 0 var(--mf-black);
+}
+html[data-theme='mirai-funk'] .mf-tri-1 {
+  background: var(--mf-white);
+  color: var(--mf-black);
+  text-shadow: none;
+  box-shadow: inset 0 0 0 2px var(--mf-black);
+}
+html[data-theme='mirai-funk'] .mf-tri-2 {
+  color: transparent;
+  -webkit-text-stroke: 2px var(--mf-white);
+  text-shadow: none;
+}
+/* girando: coluna de letras subindo */
+html[data-theme='mirai-funk'] .mf-column-race {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(transparent, #000 10% 90%, transparent);
+  mask-image: linear-gradient(transparent, #000 10% 90%, transparent);
+}
+html[data-theme='mirai-funk'] .mf-column-race-track > span {
+  display: block;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font: 900 calc(var(--mf-s) * 0.84) / var(--mf-s) var(--mf-jp);
+  letter-spacing: calc(var(--mf-s) * 0.16);
+  color: var(--mf-white);
+  text-shadow: 4px 4px 0 var(--mf-black);
+}
+/* vencedor: 大当たり na vertical */
+html[data-theme='mirai-funk'] .mf-column-win {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+html[data-theme='mirai-funk'] .mf-column-win::before {
+  content: '';
+  position: absolute;
+  inset: 4% -70%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--win-color, #fff) 45%, transparent),
+    transparent
+  );
+}
+html[data-theme='mirai-funk'] .mf-column-win > b {
+  position: relative;
+  font: 900 calc(var(--mf-s) * 1.3) / 1.12 var(--mf-jp);
+  color: var(--win-color, #fff);
+  text-shadow:
+    -2px -2px 0 var(--mf-white),
+    2px -2px 0 var(--mf-white),
+    -2px 2px 0 var(--mf-white),
+    2px 2px 0 var(--mf-white),
+    7px 7px 0 var(--mf-black);
+}
+
+/* vencedor: anéis, brilho do céu e clarão duotone */
+html[data-theme='mirai-funk'] .mf-win-rings > i {
+  position: absolute;
+  left: calc(50vw - 125px - 30vmin);
+  top: calc(50vh - 30vmin);
+  width: 60vmin;
+  height: 60vmin;
+  border-radius: 50%;
+  border: 1vmin solid var(--win-color, #fff);
+  opacity: 0;
+}
+html[data-theme='mirai-funk'] .mf-win-glow {
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--win-color, #fff) 42%, transparent),
+    transparent 26vh
+  );
+}
+/* troca de lado do LP: a faixa do céu inverte num clarão rápido */
+html[data-theme='mirai-funk'] .mf-drop {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 13vh;
+  background: var(--mf-white);
+  mix-blend-mode: difference;
+  opacity: 0;
+  animation-name: mf-drop;
+}
+html[data-theme='mirai-funk'] .mf-invert {
+  inset: 0;
+  background: var(--mf-white);
+  mix-blend-mode: difference;
+}
+
+/* ---------- Reações à roleta ---------- */
+
+/* girando (e no vencedor): o título parado e a coluna saem de cena */
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-title-row,
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-ticker,
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-column-type,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-title-row,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-ticker,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-column-type {
+  opacity: 0;
+}
+/* entram as faixas correndo, as linhas de concentração, o LP borrado e a
+   batida nas janelas (fade de entrada; saem num corte seco) */
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-race,
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-column-race,
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-lines,
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-disc-blur,
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-city-beat {
+  visibility: visible;
+  opacity: 1;
+}
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-onair {
+  opacity: 1;
+}
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-race-track {
+  animation: mf-race 2.2s linear infinite;
+}
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-column-race-track {
+  animation: mf-race-v 1.4s linear infinite;
+}
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-lines svg {
+  animation: mf-rotate 40s linear infinite;
+}
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-disc-blur {
+  animation: mf-rotate 0.45s linear infinite;
+}
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-city-beat {
+  animation: mf-pulse 0.5s ease-out infinite;
+}
+/* vencedor: tudo entra na hora (os golpes de letra fazem a entrada); o
+   brilho do céu sobe devagar e fica calmo até o resultado fechar */
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-jackpot,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-column-win,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-rings,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-fw-win,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-invert {
+  visibility: visible;
+}
+/* fogos e clarão ficam com opacidade 0 por baixo: só a animação acende.
+   Assim, quando ela acaba (ou com movimento reduzido), nada fica aceso nem
+   invertido na tela, e as camadas soltam a GPU enquanto o modal fica
+   aberto (as animações de uma vez só usam fill backwards) */
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-jackpot,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-column-win,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-rings {
+  opacity: 1;
+}
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-glow {
+  opacity: 1;
+  transition-duration: 1.2s;
+}
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-jackpot > b,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-column-win > b {
+  animation: mf-slam 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
+  animation-delay: calc(var(--mf-i) * 90ms);
+}
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-rings > i {
+  animation: mf-ring 1.8s cubic-bezier(0.1, 0.6, 0.3, 1) backwards;
+}
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-rings > i + i {
+  animation-delay: 0.3s;
+}
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-fw-win {
+  animation: mf-burst 1.6s ease-out backwards;
+}
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-fw-win.mf-fw-2 {
+  animation-delay: 0.45s;
+}
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-invert {
+  animation: mf-invert 1.2s ease-out backwards;
+}
+
 /* ---------- Ciclo ---------- */
 
 @keyframes mf-dusk {
-  0%, 34% { opacity: 0; }
+  0%, 33% { opacity: 0; }
   46%, 88% { opacity: 1; }
   98%, 100% { opacity: 0; }
 }
 @keyframes mf-night {
-  0%, 52% { opacity: 0; }
-  64%, 86% { opacity: 1; }
+  0%, 50% { opacity: 0; }
+  61%, 86% { opacity: 1; }
   95%, 100% { opacity: 0; }
 }
 @keyframes mf-sun {
-  0%, 30% { opacity: 1; transform: translateY(0); }
-  46% { opacity: 1; transform: translateY(48vh); }
-  46.2%, 91.8% { opacity: 0; transform: translateY(48vh); }
-  92% { opacity: 1; transform: translateY(48vh); }
+  0%, 34% { opacity: 1; transform: translateY(0); }
+  47% { opacity: 1; transform: translateY(50vh); }
+  47.2%, 89.8% { opacity: 0; transform: translateY(50vh); }
+  90% { opacity: 1; transform: translateY(50vh); }
   100% { opacity: 1; transform: translateY(0); }
 }
 @keyframes mf-moon {
-  0%, 54% { opacity: 0; transform: translateY(14vh); }
-  62% { opacity: 1; transform: translateY(0); }
+  0%, 51% { opacity: 0; transform: translateY(14vh); }
+  60% { opacity: 1; transform: translateY(0); }
   86% { opacity: 1; transform: translateY(-2vh); }
   93%, 100% { opacity: 0; transform: translateY(-3vh); }
 }
+@keyframes mf-moonpath {
+  0%, 55% { opacity: 0; }
+  61%, 85% { opacity: 1; }
+  91%, 100% { opacity: 0; }
+}
 @keyframes mf-flare {
-  0%, 7% { opacity: 0; transform: scale(0.7); }
-  12% { opacity: 0.85; transform: scale(1); }
+  0%, 6% { opacity: 0; transform: scale(0.7); }
+  11% { opacity: 0.85; transform: scale(1); }
   18% { opacity: 1; transform: scale(1.06); }
   24% { opacity: 0.8; transform: scale(1); }
   30%, 100% { opacity: 0; transform: scale(0.8); }
 }
 @keyframes mf-far {
   0%, 50% { opacity: 1; }
-  64%, 86% { opacity: 0.4; }
+  61%, 86% { opacity: 0.4; }
   96%, 100% { opacity: 1; }
 }
 @keyframes mf-daywin {
-  0%, 44% { opacity: 1; }
-  58%, 88% { opacity: 0.2; }
+  0%, 42% { opacity: 1; }
+  54%, 88% { opacity: 0.2; }
   97%, 100% { opacity: 1; }
 }
 @keyframes mf-nightwin {
-  0%, 48% { opacity: 0; }
-  48.4% { opacity: 1; }
-  48.7% { opacity: 0.2; }
-  49.2%, 90% { opacity: 1; }
+  0%, 44% { opacity: 0; }
+  44.4% { opacity: 1; }
+  44.7% { opacity: 0.2; }
+  45.2%, 90% { opacity: 1; }
   91%, 100% { opacity: 0; }
 }
 @keyframes mf-nightwin-flicker {
-  0%, 48% { opacity: 0; }
-  48.4% { opacity: 1; }
-  48.7% { opacity: 0.2; }
-  49.2%, 60% { opacity: 1; }
+  0%, 44% { opacity: 0; }
+  44.4% { opacity: 1; }
+  44.7% { opacity: 0.2; }
+  45.2%, 60% { opacity: 1; }
   60.15% { opacity: 0.15; }
   60.3%, 71% { opacity: 1; }
   71.1% { opacity: 0.2; }
@@ -433,21 +1802,53 @@ html[data-theme='mirai-funk'] .mf-flash {
   71.6%, 90% { opacity: 1; }
   91%, 100% { opacity: 0; }
 }
+@keyframes mf-bloom {
+  0%, 45% { opacity: 0; }
+  52%, 89% { opacity: 0.5; }
+  92%, 100% { opacity: 0; }
+}
 @keyframes mf-beacons {
-  0%, 46% { opacity: 0; }
-  52%, 90% { opacity: 1; }
+  0%, 44% { opacity: 0; }
+  50%, 90% { opacity: 1; }
   95%, 100% { opacity: 0; }
 }
+/* 4 passagens: dia (→), fim de tarde (←), noite (→), chuva (←) */
 @keyframes mf-train {
-  0%, 21% { opacity: 1; transform: translateX(-100%); }
-  25% { opacity: 1; transform: translateX(100%); }
-  25.05% { opacity: 0; transform: translateX(100%); }
-  25.1% { opacity: 0; transform: translateX(-100%); }
-  25.15%, 73% { opacity: 1; transform: translateX(-100%); }
-  77% { opacity: 1; transform: translateX(100%); }
-  77.05% { opacity: 0; transform: translateX(100%); }
-  77.1% { opacity: 0; transform: translateX(-100%); }
-  77.15%, 100% { opacity: 1; transform: translateX(-100%); }
+  0%, 10% { transform: translateX(-100%); }
+  12.5% { transform: translateX(100%); }
+  12.51%, 30% { transform: translateX(100%); }
+  32.5% { transform: translateX(-100%); }
+  32.51%, 62% { transform: translateX(-100%); }
+  64.5% { transform: translateX(100%); }
+  64.51%, 78% { transform: translateX(100%); }
+  80.5% { transform: translateX(-100%); }
+  80.51%, 100% { transform: translateX(-100%); }
+}
+@keyframes mf-trainlit {
+  0%, 40% { opacity: 0; }
+  46%, 90% { opacity: 1; }
+  94%, 100% { opacity: 0; }
+}
+@keyframes mf-neon {
+  0%, 41% { opacity: 0; }
+  41.3% { opacity: 1; }
+  41.5% { opacity: 0.2; }
+  41.9% { opacity: 1; }
+  42% { opacity: 0.3; }
+  42.4%, 75% { opacity: 1; }
+  75.1% { opacity: 0.25; }
+  75.3%, 92% { opacity: 1; }
+  93%, 100% { opacity: 0; }
+}
+@keyframes mf-lanes {
+  0%, 40% { opacity: 0.55; }
+  50%, 88% { opacity: 1; }
+  96%, 100% { opacity: 0.55; }
+}
+@keyframes mf-reflect-lit {
+  0%, 46% { opacity: 0; }
+  54%, 89% { opacity: 0.4; }
+  93%, 100% { opacity: 0; }
 }
 @keyframes mf-plane {
   0%, 57% { opacity: 0; transform: translateX(-4vw); }
@@ -455,31 +1856,225 @@ html[data-theme='mirai-funk'] .mf-flash {
   69% { opacity: 1; transform: translateX(104vw); }
   69.2%, 100% { opacity: 0; transform: translateX(104vw); }
 }
+@keyframes mf-car {
+  0%, 37% { opacity: 0; transform: translateX(-12vw); }
+  37.1% { opacity: 1; transform: translateX(-12vw); }
+  39.4% { opacity: 1; transform: translateX(104vw); }
+  39.5%, 100% { opacity: 0; transform: translateX(104vw); }
+}
+@keyframes mf-fw-1 {
+  0%, 56% { opacity: 0; transform: scale(0.15); }
+  56.2% { opacity: 1; transform: scale(0.6); }
+  57.2% { opacity: 0.8; transform: scale(1); }
+  58% { opacity: 0; transform: scale(1.08) translateY(1vh); }
+  100% { opacity: 0; transform: scale(0.15); }
+}
+@keyframes mf-fw-2 {
+  0%, 57.4% { opacity: 0; transform: scale(0.15); }
+  57.6% { opacity: 1; transform: scale(0.6); }
+  58.6% { opacity: 0.8; transform: scale(1); }
+  59.4% { opacity: 0; transform: scale(1.08) translateY(1vh); }
+  100% { opacity: 0; transform: scale(0.15); }
+}
+@keyframes mf-fw-3 {
+  0%, 58.6% { opacity: 0; transform: scale(0.15); }
+  58.8% { opacity: 1; transform: scale(0.6); }
+  59.8% { opacity: 0.8; transform: scale(1); }
+  60.6% { opacity: 0; transform: scale(1.08) translateY(1vh); }
+  100% { opacity: 0; transform: scale(0.15); }
+}
 @keyframes mf-shoot {
-  0%, 66% { opacity: 0; transform: translateX(0); }
-  66.1% { opacity: 1; transform: translateX(2vh); }
-  66.6% { opacity: 1; transform: translateX(26vh); }
-  66.75% { opacity: 0; transform: translateX(32vh); }
-  66.8%, 100% { opacity: 0; transform: translateX(0); }
+  0%, 70% { opacity: 0; transform: translateX(0); }
+  70.1% { opacity: 1; transform: translateX(2vh); }
+  70.6% { opacity: 1; transform: translateX(26vh); }
+  70.75% { opacity: 0; transform: translateX(32vh); }
+  70.8%, 100% { opacity: 0; transform: translateX(0); }
 }
 @keyframes mf-rain {
-  0%, 68% { opacity: 0; }
-  71%, 83% { opacity: 1; }
-  86%, 100% { opacity: 0; }
+  0%, 67% { opacity: 0; }
+  70%, 81% { opacity: 1; }
+  84%, 100% { opacity: 0; }
 }
 @keyframes mf-flash {
-  0%, 75% { opacity: 0; }
-  75.08% { opacity: 0.24; }
-  75.25% { opacity: 0; }
-  75.45% { opacity: 0.16; }
-  75.6%, 81% { opacity: 0; }
-  81.08% { opacity: 0.2; }
-  81.3%, 100% { opacity: 0; }
+  0%, 74% { opacity: 0; }
+  74.08% { opacity: 0.2; }
+  74.25% { opacity: 0; }
+  74.45% { opacity: 0.13; }
+  74.6%, 80% { opacity: 0; }
+  80.08% { opacity: 0.16; }
+  80.3%, 100% { opacity: 0; }
 }
 @keyframes mf-reflect {
   0%, 50% { opacity: 1; }
-  64%, 86% { opacity: 0.5; }
+  61%, 86% { opacity: 0.5; }
   96%, 100% { opacity: 1; }
+}
+/* LP: vira para o lado B em 50% e volta para o A no fim do ciclo */
+@keyframes mf-flip {
+  0%, 49.4% { transform: rotateY(0deg); }
+  50.4%, 99.4% { transform: rotateY(180deg); }
+  100% { transform: rotateY(360deg); }
+}
+@keyframes mf-arm {
+  0% { transform: rotate(22deg); }
+  1.6%, 48.3% { transform: rotate(0deg); }
+  49.1%, 51.2% { transform: rotate(22deg); }
+  52.8%, 98.3% { transform: rotate(0deg); }
+  99.1%, 100% { transform: rotate(22deg); }
+}
+@keyframes mf-drop {
+  0% { opacity: 0.85; }
+  0.55%, 49.9% { opacity: 0; }
+  50.05% { opacity: 0.85; }
+  50.6%, 99.85% { opacity: 0; }
+  100% { opacity: 0.85; }
+}
+/* prisma hexagonal do título: 6 faixas, gira 60° a cada 40 s com repique */
+@keyframes mf-reel6 {
+  0%, 16.25% {
+    transform: rotateX(0deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.45);
+  }
+  16.667%, 32.92% {
+    transform: rotateX(60deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.45);
+  }
+  33.333%, 49.58% {
+    transform: rotateX(120deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.45);
+  }
+  50%, 66.25% {
+    transform: rotateX(180deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.45);
+  }
+  66.667%, 82.92% {
+    transform: rotateX(240deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.45);
+  }
+  83.333%, 99.58% {
+    transform: rotateX(300deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.45);
+  }
+  100% {
+    transform: rotateX(360deg);
+  }
+}
+/* prisma triangular da coluna: 3 frases, 120° a cada 22 s */
+@keyframes mf-tri3 {
+  0%, 31.5% {
+    transform: rotateY(0deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.35);
+  }
+  33.333%, 64.83% {
+    transform: rotateY(120deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.35);
+  }
+  66.667%, 98.17% {
+    transform: rotateY(240deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.35);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+/* barras do equalizador: níveis em saltos (múltiplos de 1/18 da tira) */
+@keyframes mf-eq {
+  0% { transform: translateY(44.444%); }
+  10% { transform: translateY(22.222%); }
+  20% { transform: translateY(61.111%); }
+  30% { transform: translateY(16.667%); }
+  40% { transform: translateY(38.889%); }
+  50% { transform: translateY(72.222%); }
+  60% { transform: translateY(33.333%); }
+  70% { transform: translateY(11.111%); }
+  80% { transform: translateY(55.556%); }
+  90% { transform: translateY(27.778%); }
+}
+/* fita da linha fina: desliza uma linha (1/6) a cada faixa */
+@keyframes mf-sub6 {
+  0%, 16.3% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1);
+  }
+  16.667%, 32.97% {
+    transform: translateY(-16.667%);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1);
+  }
+  33.333%, 49.63% {
+    transform: translateY(-33.333%);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1);
+  }
+  50%, 66.3% {
+    transform: translateY(-50%);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1);
+  }
+  66.667%, 82.97% {
+    transform: translateY(-66.667%);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.2, 1);
+  }
+  83.333%, 99.63% {
+    transform: translateY(-83.333%);
+    animation-timing-function: steps(1, end);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes mf-odo {
+  to { transform: translateY(-100%); }
+}
+@keyframes mf-beat {
+  to { transform: translateX(48px); }
+}
+@keyframes mf-birds {
+  0% { transform: translateX(105vw) translateY(0); }
+  18% { transform: translateX(45vw) translateY(1.5vh); }
+  36% { transform: translateX(-30vw) translateY(-0.5vh); }
+  36.01%, 100% { transform: translateX(105vw) translateY(0); }
+}
+@keyframes mf-flap {
+  to { transform: translateX(-100%); }
+}
+@keyframes mf-legs {
+  from { transform: rotate(-16deg); }
+  to { transform: rotate(14deg); }
+}
+@keyframes mf-boom {
+  0% { transform: scale(1.08); }
+  60%, 100% { transform: scale(1); }
+}
+@keyframes mf-hop {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-12%); }
+}
+@keyframes mf-lamp {
+  0%, 43% { opacity: 0; }
+  43.3% { opacity: 1; }
+  43.5% { opacity: 0.3; }
+  43.9%, 92% { opacity: 1; }
+  94%, 100% { opacity: 0; }
+}
+@keyframes mf-cloud {
+  from { transform: translateX(-40vh); }
+  to { transform: translateX(calc(100vw + 4vh)); }
+}
+@keyframes mf-clouds {
+  0%, 33% { opacity: 1; }
+  46% { opacity: 0.55; }
+  56%, 86% { opacity: 0.14; }
+  96%, 100% { opacity: 1; }
+}
+@keyframes mf-lane-e {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+@keyframes mf-lane-w {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes mf-shimmer {
+  from { transform: scaleX(0.7); }
+  to { transform: scaleX(1.15); }
 }
 @keyframes mf-twinkle {
   0%, 100% { opacity: 1; }
@@ -495,6 +2090,46 @@ html[data-theme='mirai-funk'] .mf-flash {
 }
 @keyframes mf-rotate {
   to { transform: rotate(1turn); }
+}
+@keyframes mf-race {
+  to { transform: translateX(-50%); }
+}
+@keyframes mf-race-v {
+  to { transform: translateY(-50%); }
+}
+@keyframes mf-pulse {
+  0% { opacity: 0.85; }
+  70%, 100% { opacity: 0.08; }
+}
+@keyframes mf-slam {
+  0% {
+    opacity: 0;
+    transform: perspective(500px) rotateX(-100deg) scale(2);
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(500px) rotateX(0deg) scale(1);
+  }
+}
+@keyframes mf-ring {
+  0% { opacity: 0.95; transform: scale(0.25); }
+  100% { opacity: 0; transform: scale(4.2); }
+}
+@keyframes mf-burst {
+  0% { opacity: 0; transform: scale(0.15); }
+  12% { opacity: 1; transform: scale(0.6); }
+  60% { opacity: 0.85; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1) translateY(1.5vh); }
+}
+@keyframes mf-invert {
+  0% { opacity: 0; }
+  10% { opacity: 0.24; }
+  38% { opacity: 0; }
+  52% { opacity: 0.16; }
+  100% { opacity: 0; }
 }
 
 /* ---------- Componentes ---------- */
@@ -559,9 +2194,10 @@ html[data-theme='mirai-funk'] .ui-chip {
   box-shadow: 5px 5px 0 rgba(4, 8, 7, 0.35);
 }
 
-/* cards chapados: verde-escuro, contorno e sombra pretos, cantos retos */
+/* cards chapados: verde-escuro quase opaco (a cidade aparece de leve por
+   trás), contorno e sombra pretos, cantos retos */
 html[data-theme='mirai-funk'] .ui-card {
-  background: var(--mf-card);
+  background: rgba(15, 47, 42, 0.93);
   border: 2px solid var(--mf-black);
   border-radius: 0;
   box-shadow: 8px 8px 0 var(--mf-black);
@@ -709,9 +2345,6 @@ html[data-theme='mirai-funk'] .ui-hub::before {
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%231fb0a2' d='M10 0Q10 10 20 10Q10 10 10 20Q10 10 0 10Q10 10 10 0Z'/%3E%3C/svg%3E")
     center / contain no-repeat;
 }
-html[data-theme='mirai-funk'] .ui-hub:disabled::before {
-  display: none;
-}
 
 /* ---------- Movimento reduzido: cena parada no entardecer ---------- */
 
@@ -719,6 +2352,11 @@ html[data-theme='mirai-funk'] .ui-hub:disabled::before {
   html[data-theme='mirai-funk'] .scene-mirai-funk *,
   html[data-theme='mirai-funk'] .scene-mirai-funk .mf-cyc {
     animation: none !important;
+  }
+  /* quadro parado do vencedor: os fogos na cor ficam fixos; o clarão
+     invertido nunca aparece */
+  html[data-theme='mirai-funk'][data-wheel='won'] .mf-fw-win {
+    opacity: 1;
   }
   html[data-theme='mirai-funk'] .ui-cta {
     transition: none;
@@ -729,8 +2367,8 @@ html[data-theme='mirai-funk'] .ui-hub:disabled::before {
    Para usar uma imagem de fundo (ver PROMPTS.md), salve em
    public/themes/mirai-funk/bg.webp e descomente. A arte entra por cima do
    céu do dia e por baixo de todo o resto (as paletas do entardecer e da
-   noite cobrem a arte no ciclo, e a cidade e as estrelas ficam por cima).
-   Para mostrar só a arte, descomente também a última regra.
+   noite cobrem a arte no ciclo; cidade, tipografia e atores ficam por
+   cima).
 
 html[data-theme='mirai-funk'] .scene-mirai-funk::before {
   content: '';
@@ -751,9 +2389,5 @@ html[data-theme='mirai-funk'] .scene-mirai-funk::after {
   width: min(48vw, 900px);
   height: 100vh;
   background: url('/themes/mirai-funk/art.webp') right bottom / contain no-repeat;
-}
-
-html[data-theme='mirai-funk'] .scene-mirai-funk > * {
-  display: none;
 }
 */

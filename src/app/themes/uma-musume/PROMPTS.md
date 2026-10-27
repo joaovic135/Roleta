@@ -1,16 +1,23 @@
 # Tema Uma Musume: prompts para o fundo pintado
 
-O tema já funciona só com a cena em SVG/CSS (`Scene.tsx` + `theme.css`): céu
-azul, nuvens em parallax, varal de bandeirinhas, pista de grama com cerca
-branca, poste de chegada com bandeira quadriculada, torres de refletores e
-arquibancada. A cena é **viva**: um ciclo de 4 minutos passa por manhã de sol,
-chuva rápida com arco-íris, tarde dourada, pôr do sol, corrida noturna com
-refletores, holofotes, fogos e lightsticks na arquibancada, e amanhecer.
+O tema já funciona só com a cena em SVG/CSS (`Scene.tsx`, `Runners.tsx`,
+`Jumbotron.tsx` + `theme.css`): o "Grande Prêmio Estrela Doce", um hipódromo
+de idols vivo. Cinco corredoras chibi originais entram no portão de largada,
+as luzes fazem vermelho-vermelho-verde, os portões abrem em 3D e elas correm
+pela faixa de baixo até o poste de chegada a cada 72 s (três histórias de
+corrida diferentes); um telão 3D gira entre ranking, câmera AO VIVO e o
+título; há roda-gigante, balão de sorvete, dirigível-cenoura, arquibancada
+com torcida de orelhinhas e um ciclo de 4 minutos (manhã, chuva com
+arco-íris, tarde dourada, pôr do sol, noite do Winning Live com refletores,
+holofotes, lightsticks e fogos, amanhecer). A roleta mexe na cena: girando,
+um pelotão dispara pela reta; no vencedor, 1º LUGAR! no telão, roseta,
+holofotes convergindo e confete na cor da fatia.
 
 Se quiser um fundo pintado (mais detalhado), gere uma imagem com um dos
 prompts abaixo, salve como `public/themes/uma-musume/bg.webp` (WebP, qualidade
 ~80) e descomente o bloco no fim de `theme.css`. A imagem substitui a pista,
-as torres e a arquibancada; céu, luz do ciclo e efeitos continuam por cima.
+as torres, a roda-gigante e a arquibancada; céu, luz do ciclo, corrida, telão
+e efeitos continuam por cima.
 
 Regras para qualquer variação:
 

@@ -1,11 +1,23 @@
 # Good Times: prompts para arte gerada
 
-O tema já funciona só com a cena em SVG/CSS (papel quadriculado, blocos
-pastel, sol listrado, palmeiras, formas Memphis e o ciclo dia → pôr do sol →
-noite lilás → amanhecer). Se você quiser uma ilustração de fundo mais rica, gere
-uma imagem com um dos prompts abaixo (em inglês, que os geradores entendem
-melhor), salve como `public/themes/good-times/bg.webp` e descomente o bloco
-"Arte gerada" no fim de `theme.css`.
+O tema já funciona só com a cena em CSS/SVG (papel quadriculado, blocos
+pastel, sólidos 3D, adesivos, rádio, globo espelhado, varal de lâmpadas, sol
+de óculos e o ciclo dia → pôr do sol → noite de festa → amanhecer). Se você
+quiser trocar só o fundo parado (papel e blocos) por uma ilustração, gere uma
+imagem com um dos prompts abaixo (em inglês, que os geradores entendem
+melhor), salve como `public/themes/good-times/bg.webp` e acrescente ao fim de
+`theme.css`:
+
+```css
+html[data-theme='good-times'] .theme-backdrop {
+  background: #efedf3 url('/themes/good-times/bg.webp') center / cover no-repeat;
+}
+.scene-good-times :is(.gt-grid, .gt-block) {
+  display: none;
+}
+```
+
+Os atores animados (sólidos, rádio, globo, aviãozinho etc.) continuam por cima.
 
 Dicas:
 

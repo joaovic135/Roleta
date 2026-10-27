@@ -1,0 +1,3409 @@
+/* ---------- VAPORWAVE (claro, Windows 95) ----------
+   "夢の楽園 — VAPOR OS 95": o papel de parede de um Windows 95 dos sonhos
+   que ganhou vida (ver Scene.tsx). Duas camadas:
+   - .vw-world: o mundo, medido em "unidades da cena" (1em = 10 unidades,
+     1 unidade = 1/1080 da altura da tela). Céu, sol listrado com raios,
+     nuvens, montanhas de wireframe, mar com golfinhos, píer xadrez em CSS
+     3D, palmeiras, busto, TV, letreiro neon, sólidos em preserve-3d.
+   - .vw-desk: a área de trabalho em px (na escala da interface): ícones,
+     janelas, cursor, menu Iniciar, barra de tarefas, as janelas da roleta
+     e ネコ.exe, o gatinho de pixel que anda na borda de cima do card da
+     roleta (folha de sprites em pet.tsx).
+   Linha do tempo (s):
+     contínuo  piso 2,4 · raios 240 · nuvens 160–250 · palmeiras 7–10 ·
+               sólidos 12–20 (+ flutuação 5–7) · mar 3–5 · TV estática ·
+               passos do gato 0,5
+     eventos   golfinhos 21/29/37 · glitch do busto 23 · canais da TV 36 ·
+               estrelas cadentes 47/71 · VHS 53 · avião 75 · disquete 90 ·
+               CD 110
+     --vw-desk 96: cursor, janelas, menu Iniciar (66–71 s, liga a
+               ＶＡＰＯＲ ＴＶ até 84 s) e o gato (ver Scene.tsx)
+     raros     óculos no busto 157 · protetor de tela 240 (187–206 s:
+               janelas voando + letreiro no topo)
+   Roleta: html[data-wheel='spinning'|'won'] (fim do arquivo).
+   Só transform/opacity animam. Os estilos-base (sem animação) formam o
+   quadro do prefers-reduced-motion. Nada de visibility: hidden em camadas
+   com animação rodando (o Chrome passa a animá-las na thread principal):
+   para esconder, opacidade num invólucro. */
+
+html[data-theme='vaporwave'] .scene-vaporwave {
+  display: block;
+  container-type: size;
+  --vw-desk: 96s;
+}
+html[data-theme='vaporwave'] .theme-backdrop {
+  background: linear-gradient(
+    to bottom,
+    #ff9ad5 0%,
+    #dcaaf6 38%,
+    #c4b0ff 56%,
+    #8ef0ff 100%
+  );
+}
+html[data-theme='vaporwave'] body {
+  --wheel-font: var(--font-vt323);
+}
+
+.scene-vaporwave .vw-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.scene-vaporwave .vw-world {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  font-size: calc(100cqh / 108);
+}
+.scene-vaporwave .vw-world > *,
+.scene-vaporwave .vw-desk > * {
+  position: absolute;
+}
+.scene-vaporwave svg {
+  display: block;
+  overflow: visible;
+}
+
+/* ---------- céu ---------- */
+
+.scene-vaporwave .vw-sky {
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    #ff9ad5 0%,
+    #f7a2e0 14%,
+    #e3a8f4 30%,
+    #cbaeff 46%,
+    #c9b6ff 55%,
+    #e6bdf6 60%,
+    #ffcce6 64%,
+    #ffcce6 100%
+  );
+}
+.scene-vaporwave .vw-sparks {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 56%;
+  fill: #ffffff;
+  animation: vw-twinkle 4.6s ease-in-out infinite alternate;
+}
+.scene-vaporwave .vw-sparks-1 {
+  animation-duration: 6.2s;
+  animation-delay: -3s;
+}
+
+/* ---------- sol ---------- */
+
+.scene-vaporwave .vw-rays-boost {
+  left: 50%;
+  top: 43em;
+  width: 0;
+  height: 0;
+  animation: vw-turn 18s linear infinite paused;
+}
+.scene-vaporwave .vw-rays {
+  position: absolute;
+  left: -100em;
+  top: -100em;
+  width: 200em;
+  height: 200em;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    rgba(255, 255, 255, 0.5) 0deg,
+    rgba(255, 255, 255, 0) 4deg 8deg,
+    rgba(255, 255, 255, 0.5) 12deg
+  );
+  -webkit-mask-image: radial-gradient(
+    closest-side,
+    transparent 36%,
+    #000 40%,
+    rgba(0, 0, 0, 0.45) 66%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    closest-side,
+    transparent 36%,
+    #000 40%,
+    rgba(0, 0, 0, 0.45) 66%,
+    transparent 100%
+  );
+  opacity: 0.42;
+  animation: vw-turn 240s linear infinite;
+}
+.scene-vaporwave .vw-sunglow {
+  left: 50%;
+  top: 43em;
+  width: 160em;
+  height: 120em;
+  margin: -60em 0 0 -80em;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 240, 200, 0.95),
+    rgba(255, 182, 220, 0.6) 38%,
+    rgba(255, 160, 225, 0.2) 68%,
+    rgba(255, 160, 225, 0) 100%
+  );
+  animation: vw-breathe 7s ease-in-out infinite alternate;
+}
+.scene-vaporwave .vw-sunglow-hot {
+  opacity: 0;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 252, 228, 0.95),
+    rgba(255, 128, 212, 0.55) 42%,
+    rgba(255, 128, 212, 0) 100%
+  );
+  animation: none;
+  transition: opacity 1.2s ease;
+}
+.scene-vaporwave .vw-winhalo {
+  left: 50%;
+  top: 43em;
+  width: 104em;
+  height: 104em;
+  margin: -52em 0 0 -52em;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    transparent 70%,
+    var(--win-color, #ff71ce) 76%,
+    transparent 77.5%,
+    transparent 82%,
+    var(--win-color, #ff71ce) 84%,
+    transparent 100%
+  );
+  opacity: 0;
+}
+.scene-vaporwave .vw-sun {
+  left: 50%;
+  top: 5em;
+  width: 76em;
+  height: 76em;
+  margin-left: -38em;
+  border-radius: 50%;
+  background: linear-gradient(
+    to bottom,
+    #fff8b8 0%,
+    #ffe4a6 20%,
+    #ffbcc2 40%,
+    #ff92cf 58%,
+    #e783ef 76%,
+    #b47cff 100%
+  );
+}
+
+/* ---------- nuvens e montanhas ---------- */
+
+.scene-vaporwave .vw-cloud {
+  left: 0;
+  width: 40em;
+  opacity: 0.94;
+  animation: vw-drift 170s linear infinite;
+}
+.scene-vaporwave .vw-cloud-svg {
+  width: 100%;
+  height: auto;
+}
+.scene-vaporwave .vw-cloud-0 {
+  top: 1em;
+  animation-delay: -40s;
+}
+.scene-vaporwave .vw-cloud-1 {
+  top: 12em;
+  width: 30em;
+  animation-duration: 215s;
+  animation-delay: -150s;
+}
+.scene-vaporwave .vw-cloud-2 {
+  top: 24em;
+  width: 36em;
+  opacity: 0.85;
+  animation-duration: 250s;
+  animation-delay: -60s;
+}
+.scene-vaporwave .vw-cloud-3 {
+  top: 3em;
+  width: 24em;
+  animation-duration: 190s;
+  animation-delay: -125s;
+}
+
+.scene-vaporwave .vw-mtn {
+  bottom: 36%;
+  width: 84em;
+  height: 14em;
+}
+.scene-vaporwave .vw-mtn-0 {
+  left: -3em;
+}
+.scene-vaporwave .vw-mtn-1 {
+  right: -3em;
+  transform: scaleX(-1);
+}
+/* névoa no pé das montanhas (perspectiva atmosférica) */
+.scene-vaporwave .vw-haze {
+  left: 0;
+  right: 0;
+  bottom: 36%;
+  height: 9em;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 214, 238, 0),
+    rgba(255, 214, 238, 0.65)
+  );
+}
+.scene-vaporwave .vw-mtn-lines {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.scene-vaporwave .vw-mtn-edge {
+  fill: none;
+  stroke: #ff71ce;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- mar e golfinhos ---------- */
+
+.scene-vaporwave .vw-sea {
+  left: 0;
+  right: 0;
+  top: 64%;
+  bottom: 0;
+  overflow: hidden;
+  background: linear-gradient(
+    to bottom,
+    #ffe3f2 0%,
+    #c9c3ff 2.5%,
+    #a5e6ff 12%,
+    #7fd8ff 34%,
+    #5ec6f2 100%
+  );
+}
+.scene-vaporwave .vw-sea::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0.25em;
+  background: #ffffff;
+  box-shadow: 0 0 1.2em 0.3em rgba(255, 255, 255, 0.9);
+}
+.scene-vaporwave .vw-reflect {
+  position: absolute;
+  left: 50%;
+  top: 0.5em;
+  width: 80em;
+  height: 14em;
+  margin-left: -40em;
+  fill: #fff6c9;
+  animation: vw-shimmer 3.4s ease-in-out infinite alternate;
+}
+.scene-vaporwave .vw-glints {
+  position: absolute;
+  left: 0;
+  top: 1em;
+  width: 100%;
+  height: 100%;
+  fill: #ffffff;
+  animation: vw-glint 3.1s ease-in-out infinite;
+}
+.scene-vaporwave .vw-glints-1 {
+  animation-duration: 4.3s;
+  animation-delay: -2s;
+}
+
+/* salto: X linear, Y em parábola (ease-out/ease-in) e rotação, em três
+   invólucros; o recorte do .vw-jump esconde o que está debaixo d'água */
+.scene-vaporwave .vw-jump {
+  overflow: hidden;
+  width: 28em;
+  height: 16em;
+}
+.scene-vaporwave .vw-jump-l {
+  left: 2em;
+  top: calc(64% - 5em);
+}
+/* par de golfinhos na margem direita, entre o card e a palmeira */
+.scene-vaporwave .vw-jump-r {
+  left: calc(100% - 26.5em);
+  top: calc(64% - 2.8em);
+  font-size: 0.75em;
+  --vw-jump: 29s;
+}
+.scene-vaporwave .vw-jump-c {
+  left: 30%;
+  top: calc(64% - 6.4em);
+  font-size: 0.62em;
+}
+.scene-vaporwave .vw-jump > * {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.scene-vaporwave .vw-dol {
+  width: 9em;
+  height: 3.9em;
+  transform: translate(8.5em, 2.5em) rotate(3deg);
+  animation: vw-dol var(--vw-jump, 21s) linear infinite;
+}
+.scene-vaporwave .vw-dol-svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-vaporwave .vw-dol-2 {
+  position: absolute;
+  left: -6em;
+  top: 2.2em;
+  width: 7.6em;
+  height: 3.3em;
+}
+.scene-vaporwave :is(.vw-jump-r, .vw-jump-c) .vw-dol {
+  transform: translate(0, 19em);
+}
+.scene-vaporwave .vw-jump-r > * {
+  animation-delay: -16s;
+}
+.scene-vaporwave .vw-jump-c > * {
+  animation-duration: 37s;
+  animation-delay: -11s;
+}
+.scene-vaporwave .vw-splash {
+  top: auto;
+  bottom: -0.4em;
+  left: 3em;
+  width: 5em;
+  height: 2.6em;
+  border-radius: 50% 50% 0 0;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    #ffffff 0 30%,
+    rgba(255, 255, 255, 0.55) 46%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  transform-origin: 50% 100%;
+  opacity: 0;
+  animation: vw-splash var(--vw-jump, 21s) linear infinite;
+}
+
+/* ---------- píer xadrez (CSS 3D) ----------
+   Plano deitado (rotateX 70°) visto com perspectiva a partir do
+   horizonte: a borda de trás cai ~87 unidades abaixo do horizonte e as
+   laterais deixam ver o mar dos dois lados. */
+.scene-vaporwave .vw-floor {
+  left: 0;
+  right: 0;
+  top: 64%;
+  bottom: 0;
+  overflow: hidden;
+  perspective: 60em;
+  perspective-origin: 50% 0;
+}
+.scene-vaporwave .vw-deck {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 260em;
+  height: 63em;
+  margin-left: -130em;
+  transform-origin: 50% 100%;
+  transform: rotateX(70deg);
+  overflow: hidden;
+  background: #ffffff;
+  border: 0.45em solid #ff71ce;
+  border-bottom: 0;
+  box-shadow:
+    0 0 1.6em rgba(255, 113, 206, 0.9),
+    0 0 4em rgba(255, 113, 206, 0.45);
+}
+.scene-vaporwave .vw-deck > * {
+  position: absolute;
+}
+.scene-vaporwave .vw-deck-boost {
+  inset: 0;
+  animation: vw-tiles 0.9s linear infinite paused;
+}
+.scene-vaporwave .vw-tiles {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -26em;
+  bottom: 0;
+  background: conic-gradient(
+      #ffffff 0 25%,
+      #01cdfe 0 50%,
+      #ffffff 0 75%,
+      #01cdfe 0
+    )
+    50% 0 / 12.8em 12.8em;
+  animation: vw-tiles 2.4s linear infinite;
+}
+.scene-vaporwave .vw-deck-fog {
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 16% 34% at 50% 0%,
+      rgba(255, 246, 200, 0.85),
+      rgba(255, 190, 225, 0.4) 55%,
+      rgba(255, 190, 225, 0) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(236, 205, 255, 0.92) 0%,
+      rgba(236, 205, 255, 0.45) 16%,
+      rgba(236, 205, 255, 0) 42%
+    );
+}
+.scene-vaporwave .vw-bulbs {
+  left: 0;
+  right: 0;
+  top: 1.4em;
+  height: 3.4em;
+  background: radial-gradient(
+      circle,
+      #ffffff 0 16%,
+      rgba(255, 113, 206, 0.95) 28%,
+      rgba(255, 113, 206, 0) 62%
+    )
+    0 0 / 10em 3.4em repeat-x;
+  animation: vw-blink 1.8s steps(1) infinite;
+}
+.scene-vaporwave .vw-bulbs-b {
+  background-position: 5em 0;
+  animation-delay: -0.9s;
+}
+
+/* ---------- palmeiras ---------- */
+
+.scene-vaporwave .vw-palm-l {
+  left: 3em;
+  bottom: -1em;
+}
+.scene-vaporwave .vw-palm-r {
+  left: calc(100% - 2.2em);
+  bottom: -1.5em;
+}
+.scene-vaporwave .vw-trunk {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-vaporwave .vw-trunk-rings {
+  fill: none;
+  stroke: #2f1259;
+  stroke-width: 1.6;
+  opacity: 0.55;
+}
+.scene-vaporwave .vw-crown {
+  position: absolute;
+  animation: vw-sway 8.5s ease-in-out infinite alternate;
+}
+.scene-vaporwave .vw-crown svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-vaporwave .vw-crown-rim {
+  fill: #ff9ad5;
+  transform: translate(-2.5px, -3px);
+}
+.scene-vaporwave .vw-nuts {
+  fill: #2f1259;
+}
+.scene-vaporwave .vw-palm-r .vw-crown {
+  animation-duration: 10s;
+  animation-delay: -4s;
+}
+
+/* ---------- letreiro neon ---------- */
+
+.scene-vaporwave .vw-neon {
+  left: calc(100% - 12.4em);
+  top: 25.5em;
+  bottom: 2em;
+  width: 7em;
+}
+/* luz rosa do letreiro derramada no piso, ao pé do poste */
+.scene-vaporwave .vw-neon::after {
+  content: '';
+  position: absolute;
+  left: -6em;
+  right: -6em;
+  bottom: -2.4em;
+  height: 6em;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 113, 206, 0.55),
+    rgba(255, 113, 206, 0) 100%
+  );
+}
+.scene-vaporwave .vw-neon-pole {
+  position: absolute;
+  left: 3.05em;
+  top: 23em;
+  bottom: 0;
+  width: 0.9em;
+  background: linear-gradient(90deg, #3a2470, #8a6cc8 60%, #3a2470);
+}
+.scene-vaporwave .vw-neon-box {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 24em;
+  border-radius: 0.9em;
+  background: #1f1547;
+  border: 0.32em solid #ff71ce;
+  box-shadow:
+    0 0 1.4em rgba(255, 113, 206, 0.75),
+    0 0 4em rgba(255, 113, 206, 0.35),
+    inset 0 0 1.2em rgba(255, 113, 206, 0.5);
+}
+.scene-vaporwave .vw-neon-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  font:
+    700 4.2em/1 'Yu Gothic',
+    'Meiryo',
+    'Hiragino Sans',
+    'Noto Sans JP',
+    sans-serif;
+  letter-spacing: 0.08em;
+  color: #ffd6f3;
+  text-shadow:
+    0 0 0.06em #ffffff,
+    0 0 0.16em #ff71ce,
+    0 0 0.36em #ff71ce;
+}
+.scene-vaporwave .vw-neon-hot {
+  color: #ffffff;
+  text-shadow:
+    0 0 0.08em #ffffff,
+    0 0 0.22em #ff9ad5,
+    0 0 0.55em #ff71ce;
+  animation: vw-neon 13s steps(1) infinite;
+}
+
+/* ---------- sólidos em CSS 3D ---------- */
+
+.scene-vaporwave .vw-prim {
+  width: 0;
+  height: 0;
+  perspective: 50em;
+  animation: vw-bob 6s ease-in-out infinite alternate;
+}
+.scene-vaporwave .vw-boost,
+.scene-vaporwave .vw-turn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-style: preserve-3d;
+}
+.scene-vaporwave .vw-boost {
+  animation: vw-spin-y 1.4s linear infinite paused;
+}
+.scene-vaporwave .vw-face {
+  position: absolute;
+}
+.scene-vaporwave .vw-prim-pyr {
+  left: 24.5em;
+  top: calc(100% - 44em);
+}
+.scene-vaporwave .vw-prim-pyr .vw-turn {
+  transform: rotateX(-14deg) rotateY(32deg);
+  animation: vw-turn-pyr 16s linear infinite;
+}
+.scene-vaporwave .vw-pyr-face svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-vaporwave .vw-pyr-fill {
+  fill: rgba(255, 154, 213, 0.22);
+}
+.scene-vaporwave .vw-pyr-line {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.scene-vaporwave .vw-pyr-base {
+  border: 0.2em solid #ffffff;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.8) 0 0.12em,
+      transparent 0.12em 2.1em
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.8) 0 0.12em,
+      transparent 0.12em 2.1em
+    ),
+    rgba(1, 205, 254, 0.18);
+}
+
+.scene-vaporwave .vw-prim-cube {
+  left: min(calc(50% + 540px), calc(100% - 250px));
+  top: 52px;
+  font-size: 10px;
+  animation-duration: 5s;
+  animation-delay: -2s;
+}
+.scene-vaporwave .vw-prim-cube .vw-turn {
+  transform: rotateX(-26deg) rotateY(38deg) rotateZ(0deg);
+  animation: vw-turn-cube 20s linear infinite;
+}
+.scene-vaporwave .vw-cube-face {
+  border: 0.22em solid #ffffff;
+  box-shadow: inset 0 0 1.2em rgba(255, 255, 255, 0.65);
+}
+.scene-vaporwave .vw-cube-a {
+  background: linear-gradient(135deg, #ffd0ec, #ff86cf);
+}
+.scene-vaporwave .vw-cube-b {
+  background: linear-gradient(135deg, #c4f7ff, #3fd4fb);
+}
+.scene-vaporwave .vw-cube-c {
+  background: linear-gradient(135deg, #eee2ff, #b48cff);
+}
+.scene-vaporwave .vw-cube-glyph {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font:
+    700 3.4em/1 'Yu Gothic',
+    'Meiryo',
+    sans-serif;
+  color: #ffffff;
+  text-shadow: 0.04em 0.04em 0 #7a2f9e;
+}
+
+.scene-vaporwave .vw-prim-sphere {
+  left: calc(100% - 8.8em);
+  top: 17.5em;
+  animation-duration: 7s;
+  animation-delay: -3s;
+}
+.scene-vaporwave .vw-prim-sphere .vw-turn {
+  transform: rotateZ(16deg) rotateX(-12deg) rotateY(20deg);
+  animation: vw-turn-sphere 14s linear infinite;
+}
+.scene-vaporwave .vw-ring {
+  border-radius: 50%;
+  border: 0.2em solid #01cdfe;
+  box-shadow: 0 0 0.5em rgba(1, 205, 254, 0.55);
+}
+.scene-vaporwave .vw-ring-l {
+  border-color: #ffffff;
+}
+.scene-vaporwave .vw-ring-t {
+  border-width: 0.2em;
+  border-color: #ffffff;
+  box-shadow:
+    0 0 0.5em rgba(255, 113, 206, 0.9),
+    inset 0 0 0.3em rgba(255, 113, 206, 0.6);
+}
+.scene-vaporwave .vw-core {
+  position: absolute;
+  left: -4.4em;
+  top: -4.4em;
+  width: 8.8em;
+  height: 8.8em;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #ffffff 0 10%,
+    rgba(160, 244, 255, 0.9) 26%,
+    rgba(201, 167, 255, 0.45) 52%,
+    rgba(201, 167, 255, 0) 72%
+  );
+  animation: vw-breathe 3.2s ease-in-out infinite alternate;
+}
+
+.scene-vaporwave .vw-prim-torus {
+  left: calc(100% - 8.8em);
+  top: 6.4em;
+  animation-duration: 5.4s;
+}
+.scene-vaporwave .vw-prim-torus .vw-turn {
+  transform: rotateX(56deg) rotateZ(-16deg) rotateY(0deg);
+  animation: vw-turn-torus 12s linear infinite;
+}
+
+/* ---------- busto de mármore ---------- */
+
+.scene-vaporwave .vw-bust {
+  left: 16.6em;
+  bottom: 3.4em;
+  width: 14em;
+  height: 35.35em;
+}
+.scene-vaporwave .vw-bust svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-vaporwave .vw-bust > * {
+  position: absolute;
+  inset: 0;
+}
+.scene-vaporwave .vw-bust-rgb,
+.scene-vaporwave .vw-bust-slice {
+  opacity: 0;
+}
+.scene-vaporwave .vw-rgb-c,
+.scene-vaporwave .vw-rgb-m {
+  position: absolute;
+  inset: 0;
+  opacity: 0.6;
+}
+.scene-vaporwave .vw-rgb-c {
+  fill: #01cdfe;
+  transform: translateX(-0.5em);
+}
+.scene-vaporwave .vw-rgb-m {
+  fill: #ff2fb4;
+  transform: translateX(0.5em);
+}
+.scene-vaporwave .vw-bust-rgb {
+  animation: vw-glitch-rgb 23s linear infinite;
+}
+.scene-vaporwave .vw-bust-slice-1 {
+  clip-path: inset(11% 0 79% 0);
+  animation: vw-glitch-a 23s linear infinite;
+}
+.scene-vaporwave .vw-bust-slice-2 {
+  clip-path: inset(36% 0 52% 0);
+  animation: vw-glitch-b 23s linear infinite;
+}
+.scene-vaporwave .vw-bust .vw-shades {
+  position: absolute;
+  inset: auto;
+  left: 43.75%;
+  top: 13.4%;
+  width: 28.75%;
+  height: auto;
+  opacity: 0;
+  transform: translateY(-12em);
+  animation: vw-shades 157s linear infinite;
+  animation-delay: -40s;
+}
+
+/* ---------- TV de tubo ---------- */
+
+.scene-vaporwave .vw-tv {
+  left: 2.6em;
+  bottom: 3.2em;
+  width: 13em;
+  height: 13.56em;
+}
+.scene-vaporwave .vw-tv-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-vaporwave .vw-tv-antenna {
+  fill: none;
+  stroke: #8e7f9e;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.scene-vaporwave .vw-tv-bloom {
+  position: absolute;
+  left: -20%;
+  top: 14%;
+  width: 110%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(170, 240, 255, 0.75),
+    rgba(170, 240, 255, 0) 100%
+  );
+}
+.scene-vaporwave .vw-tv-pool {
+  left: -3em;
+  bottom: 0.2em;
+  width: 23em;
+  height: 7em;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(150, 238, 255, 0.7),
+    rgba(150, 238, 255, 0) 100%
+  );
+  animation: vw-flicker 2.3s ease-in-out infinite alternate;
+}
+.scene-vaporwave .vw-tv-screen {
+  position: absolute;
+  left: 15.71%;
+  top: 35.62%;
+  width: 54.29%;
+  height: 42.47%;
+  overflow: hidden;
+  border-radius: 20% / 24%;
+  background: #2a2050;
+  box-shadow: 0 0 0.8em rgba(160, 240, 255, 0.8);
+}
+.scene-vaporwave .vw-ch {
+  position: absolute;
+  inset: 0;
+}
+.scene-vaporwave .vw-ch-sunset {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 62%,
+      #ff7fcf 62% 64%,
+      transparent 64% 67%
+    ),
+    radial-gradient(
+      circle at 50% 66%,
+      #fff1a0 0 30%,
+      #ff9ad5 31%,
+      rgba(255, 154, 213, 0) 44%
+    ),
+    linear-gradient(to bottom, #ff71ce, #ffb36b 66%, #4b2a8a 66.5%, #1f1547);
+}
+.scene-vaporwave .vw-ch-strip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 300%;
+  display: flex;
+  animation: vw-ch 36s steps(1, end) infinite;
+}
+.scene-vaporwave .vw-ch-strip > i {
+  position: relative;
+  flex: 1;
+}
+.scene-vaporwave .vw-ch-bars {
+  background: linear-gradient(
+    90deg,
+    #f4f4f4 0 14.3%,
+    #fff36b 0 28.6%,
+    #74f1ff 0 42.9%,
+    #77f59a 0 57.2%,
+    #ff7ae0 0 71.5%,
+    #ff6f7d 0 85.8%,
+    #6d7dff 0
+  );
+}
+.scene-vaporwave .vw-ch-blue {
+  background: #2b3fd6;
+  color: #ffffff;
+  font-family: var(--font-vt323), monospace;
+}
+.scene-vaporwave .vw-ch-blue b {
+  position: absolute;
+  left: 10%;
+  top: 8%;
+  font-size: 1.5em;
+  font-weight: 400;
+}
+.scene-vaporwave .vw-ch-blue em {
+  position: absolute;
+  right: 10%;
+  bottom: 10%;
+  font:
+    700 1.1em/1 'Yu Gothic',
+    'Meiryo',
+    sans-serif;
+  font-style: normal;
+}
+.scene-vaporwave .vw-ch-won {
+  opacity: 0;
+  display: grid;
+  place-items: center;
+  background: var(--win-color, #ff71ce);
+  color: #1d0f3d;
+  font: 1.4em/1 var(--font-vt323);
+  text-align: center;
+  text-shadow: 0 0 0.3em #ffffff;
+  transition: opacity 0.4s;
+}
+
+.scene-vaporwave .vw-noise {
+  position: absolute;
+  left: -50%;
+  top: -50%;
+  width: 200%;
+  height: 200%;
+  opacity: 0;
+  animation: vw-noise 36s steps(1, end) infinite;
+}
+.scene-vaporwave .vw-tv-lines {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 30% 22%,
+      rgba(255, 255, 255, 0.45),
+      rgba(255, 255, 255, 0) 40%
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(20, 8, 40, 0.22) 0 0.12em,
+      transparent 0.12em 0.36em
+    );
+}
+
+/* ---------- coisas voando no topo (em px, na escala da interface) ---------- */
+
+.scene-vaporwave .vw-plane {
+  left: 0;
+  top: 22px;
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  transform: translateX(calc(50cqw + 110px));
+  animation: vw-plane 75s linear infinite;
+  animation-delay: -58s;
+}
+.scene-vaporwave .vw-banner {
+  height: 24px;
+  padding: 0 12px;
+  background: #fff7fb;
+  border: 2px solid #ff71ce;
+  border-radius: 2px 8px 8px 2px;
+  color: #7a2f9e;
+  font:
+    600 13px/20px 'Yu Gothic',
+    'Meiryo',
+    var(--font-vt323),
+    sans-serif;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 rgba(122, 47, 158, 0.25);
+}
+.scene-vaporwave .vw-rope {
+  width: 34px;
+  height: 1px;
+  background: #7a2f9e;
+}
+.scene-vaporwave .vw-plane-svg {
+  width: 84px;
+  height: 38px;
+}
+.scene-vaporwave .vw-flop {
+  left: 0;
+  top: 46px;
+  width: 30px;
+  height: 30px;
+  transform: perspective(300px) translate(calc(50cqw + 40px), 0) rotateY(30deg)
+    rotateZ(-14deg);
+  animation: vw-flop 90s linear infinite;
+  animation-delay: -12s;
+}
+.scene-vaporwave .vw-floppy-svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-vaporwave .vw-cd {
+  left: 0;
+  top: 12px;
+  width: 38px;
+  height: 38px;
+  transform: translate(calc(50cqw - 150px), 0) rotate(0deg);
+  animation: vw-cd 110s linear infinite;
+  animation-delay: -70s;
+}
+.scene-vaporwave .vw-cd-disc {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(
+    #e4e7ee,
+    #ffc8f0,
+    #b9f5ff,
+    #fff3b0,
+    #d9c8ff,
+    #e4e7ee,
+    #ffc8f0,
+    #b9f5ff,
+    #fff3b0,
+    #e4e7ee
+  );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent 0 14%,
+    #000 15% 24%,
+    rgba(0, 0, 0, 0.85) 25% 98%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    circle,
+    transparent 0 14%,
+    #000 15% 24%,
+    rgba(0, 0, 0, 0.85) 25% 98%,
+    transparent 100%
+  );
+}
+
+/* ---------- VHS e protetor de tela ---------- */
+
+.scene-vaporwave .vw-vhs {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 10em;
+  opacity: 0;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.75) 0 0.15em,
+      rgba(255, 255, 255, 0) 0.15em 0.5em,
+      rgba(1, 205, 254, 0.35) 0.5em 0.6em,
+      rgba(255, 255, 255, 0) 0.6em 1.1em,
+      rgba(255, 113, 206, 0.35) 1.1em 1.2em,
+      rgba(255, 255, 255, 0) 1.2em 1.9em
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0),
+      rgba(255, 255, 255, 0.35) 45%,
+      rgba(255, 255, 255, 0)
+    );
+  animation: vw-vhs 53s linear infinite;
+  animation-delay: -30s;
+}
+/* invólucro que some (opacidade) quando a roleta gira: acorda o protetor */
+.scene-vaporwave .vw-saver-wake {
+  inset: 0;
+  transition: opacity 0.3s;
+}
+.scene-vaporwave .vw-saver {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: vw-saver 240s linear infinite;
+}
+.scene-vaporwave .vw-saver > * {
+  position: absolute;
+}
+.scene-vaporwave .vw-saver-dim {
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 42%,
+    rgba(32, 18, 92, 0.25),
+    rgba(32, 18, 92, 0.5)
+  );
+}
+/* letreiro do protetor de tela: atravessa o topo, que é o que mais aparece
+   com a interface por cima */
+/* faixa entre o título e o controle de volume, com as pontas esmaecidas */
+.scene-vaporwave .vw-saver-tick {
+  left: max(calc(50cqw - 400px), 390px);
+  right: max(calc(50cqw - 600px), 180px);
+  top: 16px;
+  height: 66px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 10%,
+    #000 90%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 10%,
+    #000 90%,
+    transparent
+  );
+}
+.scene-vaporwave .vw-saver-text {
+  position: absolute;
+  left: 100%;
+  top: 6px;
+  white-space: nowrap;
+  font:
+    5em/1 var(--font-vt323),
+    'Yu Gothic',
+    'Meiryo',
+    sans-serif;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  text-shadow:
+    0.04em 0.04em 0 #ff71ce,
+    0.08em 0.08em 0 #01cdfe,
+    0 0 0.4em rgba(255, 255, 255, 0.55);
+  transform: translateX(100cqw);
+  animation: vw-saver-text 240s linear infinite;
+}
+.scene-vaporwave .vw-fly-dir {
+  left: 50%;
+  top: 42%;
+  width: 0;
+  height: 0;
+}
+.scene-vaporwave .vw-fly {
+  position: absolute;
+  left: 0;
+  top: 0;
+  animation: vw-fly 3.6s cubic-bezier(0.55, 0, 0.9, 0.6) infinite;
+}
+.scene-vaporwave .vw-fly-win {
+  position: absolute;
+  left: -3em;
+  top: -2.2em;
+  width: 6em;
+  height: 4.4em;
+  background:
+    linear-gradient(90deg, #000080, #ff71ce) 0.25em 0.25em / calc(100% - 0.5em)
+      0.8em no-repeat,
+    #e4dcf5;
+  border: 0.2em solid;
+  border-color: #ffffff #5b4b7d #5b4b7d #ffffff;
+}
+
+/* ---------- área de trabalho ---------- */
+
+.scene-vaporwave .vw-desk {
+  position: absolute;
+  inset: 0;
+  font-family: var(--font-vt323), monospace;
+  color: #1d0f3d;
+}
+.scene-vaporwave .vw-icons {
+  left: 14px;
+  top: 112px;
+  width: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.scene-vaporwave .vw-icon {
+  position: relative;
+  height: 74px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.scene-vaporwave .vw-icon-img {
+  width: 32px;
+  height: 32px;
+  flex: none;
+}
+.scene-vaporwave .vw-icon-label,
+.scene-vaporwave .vw-icon-sel span {
+  margin-top: 4px;
+  padding: 0 2px;
+  font-size: 15px;
+  line-height: 15px;
+  text-align: center;
+  color: #ffffff;
+  text-shadow:
+    1px 1px 0 #3b1f6b,
+    0 0 4px rgba(59, 31, 107, 0.6);
+}
+.scene-vaporwave .vw-icon-sel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+}
+.scene-vaporwave .vw-icon-sel::before {
+  content: '';
+  width: 32px;
+  height: 32px;
+  flex: none;
+  background: rgba(0, 0, 128, 0.45);
+}
+.scene-vaporwave .vw-icon-sel span {
+  background: #000080;
+  text-shadow: none;
+  outline: 1px dotted #ffffff;
+}
+.scene-vaporwave .vw-icon-sel-a {
+  opacity: 1;
+  animation: vw-sel-a var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-icon-sel-b {
+  animation: vw-sel-b var(--vw-desk) linear infinite;
+}
+
+/* janelas do Windows 95 */
+.scene-vaporwave .vw-win {
+  position: absolute;
+  top: 8px;
+  padding: 2px;
+  background: #e4dcf5;
+  border: 2px solid;
+  border-color: #ffffff #5b4b7d #5b4b7d #ffffff;
+  box-shadow: 3px 3px 0 rgba(59, 31, 107, 0.45);
+  font-size: 15px;
+  line-height: 14px;
+}
+.scene-vaporwave .vw-win-bar {
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 3px 0 6px;
+  background: linear-gradient(90deg, #000080, #ff71ce);
+  color: #ffffff;
+}
+.scene-vaporwave .vw-win-title {
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 15px;
+  line-height: 18px;
+}
+.scene-vaporwave .vw-win-x {
+  flex: none;
+  width: 16px;
+  height: 14px;
+  background: #e4dcf5;
+  border: 1px solid;
+  border-color: #ffffff #5b4b7d #5b4b7d #ffffff;
+  color: #1d0f3d;
+  font:
+    700 9px/12px system-ui,
+    sans-serif;
+  text-align: center;
+}
+.scene-vaporwave .vw-win-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 3px 8px 0;
+}
+.scene-vaporwave .vw-win-body p {
+  margin: 0;
+  white-space: nowrap;
+}
+.scene-vaporwave .vw-win-ico {
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+.scene-vaporwave .vw-win-ico-sm {
+  width: 18px;
+  height: 21px;
+}
+.scene-vaporwave .vw-btns {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 3px 0 4px;
+}
+.scene-vaporwave .vw-btn {
+  position: relative;
+  width: 70px;
+  height: 18px;
+  background: #e4dcf5;
+  border: 2px solid;
+  border-color: #ffffff #3b1f6b #3b1f6b #ffffff;
+  font-size: 15px;
+  line-height: 13px;
+  text-align: center;
+}
+.scene-vaporwave .vw-btn-ok {
+  outline: 1px dotted #3b1f6b;
+  outline-offset: -4px;
+}
+.scene-vaporwave .vw-btn-down {
+  position: absolute;
+  inset: -2px;
+  padding-top: 1px;
+  background: #d6ccef;
+  border: 2px solid;
+  border-color: #3b1f6b #ffffff #ffffff #3b1f6b;
+  opacity: 0;
+}
+.scene-vaporwave .vw-bar {
+  position: relative;
+  height: 16px;
+  margin: 0 8px 6px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 2px solid;
+  border-color: #5b4b7d #ffffff #ffffff #5b4b7d;
+}
+.scene-vaporwave .vw-bar > span {
+  position: absolute;
+}
+.scene-vaporwave .vw-bar-fill {
+  inset: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    #000080 0 9px,
+    transparent 9px 12px
+  );
+}
+.scene-vaporwave .vw-bar-cover {
+  inset: 0;
+  background: #ffffff;
+  transform: translateX(60%);
+  animation: vw-load var(--vw-desk) linear infinite;
+}
+
+.scene-vaporwave .vw-pops {
+  inset: 0;
+  transition: opacity 0.3s;
+}
+.scene-vaporwave .vw-pop {
+  opacity: 0;
+}
+.scene-vaporwave .vw-pop-a,
+.scene-vaporwave .vw-pop-b {
+  left: calc(50% - 300px);
+  width: 262px;
+}
+.scene-vaporwave .vw-pop-a {
+  opacity: 1;
+  animation: vw-pop-a var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-pop-b {
+  animation: vw-pop-b var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-btn-down-b {
+  animation: vw-down-b var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-pop-c {
+  left: calc(50% + 172px);
+  width: 300px;
+  animation: vw-pop-c var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-menu {
+  display: flex;
+  gap: 12px;
+  padding: 1px 6px 2px;
+  font-size: 14px;
+}
+.scene-vaporwave .vw-note {
+  height: 44px;
+  overflow: hidden;
+  padding: 3px 6px;
+  background: #ffffff;
+  border: 2px solid;
+  border-color: #5b4b7d #ffffff #ffffff #5b4b7d;
+  font-size: 16px;
+  line-height: 17px;
+}
+.scene-vaporwave .vw-note p {
+  position: relative;
+  margin: 0;
+  white-space: nowrap;
+}
+.scene-vaporwave .vw-type {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -2px;
+  width: 120%;
+  background: #ffffff;
+  border-left: 2px solid #1d0f3d;
+}
+.scene-vaporwave .vw-type-1 {
+  animation: vw-type-1 var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-type-2 {
+  animation: vw-type-2 var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-pop-d {
+  width: 280px;
+  animation: vw-pop-dn var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-pop-d0 {
+  left: calc(50% + 172px);
+  animation-name: vw-pop-d0;
+}
+.scene-vaporwave .vw-pop-d1 {
+  left: calc(50% + 190px);
+  top: 15px;
+}
+.scene-vaporwave .vw-pop-d2 {
+  left: calc(50% + 208px);
+  top: 22px;
+  animation-delay: 0.45s;
+}
+.scene-vaporwave .vw-pop-d3 {
+  left: calc(50% + 226px);
+  top: 29px;
+  animation-delay: 0.9s;
+}
+.scene-vaporwave .vw-pop-d4 {
+  left: calc(50% + 244px);
+  top: 36px;
+  animation-delay: 1.35s;
+}
+.scene-vaporwave .vw-btn-down-d {
+  animation: vw-down-d var(--vw-desk) linear infinite;
+}
+
+/* janelas da roleta (centro do topo, sobre o sol) */
+/* à direita do meio: o meio do telhado é o passeio do gatinho */
+.scene-vaporwave .vw-wheelwin {
+  left: calc(50% + 176px);
+  width: 340px;
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 0.25s,
+    transform 0.25s;
+}
+.scene-vaporwave .vw-bar-run-strip {
+  top: 1px;
+  bottom: 1px;
+  left: -36%;
+  width: 36%;
+  background: repeating-linear-gradient(
+    90deg,
+    #000080 0 9px,
+    transparent 9px 12px
+  );
+}
+.scene-vaporwave .vw-wonwin .vw-win-bar {
+  background: linear-gradient(
+    90deg,
+    var(--win-color, #ff71ce),
+    var(--win-color, #ff71ce) 55%,
+    #ffffff 140%
+  );
+}
+.scene-vaporwave .vw-wonwin .vw-win-title {
+  text-shadow:
+    1px 0 #1d0f3d,
+    -1px 0 #1d0f3d,
+    0 1px #1d0f3d,
+    0 -1px #1d0f3d;
+}
+.scene-vaporwave .vw-won-body {
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+}
+.scene-vaporwave .vw-won-big {
+  font:
+    700 15px/16px 'Yu Gothic',
+    'Meiryo',
+    sans-serif;
+  color: #7a2f9e;
+}
+
+.scene-vaporwave .vw-confetti {
+  inset: 0;
+}
+.scene-vaporwave .vw-conf {
+  position: absolute;
+  top: -24px;
+  width: 8px;
+  height: 13px;
+  border-radius: 1px;
+  opacity: 0;
+}
+
+/* barra de tarefas */
+.scene-vaporwave .vw-taskbar {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  background: #ddd4ef;
+  border-top: 2px solid #ffffff;
+  box-shadow: 0 -1px 0 #b7a9d9;
+  font-size: 17px;
+}
+.scene-vaporwave .vw-taskbar > span {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  border: 2px solid;
+  border-color: #ffffff #3b1f6b #3b1f6b #ffffff;
+  background: #e4dcf5;
+  white-space: nowrap;
+}
+.scene-vaporwave .vw-start {
+  gap: 5px;
+  padding: 0 9px 0 6px;
+  font-size: 18px;
+}
+.scene-vaporwave .vw-start-logo {
+  width: 16px;
+  height: 16px;
+}
+.scene-vaporwave .vw-task {
+  width: 132px;
+  padding: 0 8px;
+  font-size: 17px;
+}
+.scene-vaporwave .vw-taskbar > .vw-task-on {
+  border-color: #3b1f6b #ffffff #ffffff #3b1f6b;
+  background: repeating-conic-gradient(#efe9fb 0 25%, #e4dcf5 0 50%) 0 0 / 2px
+    2px;
+}
+/* segundo botão: aparece com as janelas do ciclo (vapor.exe, depois 夢.txt) */
+.scene-vaporwave .vw-taskbar > .vw-task-slot {
+  position: relative;
+  opacity: 1;
+  animation: vw-task-slot var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-task-slot i {
+  position: absolute;
+  inset: 0;
+  padding: 0 6px;
+  font-style: normal;
+  line-height: 22px;
+  background: #e4dcf5;
+}
+.scene-vaporwave .vw-task-b {
+  opacity: 0;
+  animation: vw-task-b var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-taskbar > .vw-tray {
+  margin-left: auto;
+  gap: 8px;
+  padding: 0 10px;
+  border-width: 1px;
+  border-color: #8f80bd #ffffff #ffffff #8f80bd;
+  background: transparent;
+}
+.scene-vaporwave .vw-tray-ico {
+  width: 14px;
+  height: 14px;
+}
+
+/* cursor de pixel (o ponto quente é o canto de cima à esquerda) */
+.scene-vaporwave .vw-cursor {
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 38px;
+  transform: translate(calc(50cqw - 180px), 60px);
+  animation: vw-cursor var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-cur {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition: opacity 0.15s;
+}
+.scene-vaporwave .vw-cur-arrow {
+  width: 24px;
+  height: 38px;
+}
+.scene-vaporwave .vw-cur-wait {
+  width: 20px;
+  height: 24px;
+  opacity: 0;
+}
+
+/* ---------- ネコ.exe: o gatinho no telhado da roleta.exe ----------
+   A borda de cima dos cards fica em y = 102 px em telas largas: com os
+   pés em 103 px ele parece pisar na janela; "escondido" = abaixo dessa
+   linha, atrás do card (e transparente, para a captura sem interface). */
+.scene-vaporwave .vw-cat {
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 26px;
+  transform: translate(calc(50cqw - 4px), 77px);
+  animation: vw-cat var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-cat > * {
+  position: absolute;
+}
+.scene-vaporwave .vw-cat-flip {
+  inset: 0;
+  animation: vw-cat-flip var(--vw-desk) steps(1, end) infinite;
+}
+.scene-vaporwave .vw-cat-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+/* linha da folha: 0 andar, -26 sentar, -52 lamber, -78 dormir */
+.scene-vaporwave .vw-cat-pose {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateY(-26px);
+  animation: vw-cat-pose var(--vw-desk) steps(1, end) infinite;
+}
+.scene-vaporwave .vw-cat-step {
+  animation: vw-cat-step 0.5s steps(2, end) infinite;
+}
+.scene-vaporwave .vw-cat-sheet {
+  width: 80px;
+  height: 104px;
+}
+.scene-vaporwave .vw-cat > span {
+  left: 24px;
+  top: -20px;
+  font:
+    14px/1 var(--font-press-start),
+    monospace;
+  color: #3b1f6b;
+  text-shadow:
+    1px 0 #ffffff,
+    -1px 0 #ffffff,
+    0 1px #ffffff,
+    0 -1px #ffffff;
+  opacity: 0;
+}
+.scene-vaporwave .vw-cat > .vw-cat-zz {
+  left: 28px;
+  top: -14px;
+  animation: vw-cat-zz var(--vw-desk) steps(1, end) infinite;
+}
+.scene-vaporwave .vw-cat-zz i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-style: normal;
+  animation: vw-cat-z 2.6s ease-out infinite;
+}
+.scene-vaporwave .vw-cat-zz i + i {
+  left: 9px;
+  font-size: 9px;
+  animation-delay: -1.3s;
+}
+.scene-vaporwave .vw-cat > .vw-cat-bang {
+  left: 26px;
+  top: -24px;
+  color: #ff2fb4;
+  font-size: 18px;
+  animation: vw-cat-bang var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-cat > :is(.vw-cat-heart, .vw-cat-love) {
+  font:
+    24px/1 var(--font-vt323),
+    monospace;
+}
+.scene-vaporwave .vw-cat > .vw-cat-heart {
+  color: #ff71ce;
+  animation: vw-cat-heart var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-cat > .vw-cat-q {
+  left: 8px;
+  top: -18px;
+  color: #000080;
+}
+.scene-vaporwave .vw-cat > .vw-cat-love {
+  left: 2px;
+  top: -24px;
+  font-size: 28px;
+  color: var(--win-color, #ff71ce);
+}
+
+/* ---------- menu Iniciar (aberto de 66,6 s a 71,2 s do ciclo) ---------- */
+
+.scene-vaporwave .vw-smenu,
+.scene-vaporwave .vw-submenu {
+  background: #e4dcf5;
+  border: 2px solid;
+  border-color: #ffffff #5b4b7d #5b4b7d #ffffff;
+  box-shadow: 3px 3px 0 rgba(59, 31, 107, 0.45);
+  font:
+    20px/28px var(--font-vt323),
+    monospace;
+  color: #1d0f3d;
+  opacity: 0;
+}
+.scene-vaporwave .vw-smenu {
+  left: 2px;
+  bottom: 34px;
+  width: 194px;
+  height: 214px;
+  padding: 3px 3px 3px 30px;
+  transform-origin: 0 100%;
+  animation: vw-smenu var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-submenu {
+  left: 193px;
+  bottom: 126px;
+  width: 120px;
+  height: 122px;
+  padding: 3px;
+  transform-origin: 0 0;
+  animation: vw-submenu var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-smenu > *,
+.scene-vaporwave .vw-submenu > * {
+  position: absolute;
+}
+.scene-vaporwave .vw-smenu-band {
+  left: 2px;
+  top: 2px;
+  bottom: 2px;
+  width: 24px;
+  padding-bottom: 6px;
+  background: linear-gradient(to bottom, #ff71ce, #000080);
+  color: #e4dcf5;
+  font-size: 22px;
+  line-height: 24px;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  text-orientation: sideways;
+  transform: rotate(180deg);
+}
+.scene-vaporwave .vw-smenu-band b {
+  font-weight: 400;
+  color: #ffffff;
+}
+.scene-vaporwave .vw-smenu-ico {
+  left: 34px;
+  top: 3px;
+  width: 20px;
+  height: 200px;
+}
+/* realce em degradê pastel (o texto escuro continua legível) */
+.scene-vaporwave :is(.vw-smenu-hi, .vw-submenu-hi) {
+  top: 3px;
+  height: 28px;
+  background: linear-gradient(90deg, #ff9ad5, #c9a7ff, #8ef0ff);
+  opacity: 0;
+}
+.scene-vaporwave .vw-smenu-hi {
+  left: 30px;
+  right: 3px;
+  animation: vw-smenu-hi var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-submenu-hi {
+  left: 3px;
+  right: 3px;
+  animation: vw-submenu-hi var(--vw-desk) linear infinite;
+}
+.scene-vaporwave :is(.vw-smenu, .vw-submenu) > .vw-smenu-item {
+  position: relative;
+  display: block;
+  height: 28px;
+  padding-left: 28px;
+  white-space: nowrap;
+}
+.scene-vaporwave .vw-submenu > .vw-smenu-item {
+  padding-left: 8px;
+}
+.scene-vaporwave .vw-smenu-more::after {
+  content: '▸';
+  position: absolute;
+  right: 8px;
+}
+.scene-vaporwave .vw-smenu > .vw-smenu-off {
+  margin-top: 8px;
+}
+.scene-vaporwave .vw-smenu-off::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: -5px;
+  border-top: 1px solid #8f80bd;
+  border-bottom: 1px solid #ffffff;
+}
+/* botão Iniciar afundado enquanto o menu está aberto */
+.scene-vaporwave .vw-start {
+  position: relative;
+}
+.scene-vaporwave .vw-start-down {
+  position: absolute;
+  inset: -2px;
+  border: 2px solid;
+  border-color: #3b1f6b #ffffff #ffffff #3b1f6b;
+  outline: 1px dotted #3b1f6b;
+  outline-offset: -5px;
+  opacity: 0;
+  animation: vw-start-down var(--vw-desk) linear infinite;
+}
+
+/* canal da TV ligado pelo menu */
+.scene-vaporwave .vw-ch-desk {
+  opacity: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2em;
+  background:
+    radial-gradient(
+      circle at 50% 120%,
+      #fff1a0 0 22%,
+      rgba(255, 154, 213, 0.9) 34%,
+      rgba(255, 154, 213, 0) 60%
+    ),
+    linear-gradient(to bottom, #2b1a6b, #7a2f9e 60%, #ff71ce);
+  color: #ffffff;
+  text-align: center;
+  animation: vw-ch-desk var(--vw-desk) linear infinite;
+}
+.scene-vaporwave .vw-ch-desk b {
+  font:
+    1.5em/1 var(--font-vt323),
+    monospace;
+  letter-spacing: 0.06em;
+  color: #8ef0ff;
+}
+.scene-vaporwave .vw-ch-desk em {
+  font:
+    700 0.8em/1 'Yu Gothic',
+    'Meiryo',
+    sans-serif;
+  font-style: normal;
+  color: #ffe3f4;
+}
+
+/* ---------- estrelas cadentes ---------- */
+
+.scene-vaporwave .vw-star {
+  left: 0;
+  top: 0;
+  width: 15em;
+  height: 0.28em;
+  border-radius: 0.2em;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 246, 252, 0.8) 75%,
+    #ffffff
+  );
+  opacity: 0;
+  animation: vw-star-a 47s linear infinite;
+  animation-delay: -20s;
+}
+.scene-vaporwave .vw-star::after {
+  content: '';
+  position: absolute;
+  right: -0.9em;
+  top: 50%;
+  width: 2em;
+  height: 2em;
+  margin-top: -1em;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    #ffffff 0 22%,
+    rgba(255, 244, 196, 0.75) 45%,
+    rgba(255, 190, 235, 0) 100%
+  );
+}
+.scene-vaporwave .vw-star-1 {
+  animation-name: vw-star-b;
+  animation-duration: 71s;
+  animation-delay: -52s;
+}
+
+/* protetor de tela: janelinhas em três cores de barra */
+.scene-vaporwave .vw-fly-dir:nth-child(3n) .vw-fly-win {
+  background:
+    linear-gradient(90deg, #ff71ce, #01cdfe) 0.25em 0.25em / calc(100% - 0.5em)
+      0.8em no-repeat,
+    #f3eefc;
+}
+.scene-vaporwave .vw-fly-dir:nth-child(3n + 1) .vw-fly-win {
+  background:
+    linear-gradient(90deg, #7a2f9e, #c9a7ff) 0.25em 0.25em / calc(100% - 0.5em)
+      0.8em no-repeat,
+    #fff3fa;
+}
+
+/* ---------- reações à roleta ---------- */
+
+/* mexer na roleta "acorda" o protetor de tela, como no Windows */
+html:is([data-wheel='spinning'], [data-wheel='won'])
+  .scene-vaporwave
+  .vw-saver-wake {
+  opacity: 0;
+}
+/* o gatinho: ?! enquanto gira, ♥ na cor vencedora */
+html[data-wheel='spinning'] .scene-vaporwave .vw-cat > .vw-cat-q {
+  animation: vw-cat-pop 0.4s ease-out both;
+}
+html[data-wheel='won'] .scene-vaporwave .vw-cat > .vw-cat-love {
+  animation: vw-cat-pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 0.4s both;
+}
+
+html[data-wheel='spinning']
+  .scene-vaporwave
+  :is(.vw-boost, .vw-deck-boost, .vw-rays-boost) {
+  animation-play-state: running;
+}
+html[data-wheel='spinning'] .scene-vaporwave .vw-sunglow-hot {
+  opacity: 0.75;
+}
+html[data-wheel='spinning'] .scene-vaporwave .vw-spinwin,
+html[data-wheel='won'] .scene-vaporwave .vw-wonwin {
+  opacity: 1;
+  transform: scale(1);
+}
+html[data-wheel='spinning'] .scene-vaporwave .vw-bar-run-strip {
+  animation: vw-marquee 1.5s steps(15) infinite;
+}
+html[data-wheel='spinning'] .scene-vaporwave .vw-flip {
+  animation: vw-flip 1.2s steps(2) infinite;
+}
+html[data-wheel='spinning'] .scene-vaporwave .vw-cur-arrow {
+  opacity: 0;
+}
+html[data-wheel='spinning'] .scene-vaporwave .vw-cur-wait {
+  opacity: 1;
+  animation: vw-flip 1.2s steps(2) infinite;
+}
+html:is([data-wheel='spinning'], [data-wheel='won']) .scene-vaporwave .vw-pops {
+  opacity: 0;
+}
+html[data-wheel='won'] .scene-vaporwave .vw-wonwin {
+  animation: vw-pop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+html[data-wheel='won'] .scene-vaporwave .vw-winhalo {
+  animation: vw-winhalo 1.1s ease-out 3 both;
+}
+html[data-wheel='won'] .scene-vaporwave .vw-ch-won {
+  opacity: 1;
+}
+/* backwards (e não both): no fim o confete volta ao estilo base, invisível,
+   e solta a camada; com both ~20 pedaços ficavam parados abaixo da tela
+   segurando camadas enquanto o PARABÉNS.exe estivesse aberto */
+html[data-wheel='won'] .scene-vaporwave .vw-conf {
+  animation: vw-conf-a 3s cubic-bezier(0.3, 0.5, 0.55, 1) backwards;
+}
+html[data-wheel='won'] .scene-vaporwave .vw-conf-b {
+  animation-name: vw-conf-b;
+}
+html[data-wheel='won'] .scene-vaporwave .vw-conf-c {
+  animation-name: vw-conf-c;
+}
+html[data-wheel='won'] .scene-vaporwave .vw-conf-d {
+  animation-name: vw-conf-d;
+}
+
+/* ---------- telas pequenas: só o mundo, mais leve ---------- */
+
+@media (max-width: 1023px) {
+  .scene-vaporwave
+    :is(
+      .vw-icons,
+      .vw-pops,
+      .vw-cursor,
+      .vw-wheelwin,
+      .vw-cat,
+      .vw-smenu,
+      .vw-submenu
+    ) {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .scene-vaporwave
+    :is(
+      .vw-desk,
+      .vw-prim,
+      .vw-tv,
+      .vw-tv-pool,
+      .vw-bust,
+      .vw-neon,
+      .vw-saver,
+      .vw-vhs,
+      .vw-plane,
+      .vw-flop,
+      .vw-cd,
+      .vw-jump,
+      .vw-cloud-2,
+      .vw-cloud-3,
+      .vw-star-1,
+      .vw-sparks-1,
+      .vw-glints-1,
+      .vw-bulbs
+    ) {
+    display: none;
+  }
+}
+
+/* ---------- keyframes (prefixo vw-) ---------- */
+
+@keyframes vw-turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes vw-spin-y {
+  to {
+    transform: rotateY(1turn);
+  }
+}
+@keyframes vw-breathe {
+  from {
+    opacity: 0.72;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes vw-twinkle {
+  0%,
+  30% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes vw-drift {
+  from {
+    transform: translateX(-42em);
+  }
+  to {
+    transform: translateX(calc(100cqw + 2em));
+  }
+}
+@keyframes vw-shimmer {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 0.95;
+  }
+}
+@keyframes vw-glint {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+@keyframes vw-dol {
+  0% {
+    transform: translate(0, 19em) rotate(-50deg);
+  }
+  1.25% {
+    transform: translate(2.13em, 11.8em) rotate(-36.8deg);
+  }
+  2.5% {
+    transform: translate(4.25em, 6.6em) rotate(-23.5deg);
+  }
+  3.75% {
+    transform: translate(6.38em, 3.5em) rotate(-10.3deg);
+  }
+  5% {
+    transform: translate(8.5em, 2.5em) rotate(3deg);
+  }
+  6.25% {
+    transform: translate(10.63em, 3.5em) rotate(16.3deg);
+  }
+  7.5% {
+    transform: translate(12.75em, 6.6em) rotate(29.5deg);
+  }
+  8.75% {
+    transform: translate(14.88em, 11.8em) rotate(42.8deg);
+  }
+  10%,
+  100% {
+    transform: translate(17em, 19em) rotate(56deg);
+  }
+}
+@keyframes vw-splash {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scale(0.4, 0.2);
+  }
+  0.8% {
+    opacity: 1;
+    transform: translateX(0) scale(0.8, 1);
+  }
+  3.5% {
+    opacity: 0;
+    transform: translateX(0) scale(1.3, 0.3);
+  }
+  3.6%,
+  9% {
+    opacity: 0;
+    transform: translateX(14.5em) scale(0.4, 0.2);
+  }
+  9.7% {
+    opacity: 1;
+    transform: translateX(14.5em) scale(0.9, 1.1);
+  }
+  13% {
+    opacity: 0;
+    transform: translateX(14.5em) scale(1.4, 0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0) scale(0.4, 0.2);
+  }
+}
+@keyframes vw-tiles {
+  to {
+    transform: translateY(12.8em);
+  }
+}
+@keyframes vw-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.25;
+  }
+}
+@keyframes vw-sway {
+  from {
+    transform: rotate(-2.6deg);
+  }
+  to {
+    transform: rotate(3deg);
+  }
+}
+@keyframes vw-neon {
+  0%,
+  61%,
+  63%,
+  64.5%,
+  100% {
+    opacity: 1;
+  }
+  62%,
+  64% {
+    opacity: 0;
+  }
+}
+@keyframes vw-bob {
+  from {
+    transform: translateY(-0.7em);
+  }
+  to {
+    transform: translateY(0.7em);
+  }
+}
+@keyframes vw-turn-pyr {
+  from {
+    transform: rotateX(-14deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(-14deg) rotateY(360deg);
+  }
+}
+@keyframes vw-turn-cube {
+  from {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+  to {
+    transform: rotateX(360deg) rotateY(720deg) rotateZ(360deg);
+  }
+}
+@keyframes vw-turn-sphere {
+  from {
+    transform: rotateZ(16deg) rotateX(-12deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateZ(16deg) rotateX(-12deg) rotateY(360deg);
+  }
+}
+@keyframes vw-turn-torus {
+  from {
+    transform: rotateX(56deg) rotateZ(-16deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(56deg) rotateZ(-16deg) rotateY(360deg);
+  }
+}
+@keyframes vw-glitch-rgb {
+  0%,
+  91.8%,
+  94.2%,
+  100% {
+    opacity: 0;
+  }
+  92%,
+  94% {
+    opacity: 1;
+  }
+}
+@keyframes vw-glitch-a {
+  0%,
+  91.9%,
+  93.6%,
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  92% {
+    opacity: 1;
+    transform: translateX(1.4em);
+  }
+  92.7% {
+    opacity: 1;
+    transform: translateX(-0.9em);
+  }
+  93.5% {
+    opacity: 1;
+    transform: translateX(0.6em);
+  }
+}
+@keyframes vw-glitch-b {
+  0%,
+  92.2%,
+  94.1%,
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  92.3% {
+    opacity: 1;
+    transform: translateX(-1.6em);
+  }
+  93.2% {
+    opacity: 1;
+    transform: translateX(1em);
+  }
+  94% {
+    opacity: 1;
+    transform: translateX(-0.4em);
+  }
+}
+@keyframes vw-shades {
+  0%,
+  86% {
+    opacity: 0;
+    transform: translateY(-12em);
+  }
+  86.3% {
+    opacity: 1;
+    transform: translateY(-12em);
+    animation-timing-function: steps(6, end);
+  }
+  88% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  96% {
+    opacity: 1;
+    transform: translateY(0);
+    animation-timing-function: steps(5, end);
+  }
+  97.6% {
+    opacity: 1;
+    transform: translateY(-12em);
+  }
+  97.8%,
+  100% {
+    opacity: 0;
+    transform: translateY(-12em);
+  }
+}
+@keyframes vw-flicker {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes vw-ch {
+  0% {
+    transform: translateX(0);
+  }
+  31% {
+    transform: translateX(-33.333%);
+  }
+  53% {
+    transform: translateX(-66.667%);
+  }
+  75%,
+  100% {
+    transform: translateX(0);
+  }
+}
+@keyframes vw-noise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  30.25% {
+    opacity: 1;
+    transform: translate(-21%, 13%);
+  }
+  30.5% {
+    opacity: 1;
+    transform: translate(9%, -24%);
+  }
+  30.75% {
+    opacity: 1;
+    transform: translate(-14%, -7%);
+  }
+  31% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  52% {
+    opacity: 1;
+    transform: translate(-8%, 18%);
+  }
+  52.25% {
+    opacity: 1;
+    transform: translate(16%, 4%);
+  }
+  52.5% {
+    opacity: 1;
+    transform: translate(-23%, -16%);
+  }
+  52.75% {
+    opacity: 1;
+    transform: translate(5%, 11%);
+  }
+  53% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(12%, -19%);
+  }
+  75.25% {
+    opacity: 1;
+    transform: translate(-4%, 22%);
+  }
+  75.5% {
+    opacity: 1;
+    transform: translate(-17%, 2%);
+  }
+  75.75% {
+    opacity: 1;
+    transform: translate(20%, -9%);
+  }
+  76% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+}
+@keyframes vw-plane {
+  0% {
+    transform: translate(-640px, 0);
+  }
+  4.5% {
+    transform: translate(calc(12.5cqw - 555px), -5px);
+  }
+  9% {
+    transform: translate(calc(25cqw - 470px), 0);
+  }
+  13.5% {
+    transform: translate(calc(37.5cqw - 385px), 5px);
+  }
+  18% {
+    transform: translate(calc(50cqw - 300px), 0);
+  }
+  22.5% {
+    transform: translate(calc(62.5cqw - 215px), -5px);
+  }
+  27% {
+    transform: translate(calc(75cqw - 130px), 0);
+  }
+  31.5% {
+    transform: translate(calc(87.5cqw - 45px), 5px);
+  }
+  36%,
+  100% {
+    transform: translate(calc(100cqw + 40px), 0);
+  }
+}
+@keyframes vw-flop {
+  0% {
+    transform: perspective(300px) translate(-60px, 0) rotateY(0deg)
+      rotateZ(-14deg);
+  }
+  35% {
+    transform: perspective(300px) translate(50cqw, 12px) rotateY(1800deg)
+      rotateZ(-14deg);
+  }
+  70%,
+  100% {
+    transform: perspective(300px) translate(calc(100cqw + 60px), -6px)
+      rotateY(3600deg) rotateZ(-14deg);
+  }
+}
+@keyframes vw-cd {
+  0% {
+    transform: translate(calc(100cqw + 60px), 0) rotate(0deg);
+  }
+  27% {
+    transform: translate(calc(50cqw - 10px), 10px) rotate(-3600deg);
+  }
+  54%,
+  100% {
+    transform: translate(-80px, 0) rotate(-7200deg);
+  }
+}
+@keyframes vw-vhs {
+  0% {
+    opacity: 0.85;
+    transform: translateY(102cqh);
+  }
+  2.6% {
+    opacity: 0.85;
+    transform: translateY(-12em);
+  }
+  2.7%,
+  100% {
+    opacity: 0;
+    transform: translateY(-12em);
+  }
+}
+@keyframes vw-saver {
+  0%,
+  77.5% {
+    opacity: 0;
+  }
+  78.5%,
+  85% {
+    opacity: 1;
+  }
+  86%,
+  100% {
+    opacity: 0;
+  }
+}
+/* da ponta direita da faixa até sumir na esquerda (largura da faixa =
+   100cqw menos as duas margens de .vw-saver-tick) */
+@keyframes vw-saver-text {
+  0%,
+  78.2% {
+    transform: translateX(0);
+  }
+  85.6%,
+  100% {
+    transform: translateX(
+      calc(
+        -100% - 100cqw + max(calc(50cqw - 400px), 390px) +
+          max(calc(50cqw - 600px), 180px)
+      )
+    );
+  }
+}
+@keyframes vw-fly {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scale(0.04);
+  }
+  14%,
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(120em) scale(2.6);
+  }
+}
+
+/* área de trabalho: ciclo de --vw-desk (96 s; 1% ≈ 0,96 s) */
+@keyframes vw-cursor {
+  0%,
+  3.65% {
+    transform: translate(118px, 470px);
+  }
+  6.25% {
+    transform: translate(59px, 304px);
+  }
+  6.67% {
+    transform: translate(59px, 306px);
+  }
+  6.88% {
+    transform: translate(59px, 304px);
+  }
+  7.08% {
+    transform: translate(59px, 306px);
+  }
+  7.29%,
+  9.9% {
+    transform: translate(59px, 304px);
+  }
+  13%,
+  16.2% {
+    transform: translate(calc(50cqw - 180px), 60px);
+  }
+  18.2% {
+    transform: translate(calc(50cqw - 208px), 76px);
+  }
+  19.17% {
+    transform: translate(calc(50cqw - 208px), 78px);
+  }
+  19.38%,
+  20.3% {
+    transform: translate(calc(50cqw - 208px), 76px);
+  }
+  24.5%,
+  30.2% {
+    transform: translate(130px, 520px);
+  }
+  32.3% {
+    transform: translate(59px, 392px);
+  }
+  32.7% {
+    transform: translate(59px, 394px);
+  }
+  32.9% {
+    transform: translate(59px, 392px);
+  }
+  33.1% {
+    transform: translate(59px, 394px);
+  }
+  33.3%,
+  35.4% {
+    transform: translate(59px, 392px);
+  }
+  40.6%,
+  45.8% {
+    transform: translate(calc(50cqw + 380px), 66px);
+  }
+  47.4% {
+    transform: translate(calc(50cqw + 457px), 21px);
+  }
+  47.9% {
+    transform: translate(calc(50cqw + 457px), 23px);
+  }
+  48.1%,
+  49% {
+    transform: translate(calc(50cqw + 457px), 21px);
+  }
+  51%,
+  55.2% {
+    transform: translate(calc(50cqw + 360px), 44px);
+  }
+  56.8% {
+    transform: translate(calc(50cqw + 312px), 76px);
+  }
+  57.5% {
+    transform: translate(calc(50cqw + 312px), 78px);
+  }
+  57.7% {
+    transform: translate(calc(50cqw + 312px), 76px);
+  }
+  58.6% {
+    transform: translate(calc(50cqw + 318px), 73px);
+  }
+  59.4% {
+    transform: translate(calc(50cqw + 307px), 78px);
+  }
+  60.2% {
+    transform: translate(calc(50cqw + 316px), 76px);
+  }
+  61%,
+  63.5% {
+    transform: translate(calc(50cqw + 312px), 76px);
+  }
+  /* menu Iniciar → Programas → ＶＡＰＯＲ ＴＶ */
+  68.75% {
+    transform: translate(40px, calc(100cqh - 17px));
+  }
+  69.27% {
+    transform: translate(40px, calc(100cqh - 15px));
+  }
+  69.48% {
+    transform: translate(40px, calc(100cqh - 17px));
+  }
+  71.35% {
+    transform: translate(120px, calc(100cqh - 229px));
+  }
+  72.4% {
+    transform: translate(226px, calc(100cqh - 229px));
+  }
+  73.4% {
+    transform: translate(246px, calc(100cqh - 199px));
+  }
+  74% {
+    transform: translate(246px, calc(100cqh - 197px));
+  }
+  74.2%,
+  75.5% {
+    transform: translate(246px, calc(100cqh - 199px));
+  }
+  /* carinho no gato, no telhado da roleta.exe */
+  80.7% {
+    transform: translate(calc(50cqw - 12px), 85px);
+  }
+  81.25% {
+    transform: translate(calc(50cqw - 19px), 84px);
+  }
+  81.7% {
+    transform: translate(calc(50cqw - 5px), 87px);
+  }
+  82.1% {
+    transform: translate(calc(50cqw - 19px), 84px);
+  }
+  82.5% {
+    transform: translate(calc(50cqw - 5px), 87px);
+  }
+  82.9% {
+    transform: translate(calc(50cqw - 19px), 84px);
+  }
+  83.3% {
+    transform: translate(calc(50cqw - 5px), 87px);
+  }
+  83.75%,
+  85.4% {
+    transform: translate(calc(50cqw - 12px), 85px);
+  }
+  89.6%,
+  100% {
+    transform: translate(118px, 470px);
+  }
+}
+@keyframes vw-sel-a {
+  0%,
+  6.6% {
+    opacity: 0;
+  }
+  6.67%,
+  19.5% {
+    opacity: 1;
+  }
+  19.6%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes vw-sel-b {
+  0%,
+  32.6% {
+    opacity: 0;
+  }
+  32.7%,
+  48.2% {
+    opacity: 1;
+  }
+  48.3%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes vw-task-slot {
+  0%,
+  7.8%,
+  19.6%,
+  33.9%,
+  48.4%,
+  100% {
+    opacity: 0;
+  }
+  7.9%,
+  19.5%,
+  34%,
+  48.3% {
+    opacity: 1;
+  }
+}
+@keyframes vw-task-b {
+  0%,
+  33.9% {
+    opacity: 0;
+  }
+  34%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes vw-pop-a {
+  0%,
+  7.6% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  7.9%,
+  15.1% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  15.3%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes vw-load {
+  0%,
+  8.3% {
+    transform: translateX(0);
+    animation-timing-function: steps(12, end);
+  }
+  14.6%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes vw-pop-b {
+  0%,
+  15.3% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  15.6%,
+  19.5% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  19.6%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes vw-down-b {
+  0%,
+  19.1% {
+    opacity: 0;
+  }
+  19.17%,
+  19.45% {
+    opacity: 1;
+  }
+  19.5%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes vw-pop-c {
+  0%,
+  33.8% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  34.1%,
+  48.2% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  48.35%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes vw-type-1 {
+  0%,
+  34.8% {
+    transform: translateX(0);
+    animation-timing-function: steps(29, end);
+  }
+  38.6%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes vw-type-2 {
+  0%,
+  38.9% {
+    transform: translateX(0);
+    animation-timing-function: steps(22, end);
+  }
+  41.8%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes vw-pop-d0 {
+  0%,
+  54% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  54.25%,
+  63.3% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  63.45%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes vw-pop-dn {
+  0%,
+  57.8% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  58%,
+  63.3% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  63.45%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes vw-down-d {
+  0%,
+  57.45% {
+    opacity: 0;
+  }
+  57.5%,
+  57.75% {
+    opacity: 1;
+  }
+  57.8%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* gatinho (ciclo --vw-desk; 1 s ≈ 1,04 %) */
+@keyframes vw-cat {
+  0%,
+  20.3% {
+    opacity: 1;
+    transform: translate(calc(50cqw - 40px), 77px);
+  }
+  25%,
+  48.4% {
+    opacity: 1;
+    transform: translate(calc(50cqw + 120px), 77px);
+  }
+  54.2%,
+  58.5% {
+    opacity: 1;
+    transform: translate(calc(50cqw - 120px), 77px);
+  }
+  59% {
+    opacity: 1;
+    transform: translate(calc(50cqw - 130px), 60px);
+  }
+  59.6% {
+    opacity: 1;
+    transform: translate(calc(50cqw - 140px), 130px);
+  }
+  59.7% {
+    opacity: 0;
+    transform: translate(calc(50cqw - 140px), 140px);
+  }
+  74.9% {
+    opacity: 0;
+    transform: translate(calc(50cqw - 200px), 140px);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(calc(50cqw - 200px), 140px);
+  }
+  75.7% {
+    opacity: 1;
+    transform: translate(calc(50cqw - 196px), 70px);
+  }
+  76% {
+    opacity: 1;
+    transform: translate(calc(50cqw - 192px), 77px);
+  }
+  80.2%,
+  100% {
+    opacity: 1;
+    transform: translate(calc(50cqw - 40px), 77px);
+  }
+}
+@keyframes vw-cat-flip {
+  0% {
+    transform: scaleX(1);
+  }
+  13.5% {
+    transform: scaleX(-1);
+  }
+  20.3% {
+    transform: scaleX(1);
+  }
+  48.4% {
+    transform: scaleX(-1);
+  }
+  55.2% {
+    transform: scaleX(1);
+  }
+  58.5% {
+    transform: scaleX(-1);
+  }
+  75%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+@keyframes vw-cat-pose {
+  0% {
+    transform: translateY(-78px);
+  }
+  12.5% {
+    transform: translateY(-26px);
+  }
+  20.3% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-26px);
+  }
+  27.1% {
+    transform: translateY(-52px);
+  }
+  30.2% {
+    transform: translateY(-26px);
+  }
+  37.5% {
+    transform: translateY(-52px);
+  }
+  40.6% {
+    transform: translateY(-26px);
+  }
+  48.4% {
+    transform: translateY(0);
+  }
+  54.2% {
+    transform: translateY(-26px);
+  }
+  58.5% {
+    transform: translateY(0);
+  }
+  80.2% {
+    transform: translateY(-26px);
+  }
+  85.9%,
+  100% {
+    transform: translateY(-78px);
+  }
+}
+@keyframes vw-cat-step {
+  to {
+    transform: translateX(-80px);
+  }
+}
+@keyframes vw-cat-zz {
+  0% {
+    opacity: 1;
+  }
+  12.5% {
+    opacity: 0;
+  }
+  86.5%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes vw-cat-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 6px) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(9px, -16px) scale(1.1);
+  }
+}
+@keyframes vw-cat-bang {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.4);
+  }
+  58.2% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.3);
+  }
+  58.5%,
+  59.6% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1);
+  }
+  59.8%,
+  100% {
+    opacity: 0;
+    transform: translateY(-2px) scale(1);
+  }
+}
+@keyframes vw-cat-heart {
+  0%,
+  81.6% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.5);
+  }
+  82% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.25);
+  }
+  82.4% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1);
+  }
+  85.4%,
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(1);
+  }
+}
+@keyframes vw-cat-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* menu Iniciar e o canal que ele liga na TV */
+@keyframes vw-smenu {
+  0%,
+  69.4% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  69.5%,
+  74.2% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  74.3%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes vw-submenu {
+  0%,
+  71.5% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  71.6%,
+  74.2% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  74.3%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+@keyframes vw-smenu-hi {
+  0%,
+  71% {
+    opacity: 0;
+  }
+  71.1%,
+  74.2% {
+    opacity: 1;
+  }
+  74.3%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes vw-submenu-hi {
+  0%,
+  72.1% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  72.2%,
+  72.8% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  72.9%,
+  74.2% {
+    opacity: 1;
+    transform: translateY(28px);
+  }
+  74.3%,
+  100% {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+@keyframes vw-start-down {
+  0%,
+  69.2% {
+    opacity: 0;
+  }
+  69.27%,
+  74.2% {
+    opacity: 1;
+  }
+  74.3%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes vw-ch-desk {
+  0%,
+  74.2% {
+    opacity: 0;
+  }
+  74.4%,
+  88% {
+    opacity: 1;
+  }
+  88.2%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* estrelas cadentes: atravessam o topo em ~1,3 s */
+@keyframes vw-star-a {
+  0%,
+  60% {
+    opacity: 0;
+    transform: translate(calc(50cqw - 4em), 0.2em) rotate(15deg);
+  }
+  60.6%,
+  62.2% {
+    opacity: 1;
+  }
+  62.8%,
+  100% {
+    opacity: 0;
+    transform: translate(calc(50cqw + 24em), 7.6em) rotate(15deg);
+  }
+}
+@keyframes vw-star-b {
+  0%,
+  40% {
+    opacity: 0;
+    transform: translate(74cqw, 0.2em) rotate(162deg);
+  }
+  40.4%,
+  41.6% {
+    opacity: 1;
+  }
+  42%,
+  100% {
+    opacity: 0;
+    transform: translate(calc(74cqw - 28em), 9em) rotate(162deg);
+  }
+}
+
+/* reações à roleta */
+@keyframes vw-marquee {
+  to {
+    transform: translateX(380%);
+  }
+}
+@keyframes vw-flip {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes vw-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes vw-winhalo {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.35;
+    transform: scale(1.03);
+  }
+}
+@keyframes vw-conf-a {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(46px, calc(100cqh + 40px)) rotate(720deg);
+  }
+}
+@keyframes vw-conf-b {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) rotateY(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-52px, calc(100cqh + 40px)) rotate(-540deg)
+      rotateY(720deg);
+  }
+}
+@keyframes vw-conf-c {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(20deg) rotateX(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(24px, calc(100cqh + 40px)) rotate(400deg)
+      rotateX(900deg);
+  }
+}
+@keyframes vw-conf-d {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(-30deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-30px, calc(100cqh + 40px)) rotate(610deg);
+  }
+}
+
+/* ---------- interface: janelas do Windows 95 ---------- */
+
+html[data-theme='vaporwave'] .ui-title {
+  font-family: var(--font-vt323);
+  background: none;
+  color: #ffffff;
+  text-shadow:
+    3px 3px 0 #ff71ce,
+    6px 6px 0 #01cdfe;
+  letter-spacing: 0.06em;
+}
+html[data-theme='vaporwave'] .ui-title-text {
+  display: none;
+}
+html[data-theme='vaporwave'] .ui-title-vapor {
+  display: inline;
+}
+html[data-theme='vaporwave'] .ui-title-vapor small {
+  margin-left: 0.4em;
+  font-size: 0.45em;
+  letter-spacing: 0.3em;
+}
+html[data-theme='vaporwave'] .ui-subtitle {
+  font-family: var(--font-vt323);
+  font-size: 1.1rem;
+  color: #3b1f6b;
+}
+/* cards como janelas do Windows 95: relevo + barra de título */
+html[data-theme='vaporwave'] :is(.ui-card, .ui-chip) {
+  background: #e4dcf5;
+  border-radius: 0;
+  border: 2px solid;
+  border-color: #ffffff #5b4b7d #5b4b7d #ffffff;
+  box-shadow: 3px 3px 0 rgba(59, 31, 107, 0.45);
+}
+html[data-theme='vaporwave'] :is(section, nav, [role='dialog']).ui-card {
+  position: relative;
+  padding-top: 2.4rem;
+}
+html[data-theme='vaporwave']
+  :is(section, nav, [role='dialog']).ui-card::before {
+  content: '';
+  position: absolute;
+  inset: 3px 3px auto 3px;
+  height: 1.5rem;
+  padding: 0 4.2rem 0 0.5rem;
+  overflow: hidden;
+  background: linear-gradient(90deg, #000080, #ff71ce);
+  color: #ffffff;
+  font: 1.05rem/1.5rem var(--font-vt323);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+/* nome de cada janela na barra de título (o :has com classe deixa a
+   regra mais específica que a de cima) */
+html[data-theme='vaporwave']
+  section.ui-card:not(:has(.ui-input, .ui-cta))::before {
+  content: 'histórico.log';
+}
+html[data-theme='vaporwave'] section.ui-card:has(.ui-input)::before {
+  content: 'opções.txt';
+}
+html[data-theme='vaporwave'] section.ui-card:has(.ui-cta)::before {
+  content: 'ｒｏｌｅｔａ．ｅｘｅ';
+  font-size: 0.85rem;
+}
+html[data-theme='vaporwave'] [role='dialog'].ui-card::before {
+  content: 'ＰＡＲＡＢÉＮＳ．ｅｘｅ';
+  font-size: 0.85rem;
+}
+html[data-theme='vaporwave'] :is(section, nav, [role='dialog']).ui-card::after {
+  content: '_  □  ✕';
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  font: 700 0.75rem/1.25rem system-ui;
+  color: #fff;
+  letter-spacing: 0.1em;
+}
+html[data-theme='vaporwave'] .ui-card-title {
+  font-family: var(--font-vt323);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #000080;
+}
+html[data-theme='vaporwave'] .ui-panel {
+  border-radius: 0;
+  background: #f1ecfb;
+  border: 2px solid;
+  border-color: #5b4b7d #ffffff #ffffff #5b4b7d;
+}
+html[data-theme='vaporwave'] :is(.ui-cta, .ui-btn) {
+  font-family: var(--font-vt323);
+  font-weight: 400;
+  border-radius: 0;
+  background: linear-gradient(90deg, #ff9ad5, #c9a7ff, #8ef0ff);
+  color: #2a0f52;
+  border: 2px solid;
+  border-color: #ffffff #3b1f6b #3b1f6b #ffffff;
+  box-shadow: none;
+}
+html[data-theme='vaporwave'] .ui-cta {
+  font-size: 1.6rem;
+  letter-spacing: 0.15em;
+}
+html[data-theme='vaporwave'] .ui-input {
+  border-radius: 0;
+  background: #fff;
+  border: 2px solid;
+  border-color: #5b4b7d #ffffff #ffffff #5b4b7d;
+}
+html[data-theme='vaporwave'] .ui-rim {
+  background: linear-gradient(180deg, #ff9ad5, #c9a7ff 50%, #01cdfe);
+}
+html[data-theme='vaporwave'] .ui-hub {
+  font-family: var(--font-vt323);
+  font-weight: 400;
+  font-size: 1.3rem;
+}
+/* rodapé da página fica sobre a barra de tarefas da cena */
+html[data-theme='vaporwave'] footer {
+  color: #2b1758;
+}

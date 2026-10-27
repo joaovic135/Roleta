@@ -1,9 +1,11 @@
 # Half-Life: prompts para a arte de fundo
 
-A cena atual é toda em SVG/CSS (teto com lâmpadas fluorescentes, canos, placas
-de perigo, feixe verde e HUD) e roda o ciclo do complexo: turno normal, alarme,
-queda de energia e tempestade de portal. Uma imagem gerada pode entrar **por
-baixo** dessa cena, como textura de parede e profundidade, sem substituí-la.
+A cena atual é uma viagem de monotrilho em primeira pessoa feita em CSS 3D
+(cambotas de aço vindo do fundo do túnel, comporta blindada, drone de carga,
+letreiro de LED e HUD do traje) e roda o ciclo do complexo: viagem normal,
+apagão e tempestade de ressonância. Ela já cobre a tela toda; os prompts abaixo
+ficam como referência de clima (ou para uma versão estática, por exemplo uma
+imagem de prévia do tema), não são necessários para a cena funcionar.
 
 Como a interface cobre quase todo o centro da tela, os prompts pedem o centro
 mais calmo e escuro. Os detalhes ficam nas bordas, no alto e no piso.
@@ -14,7 +16,8 @@ Para usar a imagem:
 2. Converta para WebP com qualidade de 75 a 80. O arquivo deve ficar com menos
    de 400 KB.
 3. Salve em `public/themes/half-life/bg.webp`.
-4. Descomente o bloco no fim de `theme.css`.
+4. Use como `background-image` de `html[data-theme='half-life']
+   .theme-backdrop` em `theme.css` (fica atrás da cena 3D).
 
 Evite imagens com texto, logotipos ou personagens. A ideia é um laboratório
 original no mesmo clima.

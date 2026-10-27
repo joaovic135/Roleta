@@ -1,20 +1,38 @@
-/* ---------- GOOD TIMES (良い時): pôster Future Funk / Memphis, claro ----------
-   Papel quadriculado, blocos pastel com contorno preto, sol listrado,
-   palmeiras e confete. Cena viva: um ciclo de --gt-cycle (4 min)
-     0–28%   meio-dia pastel (lens flare aos 7–15% e 21–27%)
-     28–54%  pôr do sol rosa-dourado: o sol listrado desce atrás do horizonte
-     54–84%  crepúsculo lilás: estrelas, brilhos e lua crescente
-     84–100% amanhecer rosa-pêssego: o sol volta a subir
-   Chuva de confete pastel aos 16–22% (dia) e 66–72% (noite).
-   Só transform/opacity animam; sem backdrop-filter. */
+/* ---------- GOOD TIMES (良い時): pôster Memphis de festa, claro ----------
+   Papel quadriculado, blocos pastel com contorno preto, sólidos em CSS 3D
+   com sombra dura, adesivos, rádio boombox, globo espelhado e um sol
+   listrado de óculos escuros. Tudo dança numa batida de 0,5 s (120 BPM).
+
+   Ciclo do dia: --gt-cycle (200 s), começando em 6% (fim da manhã):
+     0–28%    meio-dia pastel: lens flare (7–15%), chuva de confete (16–21%)
+     28–46%   pôr do sol rosa-dourado: o sol desce atrás da pista
+     40–44%   o varal de lâmpadas acende piscando; o globo desce
+     46–84%   noite de festa lilás: letreiro neon 良い時 e "Yoi Toki" (47%),
+              reflexos fortes do globo, estrelas, lua, pista mais acesa,
+              fogos Memphis (60–62% e 72–74%), chuva de confete (66–71%)
+     84–100%  amanhecer rosa-pêssego: luzes apagam, o sol volta a subir
+   Outros relógios (independentes): batida 0,5 s; giros 3D 22–34 s;
+   brilho nos óculos 11 s; etiqueta descolando 29 s; bola de praia 37 s;
+   aviãozinho com faixa 61 s; balão de ar quente 173 s (raro).
+   Roleta (data-wheel): girando = as luzes da festa ligam mesmo de dia
+   (varal, neon, visor, reflexos), batida dobrada, notas extras, formas
+   pulando, reflexos rápidos, sólidos dão dois giros e se descolam da
+   sombra, o sol abaixa os óculos; venceu = lança-confetes (um no chão,
+   outro em cima do rádio), adesivo "GOOD TIMES!" batido na cor da fatia
+   (--win-color), flash suave, globo brilhando na cor e um pulo dos
+   sólidos; ~3 s depois as luzes piscam de volta ao ciclo e fica só o
+   adesivo e um brilho calmo até o modal fechar.
+   Só transform/opacity animam; sem backdrop-filter. Os estilos-base (sem
+   animação) são o quadro do prefers-reduced-motion: entardecer com as
+   luzes da festa acesas. */
 
 html[data-theme='good-times'] {
-  --gt-cycle: 240s;
-  /* começa no fim da manhã */
-  --gt-t0: calc(var(--gt-cycle) * -0.03);
+  --gt-cycle: 200s;
+  --gt-t0: calc(var(--gt-cycle) * -0.06);
   --gt-ink: #1b1726;
   --gt-pink: #ff9ad5;
   --gt-pink-2: #ff6fbf;
+  --gt-hot: #ff4fae;
   --gt-cyan: #7fe3ff;
   --gt-sky: #bdf3ff;
   --gt-yellow: #fff36b;
@@ -24,6 +42,12 @@ html[data-theme='good-times'] {
 
 html[data-theme='good-times'] .scene-good-times {
   display: block;
+  /* largura da margem lateral livre (o conteúdo tem no máximo 1600 px) */
+  --gt-side: max(16px, (100vw - 1600px) / 2 + 16px);
+  /* unidade dos objetos das margens: ~1vh, encolhe se a margem for estreita */
+  --gt-u: min(1vh, max(var(--gt-side) / 16.3, 0.62vh));
+  /* unidade vertical da faixa de cima */
+  --gt-vh: 1vh;
 }
 
 html[data-theme='good-times'] body {
@@ -40,48 +64,41 @@ html[data-theme='good-times'] .theme-backdrop {
 
 /* ================= CENA ================= */
 
-html[data-theme='good-times'] .scene-good-times > * {
+.scene-good-times > *,
+.scene-good-times .gt-abs {
   position: absolute;
   margin: 0;
 }
-html[data-theme='good-times'] .gt-cycle {
-  animation-duration: var(--gt-cycle);
-  animation-delay: var(--gt-t0);
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+.scene-good-times i {
+  display: block;
+  font-style: normal;
+}
+.scene-good-times svg {
+  display: block;
+  overflow: visible;
 }
 
 /* --- céu: camadas cruzando a opacidade --- */
-html[data-theme='good-times'] .gt-sky {
+.scene-good-times .gt-sky {
   inset: 0;
 }
-html[data-theme='good-times'] .gt-sky-dusk {
-  background: linear-gradient(
-    to bottom,
-    #ffb3dc 0%,
-    #ffc6b4 45%,
-    #fff0a6 100%
-  );
-  opacity: 0.85;
+.scene-good-times .gt-sky-dusk {
+  background: linear-gradient(to bottom, #ffb3dc 0%, #ffc6b4 45%, #fff0a6 100%);
+  opacity: 0.8;
   animation: gt-dusk var(--gt-cycle) linear var(--gt-t0) infinite;
 }
-html[data-theme='good-times'] .gt-sky-night {
-  background: linear-gradient(
-    to bottom,
-    #6a58c2 0%,
-    #9a84df 48%,
-    #e3a8e4 100%
-  );
+.scene-good-times .gt-sky-night {
+  background: linear-gradient(to bottom, #6a58c2 0%, #9a84df 48%, #e3a8e4 100%);
   opacity: 0;
   animation: gt-night-sky var(--gt-cycle) linear var(--gt-t0) infinite;
 }
-html[data-theme='good-times'] .gt-grid {
+.scene-good-times .gt-grid {
   inset: 0;
   background-image:
-    linear-gradient(rgba(27, 23, 38, 0.26) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(27, 23, 38, 0.26) 1px, transparent 1px),
-    linear-gradient(rgba(27, 23, 38, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(27, 23, 38, 0.12) 1px, transparent 1px);
+    linear-gradient(rgba(27, 23, 38, 0.24) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 23, 38, 0.24) 1px, transparent 1px),
+    linear-gradient(rgba(27, 23, 38, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 23, 38, 0.1) 1px, transparent 1px);
   background-size:
     130px 130px,
     130px 130px,
@@ -90,20 +107,20 @@ html[data-theme='good-times'] .gt-grid {
 }
 
 /* --- blocos de cor Memphis --- */
-html[data-theme='good-times'] .gt-block {
+.scene-good-times .gt-block {
   border: 3px solid var(--gt-ink);
   box-shadow: 9px 9px 0 var(--gt-ink);
 }
-html[data-theme='good-times'] .gt-block-yellow {
+.scene-good-times .gt-block-yellow {
   left: -3vw;
   top: -5vh;
   width: max(26vw, 260px);
-  height: 18vh;
+  height: 17vh;
   background: var(--gt-yellow);
   transform: rotate(-3deg);
 }
 /* à noite o bloco do título vira rosa (amarelo escurecido fica oliva) */
-html[data-theme='good-times'] .gt-block-yellow::after {
+.scene-good-times .gt-block-yellow::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -111,22 +128,23 @@ html[data-theme='good-times'] .gt-block-yellow::after {
   opacity: 0;
   animation: gt-night var(--gt-cycle) linear var(--gt-t0) infinite;
 }
-html[data-theme='good-times'] .gt-block-cyan {
+.scene-good-times .gt-block-cyan {
   left: -2vw;
-  bottom: 5vh;
-  width: max(17vw, 190px);
-  height: 58vh;
+  top: 33vh;
+  width: calc(var(--gt-side) + 2vw + 30px);
+  height: 30vh;
   background-color: var(--gt-sky);
   background-image: radial-gradient(rgba(27, 23, 38, 0.18) 22%, transparent 26%);
   background-size: 14px 14px;
   transform: rotate(2deg);
 }
-html[data-theme='good-times'] .gt-block-pink {
+.scene-good-times .gt-block-pink {
   right: -3vw;
   bottom: -6vh;
-  width: max(15vw, 170px);
+  width: calc(var(--gt-side) + 3vw + 30px);
   height: 46vh;
-  background: repeating-linear-gradient(
+  background:
+    repeating-linear-gradient(
       -45deg,
       transparent 0 14px,
       rgba(255, 255, 255, 0.45) 14px 22px
@@ -134,7 +152,7 @@ html[data-theme='good-times'] .gt-block-pink {
     var(--gt-pink);
   transform: rotate(-5deg);
 }
-html[data-theme='good-times'] .gt-block-lilac {
+.scene-good-times .gt-block-lilac {
   right: -2vw;
   top: 10vh;
   width: max(10vw, 120px);
@@ -143,32 +161,43 @@ html[data-theme='good-times'] .gt-block-lilac {
   transform: rotate(3deg);
 }
 
-/* --- sol listrado: desce no pôr do sol e sobe no amanhecer --- */
-html[data-theme='good-times'] .gt-sun-path {
-  left: 1.5vw;
-  bottom: 20vh;
-  width: min(27vh, 30vw);
+/* --- sol listrado de óculos: desce no pôr do sol e sobe no amanhecer --- */
+.scene-good-times .gt-sun-path {
+  left: calc(var(--gt-side) * 0.46);
+  translate: -50% 0;
+  bottom: 13vh;
+  width: calc(var(--gt-u) * 15.5);
   aspect-ratio: 1;
   /* momento parado (movimento reduzido): sol dourado se pondo */
-  transform: translateY(53%);
-  animation-name: gt-sun-path;
+  transform: translateY(46%);
+  animation: gt-sun-path var(--gt-cycle) linear var(--gt-t0) infinite;
 }
-html[data-theme='good-times'] .gt-sun,
-html[data-theme='good-times'] .gt-sun-glow {
+.scene-good-times .gt-sun-path > * {
   position: absolute;
   inset: 0;
   border-radius: 50%;
 }
-html[data-theme='good-times'] .gt-sun-glow {
-  inset: -38%;
+.scene-good-times .gt-sun-rays {
+  inset: -62%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 236, 110, 0.7) 0 6deg,
+    transparent 6deg 15deg
+  );
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 30%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side, #000 30%, transparent 100%);
+  animation: gt-spin 90s linear infinite;
+}
+.scene-good-times .gt-sun-glow {
+  inset: -40%;
   background: radial-gradient(
-    circle,
-    rgba(255, 243, 107, 0.6) 0%,
-    rgba(255, 154, 213, 0.35) 38%,
-    transparent 68%
+    circle closest-side,
+    rgba(255, 243, 107, 0.65) 0%,
+    rgba(255, 154, 213, 0.35) 52%,
+    transparent 100%
   );
 }
-html[data-theme='good-times'] .gt-sun {
+.scene-good-times .gt-sun {
   background: linear-gradient(
     to bottom,
     #fff8b8 0%,
@@ -178,37 +207,76 @@ html[data-theme='good-times'] .gt-sun {
     var(--gt-pink-2) 100%
   );
   -webkit-mask-image:
-    linear-gradient(#000 0 52%, transparent 52%),
+    linear-gradient(#000 0 54%, transparent 54%),
     repeating-linear-gradient(#000 0 7%, transparent 7% 10%);
   mask-image:
-    linear-gradient(#000 0 52%, transparent 52%),
+    linear-gradient(#000 0 54%, transparent 54%),
     repeating-linear-gradient(#000 0 7%, transparent 7% 10%);
 }
-html[data-theme='good-times'] .gt-sun-hot {
-  background: linear-gradient(
-    to bottom,
-    #ffe27a 0%,
-    #ffa36b 45%,
-    #ff5fae 100%
-  );
+.scene-good-times .gt-sun-hot {
+  background: linear-gradient(to bottom, #ffe27a 0%, #ffa36b 45%, #ff5fae 100%);
   opacity: 0.7;
-  animation-name: gt-sun-hot;
+  animation: gt-sun-hot var(--gt-cycle) linear var(--gt-t0) infinite;
+}
+/* óculos escuros (por trás deles, olhinhos felizes ^ ^) */
+.scene-good-times .gt-shades {
+  inset: 21% 13% auto;
+  height: auto;
+  border-radius: 0;
+  aspect-ratio: 3;
+  transition: transform 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.scene-good-times .gt-shades > svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-good-times .gt-shades-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M14 12h38q0 18-12 18H28Q15 30 14 12zM68 12h38q-1 18-14 18H80Q68 30 68 12z'/%3E%3C/svg%3E")
+    0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' preserveAspectRatio='none'%3E%3Cpath d='M14 12h38q0 18-12 18H28Q15 30 14 12zM68 12h38q-1 18-14 18H80Q68 30 68 12z'/%3E%3C/svg%3E")
+    0 0 / 100% 100% no-repeat;
+}
+.scene-good-times .gt-shades-glint {
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 16%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.95) 45% 55%,
+    transparent
+  );
+  transform: translateX(-150%) skewX(-22deg);
+  animation: gt-glint-sweep 11s ease-in-out -3s infinite;
+}
+.scene-good-times .gt-sun-eyes {
+  inset: 26% 22% auto;
+  height: auto;
+  border-radius: 0;
+  aspect-ratio: 3;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'%3E%3Cg fill='none' stroke='%231b1726' stroke-width='5' stroke-linecap='round'%3E%3Cpath d='M22 24q8-12 16 0M82 24q8-12 16 0'/%3E%3C/g%3E%3Cg fill='%23ff6fbf' opacity='.7'%3E%3Cellipse cx='16' cy='34' rx='7' ry='4'/%3E%3Cellipse cx='104' cy='34' rx='7' ry='4'/%3E%3C/g%3E%3C/svg%3E")
+    center / contain no-repeat;
 }
 
-/* lens flare de anime: risco horizontal, fantasmas e estrela de 4 pontas */
-html[data-theme='good-times'] .gt-flare {
-  left: 1.5vw;
-  bottom: 20vh;
-  width: min(27vh, 30vw);
+/* lens flare de anime: risco horizontal e fantasmas (só de dia) */
+.scene-good-times .gt-flare {
+  left: calc(var(--gt-side) * 0.46);
+  translate: -50% 0;
+  bottom: 13vh;
+  width: calc(var(--gt-u) * 15.5);
   aspect-ratio: 1;
   opacity: 0;
-  animation-name: gt-flare;
+  animation: gt-flare var(--gt-cycle) linear var(--gt-t0) infinite;
 }
-html[data-theme='good-times'] .gt-flare > * {
+.scene-good-times .gt-flare > * {
   position: absolute;
-  display: block;
 }
-html[data-theme='good-times'] .gt-flare-streak {
+.scene-good-times .gt-flare-streak {
   left: -110%;
   width: 320%;
   top: 31%;
@@ -223,160 +291,130 @@ html[data-theme='good-times'] .gt-flare-streak {
     transparent
   );
 }
-html[data-theme='good-times'] .gt-flare-ghost {
+.scene-good-times .gt-flare-ghost {
   width: 18%;
   aspect-ratio: 1;
-  left: 30%;
+  left: 70%;
   top: -42%;
   border-radius: 50%;
   border: 2.5px solid var(--gt-ink);
   background: rgba(127, 227, 255, 0.55);
 }
-html[data-theme='good-times'] .gt-flare-ghost + .gt-flare-ghost {
+.scene-good-times .gt-flare-ghost + .gt-flare-ghost {
   width: 10%;
-  left: 12%;
+  left: 88%;
   top: -80%;
   background: rgba(255, 154, 213, 0.7);
 }
-html[data-theme='good-times'] .gt-flare-star {
-  width: 70%;
-  left: 6%;
-  top: -4%;
-  fill: #fff;
-  stroke: var(--gt-ink);
-  stroke-width: 2.5;
-  vector-effect: non-scaling-stroke;
-  animation: gt-spin 14s linear infinite;
-}
-html[data-theme='good-times'] .gt-flare-star path {
-  vector-effect: non-scaling-stroke;
-}
 
 /* --- camadas de formas e confete (parallax lateral) --- */
-html[data-theme='good-times'] .gt-layer {
+.scene-good-times .gt-layer {
   inset: 0;
-  animation: gt-drift var(--ld) ease-in-out infinite alternate;
+  animation: gt-drift var(--gt-ld) ease-in-out infinite alternate;
 }
-html[data-theme='good-times'] .gt-layer-far {
-  --ld: 38s;
-  --lx: 1vw;
+.scene-good-times .gt-layer-far {
+  --gt-ld: 38s;
+  --gt-lx: 0.8vw;
   animation-delay: -11s;
 }
-html[data-theme='good-times'] .gt-layer-near {
-  --ld: 23s;
-  --lx: 2.2vw;
+.scene-good-times .gt-layer-near {
+  --gt-ld: 23s;
+  --gt-lx: 1.6vw;
   animation-delay: -5s;
 }
-html[data-theme='good-times'] .gt-confetti {
+.scene-good-times .gt-confetti {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-html[data-theme='good-times'] .gt-confetti path {
+.scene-good-times .gt-confetti path {
   fill: none;
   stroke-width: 3;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
-html[data-theme='good-times'] .gt-layer-near .gt-confetti path {
+.scene-good-times .gt-layer-near .gt-confetti path {
   stroke-width: 5;
 }
-html[data-theme='good-times'] .gt-c-pink { stroke: #ff6fbf; }
-html[data-theme='good-times'] .gt-c-cyan { stroke: #2ec9f0; }
-html[data-theme='good-times'] .gt-c-yellow { stroke: #f5d800; }
-html[data-theme='good-times'] .gt-c-lilac { stroke: #9a7cf0; }
-html[data-theme='good-times'] .gt-c-mint { stroke: #3fd99a; }
-html[data-theme='good-times'] .gt-c-ink { stroke: var(--gt-ink); }
+.scene-good-times .gt-c-pink { stroke: #ff6fbf; }
+.scene-good-times .gt-c-cyan { stroke: #2ec9f0; }
+.scene-good-times .gt-c-yellow { stroke: #f5d800; }
+.scene-good-times .gt-c-lilac { stroke: #9a7cf0; }
+.scene-good-times .gt-c-mint { stroke: #3fd99a; }
+.scene-good-times .gt-c-ink { stroke: var(--gt-ink); }
 
-html[data-theme='good-times'] .gt-shape {
+.scene-good-times .gt-shape {
   position: absolute;
   aspect-ratio: 1;
-  transform: rotate(var(--r));
-  animation: gt-bob var(--d) ease-in-out var(--dl) infinite alternate;
+  transform: rotate(var(--gt-r));
+  animation: gt-bob var(--gt-d) ease-in-out var(--gt-dl) infinite alternate;
 }
-html[data-theme='good-times'] .gt-shape svg {
-  display: block;
+.scene-good-times .gt-shape svg {
   width: 100%;
   height: 100%;
-  overflow: visible;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-html[data-theme='good-times'] .gt-spin {
-  animation: gt-spin var(--sd, 40s) linear infinite;
+.scene-good-times .gt-shape-still {
+  animation: none;
+}
+.scene-good-times .gt-spin {
+  animation: gt-spin var(--gt-sd, 40s) linear infinite;
+}
+/* troca de pose na batida (2 quadros por segundo, como desenho animado) */
+.scene-good-times .gt-pose {
+  animation: gt-pose 1s steps(1) var(--gt-pz, 0s) infinite;
 }
 
-/* --- horizonte e palmeiras --- */
-html[data-theme='good-times'] .gt-horizon {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 7vh;
-  border-top: 3px solid var(--gt-ink);
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0 6px,
-      rgba(255, 255, 255, 0.6) 6px 8px
-    ),
-    linear-gradient(#c9a7ff, var(--gt-pink));
-}
-html[data-theme='good-times'] .gt-palm {
+/* --- palmeiras --- */
+.scene-good-times .gt-palm {
   bottom: 5vh;
   aspect-ratio: 3 / 4;
   transform-origin: 46% 100%;
-  animation: gt-sway var(--pd, 7s) ease-in-out var(--pdl, 0s) infinite alternate;
+  animation: gt-sway var(--gt-pd, 7s) ease-in-out var(--gt-pdl, 0s) infinite
+    alternate;
 }
-html[data-theme='good-times'] .gt-palm svg {
-  display: block;
+.scene-good-times .gt-palm svg {
   width: 100%;
   height: 100%;
-  overflow: visible;
 }
-html[data-theme='good-times'] .gt-palm path {
+.scene-good-times .gt-palm path {
   stroke: var(--gt-ink);
   stroke-width: 2;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-html[data-theme='good-times'] .gt-palm-leaves,
-html[data-theme='good-times'] .gt-palm-trunk {
-  fill: var(--palm);
+.scene-good-times .gt-palm-leaves,
+.scene-good-times .gt-palm-trunk {
+  fill: var(--gt-palm);
 }
-html[data-theme='good-times'] .gt-palm-rings {
+.scene-good-times .gt-palm-rings {
   fill: none;
   stroke-width: 2;
 }
-html[data-theme='good-times'] .gt-palm-nuts {
+.scene-good-times .gt-palm-nuts {
   fill: var(--gt-ink);
 }
-html[data-theme='good-times'] .gt-palm-1 {
-  --palm: var(--gt-pink);
-  --pd: 7.5s;
-  left: -4vh;
-  height: 50vh;
+.scene-good-times .gt-palm-1 {
+  --gt-palm: var(--gt-pink);
+  --gt-pd: 7.5s;
+  left: calc(var(--gt-side) * 0.5 - var(--gt-u) * 21);
+  height: calc(var(--gt-u) * 40);
 }
-html[data-theme='good-times'] .gt-palm-2 {
-  --palm: #d2b8ff;
-  --pd: 6.2s;
-  --pdl: -3s;
-  left: 13vh;
-  height: 33vh;
+.scene-good-times .gt-palm-2 {
+  --gt-palm: #d2b8ff;
+  --gt-pd: 8.4s;
+  --gt-pdl: -5s;
+  right: calc(var(--gt-side) * 0.5 - var(--gt-u) * 6);
+  height: calc(var(--gt-u) * 34);
 }
-html[data-theme='good-times'] .gt-palm-3 {
-  --palm: #d2b8ff;
-  --pd: 8.4s;
-  --pdl: -5s;
-  right: -5vh;
-  height: 46vh;
-}
-html[data-theme='good-times'] .gt-palm-3 svg {
+.scene-good-times .gt-palm-2 svg {
   transform: scaleX(-1);
 }
 
-/* --- tipografia decorativa --- */
-html[data-theme='good-times'] .gt-kanji {
+/* --- tipografia decorativa (letreiro 良い時; à noite vira neon) --- */
+.scene-good-times .gt-kanji {
   right: max(1.6vw, 12px);
   top: 13vh;
   writing-mode: vertical-rl;
@@ -386,85 +424,997 @@ html[data-theme='good-times'] .gt-kanji {
   color: var(--gt-ink);
   text-shadow: 5px 5px 0 var(--gt-pink);
 }
-html[data-theme='good-times'] .gt-script {
-  left: 2vw;
-  bottom: 8.5vh;
+.scene-good-times .gt-kanji-neon {
+  color: #fff4fb;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 8px #ff6fbf,
+    0 0 18px #ff4fae,
+    0 0 36px #ff2e88;
+  opacity: 0.9;
+  animation: gt-neon var(--gt-cycle) linear var(--gt-t0) infinite;
+}
+/* letreiro "Yoi Toki" na beira da pista, abaixo do rosto do sol */
+.scene-good-times .gt-script-wrap {
+  left: calc(var(--gt-side) * 0.5 - var(--gt-u) * 8.2);
+  bottom: 6.6vh;
+  transform: rotate(-6deg);
+}
+.scene-good-times .gt-script {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  margin: 0;
   font-family: var(--font-yellowtail), cursive;
-  font-size: clamp(34px, 7vh, 74px);
+  font-size: calc(var(--gt-u) * 5.4);
   line-height: 1;
   color: var(--gt-cyan);
   -webkit-text-stroke: 2px var(--gt-ink);
   paint-order: stroke fill;
   text-shadow: 4px 4px 0 var(--gt-ink);
-  transform: rotate(-9deg);
   white-space: nowrap;
+}
+.scene-good-times .gt-script-neon {
+  color: #f2fdff;
+  -webkit-text-stroke: 0;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 7px #2ec9f0,
+    0 0 16px #2ec9f0,
+    0 0 30px #12b8e8;
+  opacity: 0.9;
+  animation: gt-neon var(--gt-cycle) linear calc(var(--gt-t0) - 2.4s) infinite;
 }
 
 /* --- noite: véu lilás, estrelas e lua --- */
-html[data-theme='good-times'] .gt-shade {
+.scene-good-times .gt-shade {
   inset: 0;
   background: linear-gradient(#4a2a8a, #7a4fa8);
-  opacity: 0;
-  animation-name: gt-shade;
+  opacity: 0.14;
+  animation: gt-shade var(--gt-cycle) linear var(--gt-t0) infinite;
 }
-html[data-theme='good-times'] .gt-night {
+.scene-good-times .gt-night {
   inset: 0;
   opacity: 0;
-  animation-name: gt-night;
+  animation: gt-night var(--gt-cycle) linear var(--gt-t0) infinite;
 }
-html[data-theme='good-times'] .gt-stars {
+.scene-good-times .gt-stars {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-html[data-theme='good-times'] .gt-stars path {
+.scene-good-times .gt-stars path {
   fill: none;
   stroke: #fffbe0;
   stroke-width: 3.5;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
-html[data-theme='good-times'] .gt-stars-a {
+.scene-good-times .gt-stars-a {
   animation: gt-twinkle 3.2s ease-in-out infinite alternate;
 }
-html[data-theme='good-times'] .gt-stars-b {
+.scene-good-times .gt-stars-b {
   animation: gt-twinkle 4.6s ease-in-out -2.3s infinite alternate;
 }
-html[data-theme='good-times'] .gt-stars-b path {
+.scene-good-times .gt-stars-b path {
   stroke: #ffe3f4;
   stroke-width: 2.5;
 }
-html[data-theme='good-times'] .gt-twinkle {
+.scene-good-times .gt-twinkle {
   position: absolute;
   fill: #fffbe0;
-  animation: gt-pulse var(--d) ease-in-out var(--dl) infinite;
+  animation: gt-pulse var(--gt-d) ease-in-out var(--gt-dl) infinite;
 }
-html[data-theme='good-times'] .gt-moon {
-  left: 63vw;
-  top: 1.5vh;
-  width: 7.5vh;
+.scene-good-times .gt-moon {
+  left: calc(100vw - var(--gt-side) + 8px);
+  top: 1.2vh;
+  width: 6.5vh;
   opacity: 0;
-  animation-name: gt-moon;
+  animation: gt-moon var(--gt-cycle) linear var(--gt-t0) infinite;
 }
-html[data-theme='good-times'] .gt-moon svg {
-  display: block;
+.scene-good-times .gt-moon svg {
   width: 100%;
-  overflow: visible;
   filter: drop-shadow(0 0 14px rgba(255, 246, 176, 0.85));
 }
-html[data-theme='good-times'] .gt-moon path {
+.scene-good-times .gt-moon path {
   fill: #fff6b0;
   stroke: var(--gt-ink);
   stroke-width: 3;
 }
 
+/* --- fogos Memphis (noite) --- */
+.scene-good-times .gt-fw {
+  top: -3vh;
+  width: 17vh;
+  opacity: 0;
+  animation: gt-fw var(--gt-cycle) linear var(--gt-fwd) infinite;
+}
+/* nos vãos da faixa de cima e no alto das margens */
+.scene-good-times .gt-fw-0 {
+  left: 46vw;
+  top: -8vh;
+  width: 25vh;
+  --gt-fwd: var(--gt-t0);
+}
+.scene-good-times .gt-fw-1 {
+  left: calc(100vw - var(--gt-side) * 0.5);
+  translate: -50% 0;
+  top: 3vh;
+  width: 18vh;
+  --gt-fwd: calc(var(--gt-t0) + 1.3s);
+}
+.scene-good-times .gt-fw-2 {
+  left: calc(var(--gt-side) * 0.45);
+  translate: -50% 0;
+  top: 6vh;
+  width: 18vh;
+  --gt-fwd: calc(var(--gt-t0) + 2.6s);
+}
+
+/* --- balão de ar quente (raro, margem esquerda, ao fundo) --- */
+.scene-good-times .gt-balloon {
+  left: calc(var(--gt-side) * 0.5 - var(--gt-u) * 4);
+  top: 100vh;
+  width: calc(var(--gt-u) * 8);
+  opacity: 0;
+  animation: gt-balloon 173s linear -35s infinite;
+}
+
+/* ================= FESTA ================= */
+
+/* --- varal de lâmpadas na faixa de cima --- */
+.scene-good-times .gt-lights {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: calc(var(--gt-vh) * 12);
+}
+.scene-good-times .gt-wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-good-times .gt-wires path {
+  fill: none;
+  stroke: var(--gt-ink);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.scene-good-times .gt-bulb {
+  position: absolute;
+  width: calc(var(--gt-vh) * 1.25);
+  height: calc(var(--gt-vh) * 1.7);
+  translate: -50% 0;
+  margin-top: calc(var(--gt-vh) * 0.35);
+  border: 2px solid var(--gt-ink);
+  border-radius: 50% 50% 46% 46% / 42% 42% 58% 58%;
+  background: radial-gradient(
+      circle at 36% 34%,
+      #fff 0 16%,
+      transparent 34%
+    ),
+    var(--gt-c);
+}
+.scene-good-times .gt-bulb::before {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: -34%;
+  height: 34%;
+  background: var(--gt-ink);
+  border-radius: 2px 2px 0 0;
+}
+.scene-good-times .gt-glows {
+  position: absolute;
+  inset: 0;
+  opacity: 0.85;
+  animation: gt-lights-on var(--gt-cycle) linear var(--gt-t0) infinite;
+}
+.scene-good-times .gt-glow-g {
+  position: absolute;
+  inset: 0;
+  animation: gt-chase 1.5s steps(1) infinite;
+}
+.scene-good-times .gt-glow-g1 {
+  animation-delay: -0.5s;
+}
+.scene-good-times .gt-glow-g2 {
+  animation-delay: -1s;
+}
+.scene-good-times .gt-glow {
+  position: absolute;
+  width: calc(var(--gt-vh) * 6.5);
+  aspect-ratio: 1;
+  translate: -50% -38%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle closest-side,
+    #fff 0 11%,
+    var(--gt-c) 24%,
+    transparent 100%
+  );
+}
+
+/* --- globo espelhado --- */
+.scene-good-times .gt-disco {
+  left: 64%;
+  top: 0;
+  width: calc(var(--gt-vh) * 8);
+  height: calc(var(--gt-vh) * 11);
+  translate: -50% 0;
+}
+.scene-good-times .gt-disco-drop {
+  position: absolute;
+  inset: 0;
+  transform: translateY(calc(var(--gt-vh) * 0.8));
+  animation: gt-disco-drop var(--gt-cycle) ease-in-out var(--gt-t0) infinite;
+}
+.scene-good-times .gt-disco-cord {
+  position: absolute;
+  left: calc(50% - 1px);
+  width: 2px;
+  bottom: 70%;
+  height: calc(var(--gt-vh) * 8);
+  background: var(--gt-ink);
+}
+.scene-good-times .gt-disco-ball,
+.scene-good-times .gt-disco-halo,
+.scene-good-times .gt-disco-win {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.scene-good-times .gt-disco-ball {
+  overflow: hidden;
+  border: 3px solid var(--gt-ink);
+  box-shadow: 5px 5px 0 var(--gt-ink);
+  background: #d9d3ea;
+}
+.scene-good-times .gt-disco-facets {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background-image: var(--gt-facets);
+  background-size: 25% 50%;
+  animation: gt-facets 6s linear infinite;
+}
+.scene-good-times .gt-disco-shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.9) 0 7%, transparent 26%),
+    radial-gradient(circle at 50% 50%, transparent 52%, rgba(42, 33, 64, 0.55) 100%);
+}
+.scene-good-times .gt-disco-halo {
+  inset: auto -80% -80%;
+  background: radial-gradient(
+    circle closest-side,
+    rgba(255, 255, 255, 0.95) 0 22%,
+    rgba(255, 159, 214, 0.55) 40%,
+    rgba(127, 227, 255, 0.25) 62%,
+    transparent 100%
+  );
+  opacity: 0.8;
+  animation: gt-halo var(--gt-cycle) linear var(--gt-t0) infinite;
+}
+.scene-good-times .gt-disco-win {
+  inset: auto -110% -110%;
+  background: radial-gradient(
+    circle closest-side,
+    var(--win-color, #fff) 0 24%,
+    transparent 100%
+  );
+  opacity: 0;
+}
+.scene-good-times .gt-disco-glint {
+  position: absolute;
+  width: 34%;
+  fill: #fff;
+  stroke: var(--gt-ink);
+  stroke-width: 3;
+  opacity: 0;
+}
+.scene-good-times .gt-dg-1 {
+  left: 8%;
+  bottom: 42%;
+  animation: gt-glint 3.7s ease-out -1.1s infinite;
+}
+.scene-good-times .gt-dg-2 {
+  left: 60%;
+  bottom: 8%;
+  width: 26%;
+  animation: gt-glint 5.3s ease-out -3.4s infinite;
+}
+
+/* reflexos: disco grande girando em volta do globo */
+.scene-good-times .gt-flecks {
+  left: 64%;
+  top: calc(var(--gt-vh) * 7);
+  width: 0;
+  height: 0;
+  opacity: 0.85;
+  animation: gt-flecks-on var(--gt-cycle) linear var(--gt-t0) infinite;
+}
+.scene-good-times .gt-flecks-disc {
+  position: absolute;
+  --gt-fr: max(46vw, 62vh);
+  left: calc(var(--gt-fr) * -1);
+  top: calc(var(--gt-fr) * -1);
+  width: calc(var(--gt-fr) * 2);
+  height: calc(var(--gt-fr) * 2);
+  border-radius: 50%;
+  background-image: var(--gt-flecks);
+  background-size: 240px 240px;
+  -webkit-mask-image: radial-gradient(
+    circle closest-side,
+    transparent 7%,
+    #000 14% 62%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    circle closest-side,
+    transparent 7%,
+    #000 14% 62%,
+    transparent 100%
+  );
+}
+.scene-good-times .gt-flecks-slow {
+  animation: gt-spin 70s linear infinite;
+}
+.scene-good-times .gt-flecks-fast {
+  display: none;
+  background-image: var(--gt-flecks-2);
+  background-size: 210px 210px;
+}
+
+/* --- pista de dança xadrez --- */
+.scene-good-times .gt-floor {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 7vh;
+  border-top: 3px solid var(--gt-ink);
+  background: #fbf7ff;
+}
+.scene-good-times .gt-floor svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-good-times .gt-floor-lines {
+  fill: none;
+  stroke: var(--gt-ink);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.7;
+}
+.scene-good-times .gt-floor-lit path {
+  stroke: none;
+}
+.scene-good-times .gt-floor-a path {
+  fill: #7fe3ff;
+}
+.scene-good-times .gt-floor-b path {
+  fill: #fff36b;
+}
+.scene-good-times .gt-floor-lit {
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    #000 0 22%,
+    rgba(0, 0, 0, 0.35) 38% 62%,
+    #000 78%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    #000 0 22%,
+    rgba(0, 0, 0, 0.35) 38% 62%,
+    #000 78%
+  );
+}
+.scene-good-times .gt-floor-a {
+  animation: gt-floor-a 1s steps(1) infinite;
+}
+.scene-good-times .gt-floor-b {
+  opacity: 0;
+  animation: gt-floor-b 1s steps(1) infinite;
+}
+
+/* --- rádio boombox --- */
+.scene-good-times .gt-boombox {
+  left: calc(100vw - var(--gt-side) * 0.5);
+  translate: -50% 0;
+  bottom: 3.2vh;
+  width: calc(var(--gt-u) * 15);
+  aspect-ratio: 200 / 130;
+}
+.scene-good-times .gt-boombox > * {
+  position: absolute;
+}
+.scene-good-times .gt-boombox > svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-good-times .gt-bb-lcd {
+  left: 33%;
+  top: 32%;
+  width: 34%;
+  height: 32%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(143, 240, 193, 0.75),
+    rgba(127, 227, 255, 0.3) 55%,
+    transparent
+  );
+  opacity: 0.8;
+  animation: gt-lights-on var(--gt-cycle) linear var(--gt-t0) infinite;
+}
+.scene-good-times .gt-eq {
+  left: 42.5%;
+  top: 40.6%;
+  width: 15%;
+  height: 11.6%;
+}
+.scene-good-times .gt-eq {
+  overflow: hidden;
+}
+.scene-good-times .gt-eq-strip {
+  width: 100%;
+  height: 400%;
+  animation: gt-eq 0.5s steps(4) infinite;
+}
+.scene-good-times .gt-reel {
+  top: 61.5%;
+  width: 9%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--gt-ink);
+  background:
+    radial-gradient(circle, var(--gt-ink) 0 18%, transparent 20%),
+    repeating-conic-gradient(#fff 0 40deg, var(--gt-ink) 40deg 60deg);
+  animation: gt-spin 2.4s linear infinite;
+}
+.scene-good-times .gt-reel-l { left: 40.5%; }
+.scene-good-times .gt-reel-r { left: 50.5%; }
+.scene-good-times .gt-cone-wrap {
+  top: 41.5%;
+  width: 28%;
+  aspect-ratio: 1;
+}
+.scene-good-times .gt-cone-l { left: 8.5%; }
+.scene-good-times .gt-cone-r { left: 61.5%; }
+.scene-good-times .gt-cone {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle closest-side, var(--gt-yellow) 0 22%, var(--gt-ink) 23% 29%, transparent 30%),
+    repeating-radial-gradient(circle closest-side, #ffc6e8 0 11%, var(--gt-ink) 11% 14%),
+    var(--gt-pink);
+  border: 2px solid var(--gt-ink);
+  animation: gt-pump 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
+}
+.scene-good-times .gt-bb-led {
+  left: 88.5%;
+  top: 27%;
+  width: 4%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #ff2e88;
+  box-shadow: 0 0 0 1.5px var(--gt-ink), 0 0 8px 2px rgba(255, 46, 136, 0.7);
+  animation: gt-led 0.5s steps(1) infinite;
+}
+.scene-good-times .gt-notes {
+  inset: -6% 0 auto;
+  height: 40%;
+}
+.scene-good-times .gt-note {
+  position: absolute;
+  bottom: 0;
+  font: 400 calc(var(--gt-u) * 3.2) / 1 var(--font-righteous), sans-serif;
+  color: var(--gt-ink);
+  -webkit-text-stroke: 3px #fff;
+  paint-order: stroke fill;
+  opacity: 0;
+  animation: gt-note 2s ease-out infinite;
+}
+.scene-good-times .gt-note-1 { left: 12%; color: #e0218a; }
+.scene-good-times .gt-note-2 { left: 46%; animation-delay: -0.66s; }
+.scene-good-times .gt-note-3 { left: 78%; animation-delay: -1.33s; color: #0f9fc9; }
+.scene-good-times .gt-notes-wild {
+  display: none;
+}
+
+/* --- poppers (lança-confetes) no chão --- */
+.scene-good-times .gt-popper {
+  bottom: 2.4vh;
+  width: calc(var(--gt-u) * 4);
+  aspect-ratio: 40 / 60;
+}
+.scene-good-times .gt-popper-l {
+  left: calc(var(--gt-side) * 0.86);
+  rotate: 16deg;
+}
+.scene-good-times .gt-popper-r {
+  left: calc(100vw - var(--gt-side) * 0.5 - var(--gt-u) * 7.2);
+  bottom: calc(3.2vh + var(--gt-u) * 7.4);
+  rotate: -12deg;
+}
+.scene-good-times .gt-popper-cone {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+}
+.scene-good-times .gt-popper-cone svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-good-times .gt-pop {
+  position: absolute;
+  left: 50%;
+  bottom: 88%;
+  width: calc(var(--gt-u) * 30);
+  aspect-ratio: 1;
+  translate: -50% 0;
+  transform-origin: 50% 100%;
+  display: none;
+}
+
+/* --- bola de praia --- */
+.scene-good-times .gt-ball-run {
+  left: 0;
+  bottom: 1.2vh;
+  width: calc(var(--gt-u) * 5);
+  aspect-ratio: 1;
+  transform: translateX(calc(var(--gt-side) * 0.2));
+  animation: gt-ball-run 37s linear -6s infinite;
+}
+.scene-good-times .gt-ball-run > * {
+  position: absolute;
+}
+.scene-good-times .gt-ball-shadow {
+  left: 8%;
+  right: 8%;
+  bottom: -8%;
+  height: 22%;
+  border-radius: 50%;
+  background: rgba(27, 23, 38, 0.35);
+  animation: gt-ball-shadow 0.8s ease-in-out infinite alternate;
+}
+.scene-good-times .gt-ball-hop {
+  inset: 0;
+  animation: gt-ball-hop 0.8s ease-in-out infinite alternate;
+}
+.scene-good-times .gt-ball {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2.5px solid var(--gt-ink);
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.95) 0 9%, transparent 24%),
+    radial-gradient(circle, #fff 0 13%, var(--gt-ink) 14% 17%, transparent 18%),
+    conic-gradient(
+      var(--gt-hot) 0 60deg,
+      #fff 60deg 120deg,
+      #2ec9f0 120deg 180deg,
+      var(--gt-yellow) 180deg 240deg,
+      #fff 240deg 300deg,
+      #9a7cf0 300deg
+    );
+  animation: gt-spin 1.4s linear infinite;
+}
+
+/* --- aviãozinho com faixa --- */
+.scene-good-times .gt-plane {
+  left: 0;
+  top: 1.6vh;
+  height: calc(var(--gt-vh) * 7);
+  opacity: 0;
+  animation: gt-plane 61s linear -40s infinite;
+}
+.scene-good-times .gt-plane-bob {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  animation: gt-plane-bob 2.6s ease-in-out infinite alternate;
+}
+.scene-good-times .gt-plane-body {
+  position: relative;
+  height: 100%;
+  width: auto;
+  aspect-ratio: 130 / 64;
+  flex: none;
+}
+.scene-good-times .gt-prop {
+  position: absolute;
+  left: 5%;
+  top: 22%;
+  width: calc(var(--gt-vh) * 0.9);
+  height: 56%;
+  border-radius: 50%;
+  background: rgba(27, 23, 38, 0.55);
+  animation: gt-prop 0.09s linear infinite alternate;
+}
+.scene-good-times .gt-tow {
+  width: calc(var(--gt-vh) * 4.5);
+  height: 60%;
+  flex: none;
+}
+.scene-good-times .gt-banner {
+  flex: none;
+  padding: calc(var(--gt-vh) * 0.5) calc(var(--gt-vh) * 1.6);
+  background: #fff;
+  border: 2.5px solid var(--gt-ink);
+  box-shadow: 4px 4px 0 var(--gt-pink-2);
+  clip-path: polygon(0 0, 100% 0, 97% 50%, 100% 100%, 0 100%);
+  font: 400 calc(var(--gt-vh) * 2.4) / 1.1 var(--font-righteous), sans-serif;
+  letter-spacing: 0.06em;
+  color: var(--gt-ink);
+  white-space: nowrap;
+  transform-origin: 0 50%;
+  animation: gt-flap 0.7s steps(1) infinite;
+}
+
+/* --- fita cassete flutuando na faixa de cima --- */
+/* encostada à esquerda do controle de volume, em qualquer largura */
+.scene-good-times .gt-cassette {
+  left: calc(100vw - var(--gt-side) - 250px);
+  top: 1.4vh;
+  width: calc(var(--gt-vh) * 9.5);
+  aspect-ratio: 120 / 76;
+  translate: -50% 0;
+  transform: rotate(-8deg);
+  animation: gt-cass 7s ease-in-out -2s infinite alternate;
+}
+.scene-good-times .gt-cassette svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-good-times .gt-creel {
+  position: absolute;
+  top: 31%;
+  width: 9%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #2a2140 0 22%, transparent 24%),
+    repeating-conic-gradient(#fff 0 30deg, #9a7cf0 30deg 60deg);
+  animation: gt-spin 2.2s linear infinite;
+}
+.scene-good-times .gt-creel-l { left: 32%; }
+.scene-good-times .gt-creel-r { left: 61%; }
+
+/* --- adesivos (margem esquerda) --- */
+.scene-good-times .gt-stickers {
+  left: calc(var(--gt-side) * 0.5);
+  translate: -50% 0;
+  top: 35.5vh;
+  width: calc(var(--gt-u) * 15.4);
+  height: calc(var(--gt-u) * 18);
+}
+.scene-good-times .gt-stk {
+  position: absolute;
+}
+.scene-good-times .gt-stk svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(3px 3px 0 var(--gt-ink));
+}
+.scene-good-times .gt-stk-cut {
+  fill: #fff;
+  stroke: #fff;
+  stroke-width: 9;
+  stroke-linejoin: round;
+}
+.scene-good-times .gt-stk-smile {
+  left: 0;
+  top: 0;
+  width: calc(var(--gt-u) * 7.4);
+  aspect-ratio: 1;
+  rotate: -8deg;
+  animation: gt-pose 1s steps(1) -0.5s infinite;
+}
+.scene-good-times .gt-stk-star {
+  left: calc(var(--gt-u) * 7.2);
+  top: calc(var(--gt-u) * 0.6);
+  width: calc(var(--gt-u) * 8.2);
+  aspect-ratio: 1;
+  rotate: 10deg;
+  animation: gt-pose 1s steps(1) infinite;
+}
+.scene-good-times .gt-stk-star b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  font: 400 calc(var(--gt-u) * 1.5) / 1 var(--font-bungee), sans-serif;
+  color: #fff;
+  -webkit-text-stroke: 2.5px var(--gt-ink);
+  paint-order: stroke fill;
+}
+.scene-good-times .gt-stk-bolt {
+  left: calc(var(--gt-u) * 1.4);
+  top: calc(var(--gt-u) * 8.6);
+  width: calc(var(--gt-u) * 4.2);
+  aspect-ratio: 60 / 100;
+  rotate: -12deg;
+}
+.scene-good-times .gt-stk-label {
+  left: calc(var(--gt-u) * 5.6);
+  top: calc(var(--gt-u) * 10.2);
+  width: calc(var(--gt-u) * 9.8);
+  height: calc(var(--gt-u) * 5.2);
+  rotate: 6deg;
+  perspective: calc(var(--gt-u) * 30);
+  --gt-cut: calc(var(--gt-u) * 2.4);
+}
+.scene-good-times .gt-stk-label::before,
+.scene-good-times .gt-label-body {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--gt-cut)),
+    calc(100% - var(--gt-cut)) 100%,
+    0 100%
+  );
+}
+.scene-good-times .gt-stk-label::before {
+  content: '';
+  background: var(--gt-ink);
+  translate: 3px 3px;
+}
+.scene-good-times .gt-label-body {
+  display: grid;
+  place-content: center;
+  text-align: center;
+  border: 2.5px solid var(--gt-ink);
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 8px, rgba(255, 255, 255, 0.35) 8px 10px),
+    var(--gt-lilac);
+  color: var(--gt-ink);
+}
+.scene-good-times .gt-label-body b {
+  font: 400 calc(var(--gt-u) * 1.55) / 1 var(--font-righteous), sans-serif;
+  letter-spacing: 0.05em;
+}
+.scene-good-times .gt-label-body small {
+  font: 700 calc(var(--gt-u) * 0.82) / 1.3 var(--font-mplus-rounded), sans-serif;
+}
+.scene-good-times .gt-peel {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: var(--gt-cut);
+  height: var(--gt-cut);
+  transform-style: preserve-3d;
+  animation: gt-peel 29s ease-in-out -21s infinite;
+}
+.scene-good-times .gt-peel > i {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+.scene-good-times .gt-peel-front {
+  background: var(--gt-lilac);
+  border-right: 2.5px solid var(--gt-ink);
+  border-bottom: 2.5px solid var(--gt-ink);
+  border-bottom-right-radius: 4px;
+}
+.scene-good-times .gt-peel-back {
+  background: linear-gradient(135deg, #fff 30%, #ddd7ea);
+  transform: rotate3d(1, 1, 0, 180deg);
+  border-top: 2px solid #b9b3c9;
+}
+
+/* --- sólidos 3D --- */
+.scene-good-times .gt-solid {
+  --gt-s: calc(var(--gt-u) * 7.6);
+  width: var(--gt-s);
+  height: var(--gt-s);
+  translate: -50% 0;
+  animation: gt-float var(--gt-fd, 7s) ease-in-out var(--gt-fdl, 0s) infinite
+    alternate;
+}
+.scene-good-times .gt-solid-hop,
+.scene-good-times .gt-view,
+.scene-good-times .gt-whirl,
+.scene-good-times .gt-tumble {
+  position: absolute;
+  inset: 0;
+}
+.scene-good-times .gt-view {
+  perspective: calc(var(--gt-s) * 7);
+  transition: transform 0.9s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.scene-good-times .gt-view-ink {
+  transform: translate(calc(var(--gt-s) * 0.13), calc(var(--gt-s) * 0.16));
+}
+.scene-good-times .gt-whirl,
+.scene-good-times .gt-tumble {
+  transform-style: preserve-3d;
+}
+.scene-good-times .gt-whirl {
+  transition: transform 3.4s cubic-bezier(0.45, 0, 0.2, 1);
+}
+.scene-good-times .gt-f {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: 3px solid var(--gt-ink);
+  background-color: var(--gt-ink);
+}
+.scene-good-times .gt-view-ink .gt-f {
+  border: 0;
+}
+/* estampas das faces */
+.scene-good-times .gt-p-dots {
+  background:
+    radial-gradient(var(--gt-ink) 20%, transparent 24%) 0 0 / 22% 22%,
+    var(--gt-pink);
+}
+.scene-good-times .gt-p-stripes {
+  background: repeating-linear-gradient(
+      -45deg,
+      var(--gt-ink) 0 3px,
+      transparent 3px 11px
+    ),
+    var(--gt-yellow);
+}
+.scene-good-times .gt-p-check {
+  background:
+    conic-gradient(var(--gt-ink) 25%, #fff 0 50%, var(--gt-ink) 0 75%, #fff 0)
+      0 0 / 33.4% 33.4%;
+}
+.scene-good-times .gt-p-squig {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'%3E%3Cpath d='M0 12q5-8 10 0t10 0t10 0t10 0' fill='none' stroke='%231b1726' stroke-width='3'/%3E%3C/svg%3E")
+      0 0 / 50% 34%,
+    var(--gt-cyan);
+}
+.scene-good-times .gt-p-grid {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.85) 2px, transparent 2px) 0 0 / 25% 25%,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.85) 2px, transparent 2px) 0 0 /
+      25% 25%,
+    var(--gt-lilac);
+}
+.scene-good-times .gt-p-mint {
+  background:
+    radial-gradient(circle, var(--gt-ink) 0 16%, transparent 17%),
+    var(--gt-mint);
+}
+.scene-good-times .gt-p-zig {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'%3E%3Cpath d='M0 15l10-10l10 10l10-10l10 10' fill='none' stroke='%231b1726' stroke-width='3'/%3E%3C/svg%3E")
+      0 0 / 50% 25%,
+    var(--gt-mint);
+}
+.scene-good-times .gt-p-yellow {
+  background: var(--gt-yellow);
+}
+/* cubo */
+.scene-good-times .gt-cf0 { transform: translateZ(calc(var(--gt-s) / 2)); }
+.scene-good-times .gt-cf1 { transform: rotateY(90deg) translateZ(calc(var(--gt-s) / 2)); }
+.scene-good-times .gt-cf2 { transform: rotateY(180deg) translateZ(calc(var(--gt-s) / 2)); }
+.scene-good-times .gt-cf3 { transform: rotateY(-90deg) translateZ(calc(var(--gt-s) / 2)); }
+.scene-good-times .gt-cf4 { transform: rotateX(90deg) translateZ(calc(var(--gt-s) / 2)); }
+.scene-good-times .gt-cf5 { transform: rotateX(-90deg) translateZ(calc(var(--gt-s) / 2)); }
+.scene-good-times .gt-cube .gt-tumble {
+  transform: rotateX(-24deg) rotateY(30deg);
+  animation: gt-tumble-cube 26s linear infinite;
+}
+/* pirâmide (altura = lado; faces inclinadas atan(1/2) = 26,57°) */
+.scene-good-times .gt-pyramid .gt-tri {
+  inset: auto 0 0;
+  height: calc(var(--gt-s) * 1.118);
+  border: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  transform-origin: 50% 100%;
+}
+.scene-good-times .gt-tri svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-good-times .gt-tri path,
+.scene-good-times .gt-cap path {
+  fill: none;
+  stroke: var(--gt-ink);
+  stroke-width: 6;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.scene-good-times .gt-pf0 { transform: translateZ(calc(var(--gt-s) / 2)) rotateX(26.57deg); }
+.scene-good-times .gt-pf1 { transform: rotateY(90deg) translateZ(calc(var(--gt-s) / 2)) rotateX(26.57deg); }
+.scene-good-times .gt-pf2 { transform: rotateY(180deg) translateZ(calc(var(--gt-s) / 2)) rotateX(26.57deg); }
+.scene-good-times .gt-pf3 { transform: rotateY(-90deg) translateZ(calc(var(--gt-s) / 2)) rotateX(26.57deg); }
+.scene-good-times .gt-pbase { transform: translateY(calc(var(--gt-s) / 2)) rotateX(90deg); }
+.scene-good-times .gt-pyramid .gt-tumble {
+  transform: rotateX(-14deg) rotateY(20deg);
+  animation: gt-tumble-pyr 34s linear infinite;
+}
+/* prisma triangular deitado (eixo x; lado t, raio interno r = t/(2√3)) */
+.scene-good-times .gt-prism {
+  --gt-t: calc(var(--gt-s) * 0.62);
+}
+.scene-good-times .gt-prism [class*='gt-rf'] {
+  inset: auto 0;
+  top: calc(50% - var(--gt-t) / 2);
+  height: var(--gt-t);
+}
+.scene-good-times .gt-rf0 { transform: translateZ(calc(var(--gt-t) * 0.2887)); }
+.scene-good-times .gt-rf1 { transform: rotateX(120deg) translateZ(calc(var(--gt-t) * 0.2887)); }
+.scene-good-times .gt-rf2 { transform: rotateX(240deg) translateZ(calc(var(--gt-t) * 0.2887)); }
+.scene-good-times .gt-cap {
+  inset: auto;
+  top: calc(50% - var(--gt-t) / 2);
+  width: calc(var(--gt-t) * 0.866);
+  height: var(--gt-t);
+  border: 0;
+}
+.scene-good-times .gt-cap svg {
+  width: 100%;
+  height: 100%;
+}
+.scene-good-times .gt-cap-r {
+  left: calc(50% - var(--gt-t) * 0.2887);
+  transform-origin: 33.333% 50%;
+  transform: rotateY(90deg) translateZ(calc(var(--gt-s) / 2));
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.scene-good-times .gt-cap-l {
+  left: calc(50% - var(--gt-t) * 0.5774);
+  transform-origin: 66.667% 50%;
+  transform: rotateY(-90deg) translateZ(calc(var(--gt-s) / 2));
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+.scene-good-times .gt-prism .gt-tumble {
+  transform: rotateZ(-10deg) rotateY(-32deg) rotateX(0deg);
+  animation: gt-tumble-prism 22s linear infinite;
+}
+/* onde ficam */
+.scene-good-times .gt-solid-cube {
+  left: calc(var(--gt-side) * 0.52);
+  top: 15vh;
+  --gt-fd: 6.4s;
+  --gt-fdl: -2s;
+}
+.scene-good-times .gt-solid-pyr {
+  left: calc(100vw - var(--gt-side) * 0.42);
+  top: 58vh;
+  --gt-s: calc(var(--gt-u) * 8.4);
+  --gt-fd: 8.2s;
+  --gt-fdl: -5s;
+}
+.scene-good-times .gt-solid-prism {
+  left: 40.5%;
+  top: 1.6vh;
+  --gt-s: calc(var(--gt-vh) * 10);
+  --gt-fd: 5.6s;
+}
+
 /* --- chuva de confete pastel (centro mais calmo) --- */
-html[data-theme='good-times'] .gt-rain {
+.scene-good-times .gt-rain {
   inset: 0;
   overflow: hidden;
   opacity: 0;
-  animation-name: gt-rain;
+  animation: gt-rain var(--gt-cycle) linear var(--gt-t0) infinite;
   -webkit-mask-image: linear-gradient(
     90deg,
     #000 0 22%,
@@ -478,7 +1428,7 @@ html[data-theme='good-times'] .gt-rain {
     #000 78%
   );
 }
-html[data-theme='good-times'] .gt-rain-fall {
+.scene-good-times .gt-rain-fall {
   position: absolute;
   left: 0;
   right: 0;
@@ -489,44 +1439,311 @@ html[data-theme='good-times'] .gt-rain-fall {
 }
 
 /* brilhos de anime que surgem de vez em quando */
-html[data-theme='good-times'] .gt-glint {
+.scene-good-times .gt-glint {
   position: absolute;
   fill: #fff;
   stroke: var(--gt-ink);
   stroke-width: 3;
   opacity: 0;
-  animation: gt-glint var(--d) ease-out var(--dl) infinite;
+  animation: gt-glint var(--gt-d) ease-out var(--gt-dl) infinite;
+}
+
+/* --- vitória (só existe com data-wheel=won) --- */
+.scene-good-times .gt-win {
+  inset: 0;
+}
+.scene-good-times .gt-win > * {
+  position: absolute;
+  display: none;
+}
+.scene-good-times .gt-win-flash {
+  inset: 0;
+  background: var(--win-color, #fff);
+  opacity: 0;
+}
+.scene-good-times .gt-win-glow {
+  left: 30%;
+  right: 22%;
+  top: -14vh;
+  height: 34vh;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    var(--win-color, #fff),
+    transparent
+  );
+  opacity: 0;
+}
+.scene-good-times .gt-slap {
+  left: 47%;
+  top: 0.8vh;
+  translate: -50% 0;
+  rotate: -5deg;
+}
+.scene-good-times .gt-slap-rays {
+  position: absolute;
+  left: -30%;
+  right: -30%;
+  top: -80%;
+  bottom: -80%;
+  width: auto;
+  height: auto;
+  opacity: 0;
+}
+.scene-good-times .gt-slap-card {
+  position: relative;
+  overflow: hidden;
+  padding: calc(var(--gt-vh) * 0.8) calc(var(--gt-vh) * 2.6)
+    calc(var(--gt-vh) * 0.9);
+  border-radius: calc(var(--gt-vh) * 2.2);
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.35) 22%, transparent 26%) 0 0 / 12px
+      12px,
+    var(--win-color, var(--gt-pink));
+  border: 3px solid #fff;
+  box-shadow:
+    0 0 0 3px var(--gt-ink),
+    7px 7px 0 3px var(--gt-ink);
+  text-align: center;
+  white-space: nowrap;
+}
+.scene-good-times .gt-slap-card b {
+  display: block;
+  font: 400 calc(var(--gt-vh) * 4.4) / 1 var(--font-bungee), sans-serif;
+  letter-spacing: 0.04em;
+  color: #fff;
+  -webkit-text-stroke: 5px var(--gt-ink);
+  paint-order: stroke fill;
+  text-shadow: 3px 3px 0 var(--gt-ink);
+}
+.scene-good-times .gt-slap-card small {
+  display: inline-block;
+  margin-top: calc(var(--gt-vh) * 0.4);
+  padding: 0.1em 0.7em;
+  border-radius: 99px;
+  background: #fff;
+  border: 2px solid var(--gt-ink);
+  font: 800 calc(var(--gt-vh) * 1.3) / 1.2 var(--font-mplus-rounded), sans-serif;
+  color: var(--gt-ink);
+}
+.scene-good-times .gt-slap-shine {
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 18%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.85),
+    transparent
+  );
+  transform: translateX(-200%) skewX(-20deg);
+}
+
+/* ================= REAÇÕES À ROLETA ================= */
+
+/* girando: batida dobrada (animações em steps trocam de ritmo sem salto
+   visível), notas extras, reflexos rápidos, sólidos giram e descolam */
+html[data-wheel='spinning'] .scene-good-times .gt-cone-wrap {
+  animation: gt-pump 0.25s cubic-bezier(0.2, 0.7, 0.3, 1) infinite;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-eq-strip {
+  animation-duration: 0.25s;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-pose {
+  animation: gt-pose-hop 0.5s steps(1) var(--gt-pz, 0s) infinite;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-floor-a,
+html[data-wheel='spinning'] .scene-good-times .gt-floor-b {
+  animation-duration: 0.5s;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-glow-g {
+  animation-duration: 0.75s;
+}
+/* as luzes da festa ligam no giro, mesmo de dia: uma segunda animação
+   entra por cima da do ciclo (a última da lista vence); o ciclo continua
+   rodando por baixo, sem reiniciar. No vencedor elas ficam acesas ~3 s e
+   piscam de volta para o estado do ciclo. */
+html[data-wheel='spinning'] .scene-good-times :is(.gt-glows, .gt-bb-lcd) {
+  animation:
+    gt-lights-on var(--gt-cycle) linear var(--gt-t0) infinite,
+    gt-party-on 1.2s ease-out both;
+}
+html[data-wheel='won'] .scene-good-times :is(.gt-glows, .gt-bb-lcd) {
+  animation:
+    gt-lights-on var(--gt-cycle) linear var(--gt-t0) infinite,
+    gt-party-off 4s linear;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-kanji-neon {
+  animation:
+    gt-neon var(--gt-cycle) linear var(--gt-t0) infinite,
+    gt-party-on 1.2s ease-out 0.2s both;
+}
+html[data-wheel='won'] .scene-good-times .gt-kanji-neon {
+  animation:
+    gt-neon var(--gt-cycle) linear var(--gt-t0) infinite,
+    gt-party-off 4s linear;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-script-neon {
+  animation:
+    gt-neon var(--gt-cycle) linear calc(var(--gt-t0) - 2.4s) infinite,
+    gt-party-on 1.2s ease-out 0.45s both;
+}
+html[data-wheel='won'] .scene-good-times .gt-script-neon {
+  animation:
+    gt-neon var(--gt-cycle) linear calc(var(--gt-t0) - 2.4s) infinite,
+    gt-party-off 4s linear;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-flecks {
+  animation:
+    gt-flecks-on var(--gt-cycle) linear var(--gt-t0) infinite,
+    gt-party-on 1.2s ease-out both;
+}
+html[data-wheel='won'] .scene-good-times .gt-flecks {
+  animation:
+    gt-flecks-on var(--gt-cycle) linear var(--gt-t0) infinite,
+    gt-party-off 4s linear;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-disco-halo {
+  animation:
+    gt-halo var(--gt-cycle) linear var(--gt-t0) infinite,
+    gt-party-on 1.2s ease-out both;
+}
+html[data-wheel='won'] .scene-good-times .gt-disco-halo {
+  animation:
+    gt-halo var(--gt-cycle) linear var(--gt-t0) infinite,
+    gt-party-off 4s linear;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-notes-wild {
+  display: block;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-notes-wild .gt-note {
+  animation-duration: 1s;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-flecks-fast {
+  display: block;
+  animation:
+    gt-spin 12s linear infinite,
+    gt-fade-in 0.8s ease-out both;
+}
+/* venceu: some devagar e para de girar logo depois (nada roda escondido
+   enquanto o modal fica aberto). A opacidade 0 fica por baixo e o fade usa
+   fill backwards: acabado, ele solta a camada da GPU */
+html[data-wheel='won'] .scene-good-times .gt-flecks-fast {
+  display: block;
+  opacity: 0;
+  animation:
+    gt-spin 12s linear 2,
+    gt-fade-out 1.6s ease-out backwards;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-whirl,
+html[data-wheel='won'] .scene-good-times .gt-whirl {
+  transform: rotateY(720deg);
+}
+/* parado: volta a 0° sem transição (720° = 0°, nada pula) */
+html:not([data-wheel='spinning']):not([data-wheel='won'])
+  .scene-good-times
+  .gt-whirl {
+  transition: none;
+}
+html[data-wheel='spinning'] .scene-good-times .gt-view:not(.gt-view-ink) {
+  transform: translate(calc(var(--gt-s) * -0.06), calc(var(--gt-s) * -0.14));
+}
+html[data-wheel='spinning'] .scene-good-times .gt-view-ink {
+  transform: translate(calc(var(--gt-s) * 0.3), calc(var(--gt-s) * 0.36));
+}
+html[data-wheel='spinning'] .scene-good-times .gt-shades {
+  transform: translateY(38%) rotate(-5deg);
+  transition-timing-function: ease-out;
+}
+
+/* venceu: uma vez só, depois calmo. O estado final de cada animação fica
+   nos estilos de base (brilho a 0,4, globo a 0,45, confete apagado) e elas
+   usam fill backwards: quando acabam, nada fica preso como animação ativa
+   segurando camada na GPU enquanto o modal está aberto (e o quadro do
+   movimento reduzido mostra o mesmo final) */
+html[data-wheel='won'] .scene-good-times .gt-win > * {
+  display: block;
+}
+html[data-wheel='won'] .scene-good-times .gt-win-flash {
+  animation: gt-flash 0.8s ease-out 1 backwards;
+}
+html[data-wheel='won'] .scene-good-times .gt-win-glow {
+  opacity: 0.4;
+  animation: gt-win-glow 1.6s ease-out 1 backwards;
+}
+html[data-wheel='won'] .scene-good-times .gt-slap {
+  animation: gt-slap 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) 0.15s 1 backwards;
+}
+html[data-wheel='won'] .scene-good-times .gt-slap-rays {
+  animation: gt-slap-rays 0.7s ease-out 0.45s 1 backwards;
+}
+html[data-wheel='won'] .scene-good-times .gt-slap-shine {
+  animation: gt-shine 0.9s ease-in-out 1.3s 1 backwards;
+}
+html[data-wheel='won'] .scene-good-times .gt-pop {
+  display: block;
+  opacity: 0;
+  animation: gt-pop 2.3s cubic-bezier(0.15, 0.7, 0.4, 1) 1 backwards;
+}
+html[data-wheel='won'] .scene-good-times .gt-pop-1 {
+  animation-delay: 0.08s;
+  animation-duration: 2s;
+}
+html[data-wheel='won'] .scene-good-times .gt-pop-2 {
+  animation-delay: 0.16s;
+  animation-duration: 2.6s;
+}
+html[data-wheel='won'] .scene-good-times .gt-pop-ribbons {
+  animation-duration: 2.8s;
+}
+html[data-wheel='won'] .scene-good-times .gt-popper-r .gt-pop {
+  animation-delay: 0.22s;
+}
+html[data-wheel='won'] .scene-good-times .gt-popper-cone {
+  animation: gt-recoil 0.6s ease-out 1 backwards;
+}
+html[data-wheel='won'] .scene-good-times .gt-disco-win {
+  opacity: 0.45;
+  animation: gt-disco-win 2.6s ease-out 1 backwards;
+}
+html[data-wheel='won'] .scene-good-times .gt-solid-hop {
+  animation: gt-hop 1s ease-out 0.1s 1 backwards;
+}
+html[data-wheel='won'] .scene-good-times .gt-shades {
+  transform: translateY(-10%) rotate(4deg);
 }
 
 /* ================= KEYFRAMES (só transform/opacity) ================= */
 
 @keyframes gt-dusk {
-  0%, 28% { opacity: 0; }
-  40% { opacity: 0.85; }
-  50% { opacity: 0.75; }
-  58%, 82% { opacity: 0; }
-  87% { opacity: 0.8; }
-  93% { opacity: 0.45; }
+  0%, 26% { opacity: 0; }
+  38% { opacity: 0.85; }
+  48% { opacity: 0.7; }
+  56%, 82% { opacity: 0; }
+  88% { opacity: 0.8; }
+  95% { opacity: 0.4; }
   100% { opacity: 0; }
 }
 @keyframes gt-night-sky {
-  0%, 46% { opacity: 0; }
-  58%, 80% { opacity: 0.95; }
-  89%, 100% { opacity: 0; }
+  0%, 44% { opacity: 0; }
+  56%, 80% { opacity: 0.95; }
+  90%, 100% { opacity: 0; }
 }
 @keyframes gt-shade {
-  0%, 48% { opacity: 0; }
-  60%, 80% { opacity: 0.26; }
+  0%, 44% { opacity: 0; }
+  56%, 80% { opacity: 0.3; }
   90%, 100% { opacity: 0; }
 }
 @keyframes gt-night {
-  0%, 54% { opacity: 0; }
-  62%, 80% { opacity: 1; }
+  0%, 52% { opacity: 0; }
+  60%, 80% { opacity: 1; }
   86%, 100% { opacity: 0; }
 }
 @keyframes gt-moon {
-  0%, 52% { opacity: 0; transform: translateY(70%); }
-  62% { opacity: 1; transform: translateY(0); }
+  0%, 50% { opacity: 0; transform: translateY(70%); }
+  60% { opacity: 1; transform: translateY(0); }
   80% { opacity: 1; transform: translateY(-12%); }
   88% { opacity: 0; transform: translateY(-30%); }
   100% { opacity: 0; transform: translateY(70%); }
@@ -534,14 +1751,14 @@ html[data-theme='good-times'] .gt-glint {
 @keyframes gt-sun-path {
   0% { transform: translateY(0); }
   28% { transform: translateY(4%); }
-  44% { transform: translateY(70%); }
-  54%, 84% { transform: translateY(260%); }
+  44% { transform: translateY(78%); }
+  50%, 86% { transform: translateY(260%); }
   100% { transform: translateY(0); }
 }
 @keyframes gt-sun-hot {
   0%, 28% { opacity: 0; }
-  44%, 54% { opacity: 1; }
-  84% { opacity: 1; }
+  42%, 50% { opacity: 1; }
+  86% { opacity: 1; }
   96%, 100% { opacity: 0; }
 }
 @keyframes gt-flare {
@@ -551,24 +1768,84 @@ html[data-theme='good-times'] .gt-glint {
   23%, 25% { opacity: 0.85; transform: scaleX(1); }
   27%, 100% { opacity: 0; transform: scaleX(0.4); }
 }
+/* varal, visor e reflexos: apagados de dia, acendem piscando no fim da
+   tarde, festa à noite, apagam no amanhecer */
+@keyframes gt-lights-on {
+  0%, 39% { opacity: 0; }
+  40% { opacity: 0.55; }
+  40.6% { opacity: 0.1; }
+  41.4% { opacity: 0.75; }
+  42% { opacity: 0.3; }
+  43.5%, 84% { opacity: 1; }
+  86% { opacity: 0.4; }
+  86.6% { opacity: 0.7; }
+  89%, 100% { opacity: 0; }
+}
+@keyframes gt-flecks-on {
+  0%, 38% { opacity: 0.22; }
+  46%, 82% { opacity: 0.95; }
+  90%, 100% { opacity: 0.22; }
+}
+@keyframes gt-halo {
+  0%, 38% { opacity: 0.25; }
+  46%, 82% { opacity: 0.95; }
+  90%, 100% { opacity: 0.25; }
+}
+@keyframes gt-neon {
+  0%, 46.5% { opacity: 0; }
+  47% { opacity: 0.8; }
+  47.4% { opacity: 0.1; }
+  48% { opacity: 0.9; }
+  48.5% { opacity: 0.35; }
+  49.5%, 70% { opacity: 1; }
+  70.3% { opacity: 0.45; }
+  70.6%, 84% { opacity: 1; }
+  86%, 100% { opacity: 0; }
+}
+@keyframes gt-disco-drop {
+  0%, 42% { transform: translateY(calc(var(--gt-vh) * -2.4)); }
+  50%, 82% { transform: translateY(calc(var(--gt-vh) * 1.4)); }
+  90%, 100% { transform: translateY(calc(var(--gt-vh) * -2.4)); }
+}
+@keyframes gt-fw {
+  0%, 60% { opacity: 0; transform: scale(0.1) rotate(0deg); }
+  60.15% { opacity: 1; transform: scale(0.2) rotate(0deg); }
+  60.7% { opacity: 1; transform: scale(1) rotate(12deg); }
+  61.4% { opacity: 0; transform: scale(1.12) translateY(6%) rotate(18deg); }
+  72% { opacity: 0; transform: scale(0.1) rotate(0deg); }
+  72.15% { opacity: 1; transform: scale(0.2) rotate(0deg); }
+  72.7% { opacity: 1; transform: scale(1) rotate(-12deg); }
+  73.4% { opacity: 0; transform: scale(1.12) translateY(6%) rotate(-18deg); }
+  100% { opacity: 0; transform: scale(0.1); }
+}
 @keyframes gt-rain {
   0%, 15% { opacity: 0; }
-  16.5%, 21% { opacity: 0.8; }
-  22.5%, 65% { opacity: 0; }
-  66.5%, 71% { opacity: 0.8; }
-  72.5%, 100% { opacity: 0; }
+  16.5%, 20% { opacity: 0.8; }
+  21.5%, 65% { opacity: 0; }
+  66.5%, 70% { opacity: 0.8; }
+  71.5%, 100% { opacity: 0; }
 }
 @keyframes gt-fall {
   from { transform: translateY(0); }
   to { transform: translateY(180px); }
 }
 @keyframes gt-drift {
-  from { transform: translateX(calc(var(--lx) * -1)); }
-  to { transform: translateX(var(--lx)); }
+  from { transform: translateX(calc(var(--gt-lx) * -1)); }
+  to { transform: translateX(var(--gt-lx)); }
 }
 @keyframes gt-bob {
-  from { transform: translateY(calc(var(--a) * -1)) rotate(calc(var(--r) - 5deg)); }
-  to { transform: translateY(var(--a)) rotate(calc(var(--r) + 5deg)); }
+  from { transform: translateY(calc(var(--gt-a) * -1)) rotate(calc(var(--gt-r) - 5deg)); }
+  to { transform: translateY(var(--gt-a)) rotate(calc(var(--gt-r) + 5deg)); }
+}
+@keyframes gt-pose {
+  0% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg) scale(1.05); }
+}
+@keyframes gt-pose-hop {
+  0% { transform: translateY(0) rotate(-8deg); }
+  25% { transform: translateY(-16%) rotate(0deg) scale(1.08); }
+  50% { transform: translateY(0) rotate(8deg); }
+  75% { transform: translateY(-16%) rotate(0deg) scale(1.08); }
 }
 @keyframes gt-spin {
   to { transform: rotate(1turn); }
@@ -589,6 +1866,211 @@ html[data-theme='good-times'] .gt-glint {
   0%, 80% { opacity: 0; transform: scale(0.2) rotate(0deg); }
   87% { opacity: 1; transform: scale(1) rotate(45deg); }
   95%, 100% { opacity: 0; transform: scale(0.3) rotate(90deg); }
+}
+@keyframes gt-glint-sweep {
+  0%, 84% { transform: translateX(-150%) skewX(-22deg); }
+  92%, 100% { transform: translateX(640%) skewX(-22deg); }
+}
+@keyframes gt-chase {
+  0% { opacity: 1; }
+  33.33% { opacity: 0.3; }
+}
+@keyframes gt-facets {
+  to { transform: translateX(-50%); }
+}
+@keyframes gt-floor-a {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes gt-floor-b {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+}
+@keyframes gt-pump {
+  0% { transform: scale(1); }
+  10% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+@keyframes gt-led {
+  0% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+@keyframes gt-eq {
+  to { transform: translateY(-100%); }
+}
+@keyframes gt-note {
+  0% { opacity: 0; transform: translate(0, 0) rotate(-10deg) scale(0.6); }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-30%, -260%) rotate(14deg) scale(1); }
+}
+@keyframes gt-ball-run {
+  0% { transform: translateX(-12vw); }
+  24% { transform: translateX(108vw); }
+  24.01%, 100% { transform: translateX(-12vw); }
+}
+@keyframes gt-ball-hop {
+  from { transform: translateY(0) scale(1.08, 0.9); animation-timing-function: cubic-bezier(0.2, 0.8, 0.4, 1); }
+  12% { transform: translateY(-15%) scale(0.96, 1.04); }
+  to { transform: translateY(-110%) scale(1); }
+}
+@keyframes gt-ball-shadow {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.35; transform: scale(0.55); }
+}
+@keyframes gt-plane {
+  0% { opacity: 1; transform: translateX(102vw); }
+  27% { opacity: 1; transform: translateX(calc(-100% - 4vw)); }
+  27.01%, 100% { opacity: 0; transform: translateX(102vw); }
+}
+@keyframes gt-plane-bob {
+  from { transform: translateY(-8%) rotate(-1.5deg); }
+  to { transform: translateY(8%) rotate(1deg); }
+}
+@keyframes gt-prop {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.2); }
+}
+@keyframes gt-flap {
+  0% { transform: skewY(1.6deg); }
+  50% { transform: skewY(-1.2deg) scaleY(0.97); }
+}
+@keyframes gt-cass {
+  from { transform: translateY(-6%) rotate(-10deg); }
+  to { transform: translateY(8%) rotate(-4deg); }
+}
+@keyframes gt-float {
+  from { transform: translateY(-5%) rotate(-3deg); }
+  to { transform: translateY(5%) rotate(3deg); }
+}
+@keyframes gt-tumble-cube {
+  from { transform: rotateX(-24deg) rotateY(0deg); }
+  to { transform: rotateX(-24deg) rotateY(360deg); }
+}
+@keyframes gt-tumble-pyr {
+  from { transform: rotateX(-14deg) rotateY(0deg); }
+  to { transform: rotateX(-14deg) rotateY(-360deg); }
+}
+@keyframes gt-tumble-prism {
+  from { transform: rotateZ(-10deg) rotateY(-32deg) rotateX(0deg); }
+  to { transform: rotateZ(-10deg) rotateY(-32deg) rotateX(360deg); }
+}
+@keyframes gt-peel {
+  0%, 88% { transform: rotate3d(1, -1, 0, 0deg); }
+  91% { transform: rotate3d(1, -1, 0, 118deg); }
+  92.5% { transform: rotate3d(1, -1, 0, 96deg); }
+  94% { transform: rotate3d(1, -1, 0, 128deg); }
+  97.5% { transform: rotate3d(1, -1, 0, -6deg); }
+  98.5%, 100% { transform: rotate3d(1, -1, 0, 0deg); }
+}
+@keyframes gt-balloon {
+  0%, 74% { opacity: 0; transform: translateY(0) translateX(0); }
+  75% { opacity: 0.88; transform: translateY(0) translateX(0); }
+  82% { transform: translateY(-34vh) translateX(18%); }
+  89% { transform: translateY(-72vh) translateX(-14%); }
+  96% { opacity: 0.88; transform: translateY(-112vh) translateX(10%); }
+  97%, 100% { opacity: 0; transform: translateY(-120vh); }
+}
+/* liga com um tranco de energia; desliga piscando (no máx. ~2 por s) */
+@keyframes gt-party-on {
+  0% { opacity: 0.6; }
+  25% { opacity: 0.15; }
+  55% { opacity: 1; }
+  75% { opacity: 0.55; }
+  100% { opacity: 1; }
+}
+@keyframes gt-party-off {
+  0%, 68% { opacity: 1; }
+  76% { opacity: 0.3; }
+  84% { opacity: 0.85; }
+  94% { opacity: 0.15; }
+  100% { opacity: 0.05; }
+}
+@keyframes gt-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes gt-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes gt-flash {
+  0% { opacity: 0; }
+  14% { opacity: 0.2; }
+  100% { opacity: 0; }
+}
+@keyframes gt-win-glow {
+  from { opacity: 0; }
+  to { opacity: 0.4; }
+}
+@keyframes gt-slap {
+  0% { opacity: 0; transform: scale(2.6) rotate(-14deg); }
+  55% { opacity: 1; transform: scale(0.92) rotate(2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes gt-slap-rays {
+  0% { opacity: 1; transform: scale(0.7); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+@keyframes gt-shine {
+  from { transform: translateX(-200%) skewX(-20deg); }
+  to { transform: translateX(700%) skewX(-20deg); }
+}
+@keyframes gt-pop {
+  0% { opacity: 1; transform: scale(0.06); }
+  35% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.04) translateY(14%) rotate(6deg); }
+}
+@keyframes gt-recoil {
+  0% { transform: translateY(0) rotate(0deg); }
+  18% { transform: translateY(14%) rotate(-8deg) scale(1.06, 0.92); }
+  50% { transform: translateY(-4%) rotate(4deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+@keyframes gt-disco-win {
+  0% { opacity: 0; transform: scale(0.6); }
+  14% { opacity: 1; transform: scale(1.25); }
+  100% { opacity: 0.45; transform: scale(1); }
+}
+@keyframes gt-hop {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-42%) rotate(-6deg); }
+  62% { transform: translateY(0) rotate(0deg); }
+  78% { transform: translateY(-10%); }
+  100% { transform: translateY(0); }
+}
+
+/* ================= RESPONSIVO ================= */
+
+/* celular: a cena aparece no topo e nas calhas; só o leve fica */
+@media (max-width: 640px) {
+  .scene-good-times {
+    --gt-vh: 0.8vh;
+  }
+  .scene-good-times
+    :is(
+      .gt-solid-cube,
+      .gt-solid-pyr,
+      .gt-stickers,
+      .gt-boombox,
+      .gt-popper,
+      .gt-balloon,
+      .gt-palm-2,
+      .gt-cassette,
+      .gt-flecks,
+      .gt-fw-1,
+      .gt-fw-2,
+      .gt-kanji
+    ) {
+    display: none;
+  }
+  .scene-good-times .gt-solid-prism {
+    display: none;
+  }
+  .scene-good-times .gt-disco {
+    left: 78%;
+  }
 }
 
 /* ================= COMPONENTES ================= */
@@ -634,6 +2116,14 @@ html[data-theme='good-times'] .ui-title::after {
   paint-order: stroke fill;
   text-shadow: 2px 2px 0 var(--gt-ink);
   transform: rotate(-8deg) translateY(0.32em);
+}
+/* o "Good Times" do título dança junto enquanto a roleta gira */
+html[data-wheel='spinning'][data-theme='good-times'] .ui-title::after {
+  animation: gt-ui-bop 0.5s steps(1) infinite;
+}
+@keyframes gt-ui-bop {
+  0% { transform: rotate(-8deg) translateY(0.32em); }
+  50% { transform: rotate(-2deg) translateY(0.12em) scale(1.06); }
 }
 html[data-theme='good-times'] .ui-subtitle {
   margin-top: 0.55rem;
@@ -898,7 +2388,8 @@ html[data-theme='good-times'] footer {
   font-weight: 700;
   text-shadow:
     0 0 3px #fff,
-    0 0 6px #fff;
+    0 0 6px #fff,
+    0 0 10px #fff;
 }
 /* nome sorteado no modal, no mesmo estilo do título */
 html[data-theme='good-times'] [role='dialog'] .animate-winner-name {
@@ -909,30 +2400,21 @@ html[data-theme='good-times'] [role='dialog'] .animate-winner-name {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* cena parada no pôr do sol dourado (valores base acima) */
-  html[data-theme='good-times'] .scene-good-times *,
-  html[data-theme='good-times'] .scene-good-times *::before,
-  html[data-theme='good-times'] .scene-good-times *::after {
+  /* cena parada no entardecer com a festa acesa (valores-base acima) */
+  .scene-good-times *,
+  .scene-good-times *::before,
+  .scene-good-times *::after {
     animation: none !important;
+    transition: none !important;
   }
   html[data-theme='good-times'] :is(.ui-cta, .ui-btn) {
     transition: none;
   }
+  html[data-wheel='spinning'][data-theme='good-times'] .ui-title::after {
+    animation: none;
+  }
+  /* quadro parado do vencedor: confete e serpentinas no ar */
+  html[data-wheel='won'] .scene-good-times .gt-pop {
+    opacity: 1;
+  }
 }
-
-/* ---------- Arte gerada (opcional) ----------
-   Depois de gerar a imagem com um dos prompts de PROMPTS.md, salve em
-   public/themes/good-times/bg.webp e descomente para usá-la como fundo
-   (a cena SVG fica por cima só com o céu do ciclo e o confete):
-
-html[data-theme='good-times'] .theme-backdrop {
-  background: #efedf3 url('/themes/good-times/bg.webp') center / cover no-repeat;
-}
-html[data-theme='good-times'] :is(.gt-grid, .gt-block, .gt-sun-path,
-  .gt-horizon, .gt-palm, .gt-kanji, .gt-script) {
-  display: none;
-}
-html[data-theme='good-times'] :is(.gt-sky-dusk, .gt-sky-night) {
-  mix-blend-mode: multiply;
-}
-*/

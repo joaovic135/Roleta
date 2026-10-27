@@ -19,6 +19,13 @@ import {
   Yellowtail,
   Righteous,
   Bungee_Inline,
+  Limelight,
+  Rye,
+  Monoton,
+  Bebas_Neue,
+  Alfa_Slab_One,
+  Abril_Fatface,
+  Silkscreen,
 } from 'next/font/google'
 import Providers from './providers'
 import { themeBootScript, themeCss } from './utils/themes'
@@ -159,6 +166,55 @@ const bungeeInline = Bungee_Inline({
   weight: '400',
   variable: '--font-bungee-inline',
 })
+const limelight = Limelight({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+  weight: '400',
+  variable: '--font-limelight',
+})
+const rye = Rye({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+  weight: '400',
+  variable: '--font-rye',
+})
+const monoton = Monoton({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+  weight: '400',
+  variable: '--font-monoton',
+})
+const bebasNeue = Bebas_Neue({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+  weight: '400',
+  variable: '--font-bebas-neue',
+})
+const alfaSlab = Alfa_Slab_One({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+  weight: '400',
+  variable: '--font-alfa-slab',
+})
+const abrilFatface = Abril_Fatface({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+  weight: '400',
+  variable: '--font-abril-fatface',
+})
+const silkscreen = Silkscreen({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+  weight: ['400', '700'],
+  variable: '--font-silkscreen',
+})
 const fontVars = [
   geistSans,
   orbitron,
@@ -179,6 +235,13 @@ const fontVars = [
   yellowtail,
   righteous,
   bungeeInline,
+  limelight,
+  rye,
+  monoton,
+  bebasNeue,
+  alfaSlab,
+  abrilFatface,
+  silkscreen,
 ]
   .map((f) => f.variable)
   .join(' ')

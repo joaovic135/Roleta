@@ -1,0 +1,2238 @@
+/* ---------- Y2K (claro, metálico) ----------
+   "Sonho Cromado 2000": prata metálico, vidro Aero, CDs iridescentes,
+   bolhas, botões "gel" e título em Michroma. Moldura de METAL LÍQUIDO em
+   WebGL (Scene.tsx + chrome.ts) e, por cima, os adereços em CSS.
+
+   CENA VIVA num ciclo único de --y2-cycle (4 min; chrome.ts usa o mesmo
+   relógio para as cores refletidas no cromo):
+     0–14%   manhã cromada (prata) com nuvens fofas; o céu azula
+     6–21%   sol cromado no alto com reflexo de lente
+     10–28%  pop-up "sorte_2000.exe" baixando sorte
+     20–34%  chuva de bolhas subindo pelas margens
+     27–40%  pôr do sol holográfico: céu iridescente, nuvens furta-cor
+     30–78%  aurora de fitas holográficas
+     38–49%  pop-up "visitante nº 999.999"
+     45–55%  cai a noite azul de "protetor de tela"; o cromo fica neon
+     46–91%  estrelas cintilando; 42–92% planeta com anéis
+     58%/73% estrelas cadentes
+     62,5%   00:00 — VIRADA DO MILÊNIO: fogos cromados, LCD "FELIZ 2000!",
+             gotas pulsando em arco-íris
+     66%     BUG DO MILÊNIO: LCD "01·01·1900", gotas com falha digital,
+             janela de erro; depois a contagem recomeça
+     80–100% amanhecer cintilante: céu pastel, névoa, brilhinhos
+   Sempre: gotas de cromo fundindo e se separando pela moldura (com a
+   Gotinha, a gota mascote de olhos na margem direita, pulinhos a cada
+   37 s), CDs e globo de arame girando, bolhas subindo, equalizador e
+   letreiro do aparelho de som, contagem regressiva para 2000; borboletas
+   de dia. Sem WebGL (data-gl="off"), gotas cromadas paradas em CSS.
+
+   Roleta (html[data-wheel]): girando, CD e equalizador aceleram (camadas
+   rápidas que entram por opacidade) e o LCD mostra GIRANDO…; vencedor, o
+   LCD acende na cor da fatia (--win-color) e um pop-up "visitante nº
+   1.000.000" aparece e fica parado enquanto o resultado está aberto.
+
+   Cada camada anima só opacity/transform. A fase de cada uma é
+   --y2-t0 - --y2-d (fração do ciclo) aplicada como animation-delay
+   negativo. Com prefers-reduced-motion tudo pausa no pôr do sol
+   holográfico (τ = 0,40; chrome.ts desenha o mesmo instante). */
+
+html[data-theme='y2k'] {
+  --y2-cycle: 240s;
+  /* começa na manhã, pouco antes do reflexo de lente */
+  --y2-t0: 0.05;
+}
+
+html[data-theme='y2k'] .scene-y2k {
+  display: block;
+}
+
+/* manhã cromada: prata metálico (as outras horas cruzam por cima) */
+html[data-theme='y2k'] .theme-backdrop {
+  background: linear-gradient(
+    135deg,
+    #eef2f7 0%,
+    #c4cedb 28%,
+    #f8fafd 50%,
+    #b3bfd0 72%,
+    #eaf0f6 100%
+  );
+}
+
+/* ---------- Cena: estrutura ---------- */
+
+html[data-theme='y2k'] .scene-y2k > *,
+html[data-theme='y2k'] .scene-y2k :is(svg, i):not(.y2-player *, .y2-wins *) {
+  position: absolute;
+  pointer-events: none;
+}
+html[data-theme='y2k'] .scene-y2k .y2-cyc {
+  --y2-d: 0;
+  animation-name: var(--y2-an);
+  animation-duration: var(--y2-cycle);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: calc(var(--y2-cycle) * (var(--y2-d) - var(--y2-t0) - 1));
+}
+html[data-theme='y2k'] .y2-defs {
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* ---------- Céus ---------- */
+
+html[data-theme='y2k'] :is(.y2-sky, .y2-sheen-wrap) {
+  inset: 0;
+  opacity: 0;
+}
+html[data-theme='y2k'] .y2-sky-day {
+  background: linear-gradient(
+    to bottom,
+    #5aa6f5 0%,
+    #9ccdfa 28%,
+    #dcecfb 56%,
+    #f6f9fd 72%,
+    #c9d4e3 100%
+  );
+  --y2-an: y2-k-day;
+}
+html[data-theme='y2k'] .y2-sky-sunset {
+  background: linear-gradient(
+    to bottom,
+    #6a5ad6 0%,
+    #b27ce8 20%,
+    #ff8fcf 44%,
+    #ffb39e 62%,
+    #ffe2a8 77%,
+    #bff3ff 100%
+  );
+  --y2-an: y2-k-sunset;
+}
+html[data-theme='y2k'] .y2-sheen-wrap {
+  overflow: hidden;
+  --y2-an: y2-k-sheen;
+}
+html[data-theme='y2k'] .y2-sheen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -50%;
+  width: 200%;
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 10vh,
+    rgba(181, 245, 255, 0.45) 14vh,
+    rgba(255, 209, 247, 0.5) 18vh,
+    rgba(255, 246, 179, 0.4) 22vh,
+    transparent 27vh 36vh
+  );
+  animation: y2-sheen 30s ease-in-out infinite alternate;
+}
+html[data-theme='y2k'] .y2-sky-night {
+  background:
+    radial-gradient(
+      ellipse 80% 45% at 50% 108%,
+      rgba(64, 120, 230, 0.75),
+      transparent
+    ),
+    linear-gradient(
+      to bottom,
+      #030824 0%,
+      #071a4f 45%,
+      #0d2d7a 80%,
+      #1a49a8 100%
+    );
+  --y2-an: y2-k-night;
+}
+html[data-theme='y2k'] .y2-sky-dawn {
+  background: linear-gradient(
+    to bottom,
+    #8ea4ea 0%,
+    #d3b6f2 24%,
+    #ffc8e4 48%,
+    #ffdfc4 70%,
+    #fff4dc 86%,
+    #e9eff8 100%
+  );
+  --y2-an: y2-k-dawn;
+}
+
+/* ---------- Noite: estrelas e cadentes ---------- */
+
+html[data-theme='y2k'] :is(.y2-stars, .y2-sparkles, .y2-butterflies) {
+  inset: 0;
+}
+html[data-theme='y2k'] :is(.y2-stars, .y2-sparkles) svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='y2k'] .y2-stars {
+  opacity: 0;
+  --y2-an: y2-k-stars;
+}
+html[data-theme='y2k'] .y2-stars path {
+  fill: #e6f2ff;
+}
+html[data-theme='y2k'] .y2-twinkle path {
+  fill: #bfe9ff;
+}
+html[data-theme='y2k'] .y2-twinkle-b path {
+  fill: #ffd1f7;
+}
+html[data-theme='y2k'] .y2-twinkle {
+  animation: y2-twinkle 2.6s ease-in-out infinite alternate;
+}
+html[data-theme='y2k'] .y2-twinkle-b {
+  animation-duration: 3.7s;
+  animation-delay: -1.4s;
+}
+html[data-theme='y2k'] .y2-shoot {
+  width: 22vh;
+  height: 2px;
+}
+html[data-theme='y2k'] .y2-shoot-1 {
+  top: 7vh;
+  left: 8vw;
+  transform: rotate(16deg);
+}
+html[data-theme='y2k'] .y2-shoot-2 {
+  top: 18vh;
+  right: 6vw;
+  transform: rotate(164deg);
+}
+html[data-theme='y2k'] .y2-shoot > i {
+  inset: 0;
+  background: linear-gradient(to right, transparent, #c9f2ff 60%, #fff);
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+  opacity: 0;
+  --y2-an: y2-k-shoot;
+}
+
+/* ---------- Aurora de fitas holográficas ---------- */
+
+html[data-theme='y2k'] .y2-aurora {
+  left: -10%;
+  width: 120%;
+  top: 0;
+  height: 54vh;
+  opacity: 0;
+  -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent);
+  mask-image: linear-gradient(to bottom, #000 45%, transparent);
+  --y2-an: y2-k-aurora;
+}
+html[data-theme='y2k'] .y2-aurora svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0.8;
+  animation: y2-sway var(--y2-sw) ease-in-out var(--y2-dl) infinite alternate;
+}
+html[data-theme='y2k'] .y2-ribbon {
+  fill: url(#y2-holo);
+  opacity: 0.7;
+}
+html[data-theme='y2k'] .y2-ribbon-edge {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- Sol cromado e planeta (arcos girando em torno de um pivô
+   abaixo da tela; o sol culmina entre o título e o aparelho de som) ---- */
+
+html[data-theme='y2k'] .y2-orbit {
+  left: 32%;
+  top: calc(100% + 22vh);
+  width: 0;
+  height: 0;
+}
+html[data-theme='y2k'] .y2-arm {
+  position: absolute;
+  left: calc(var(--y2-sz) / -2);
+  top: calc(-1 * var(--y2-r) - var(--y2-sz) / 2);
+  width: var(--y2-sz);
+  height: var(--y2-sz);
+}
+html[data-theme='y2k'] .y2-orbit-sun {
+  top: calc(100% + 55vh);
+  transform: rotate(-60deg);
+  --y2-an: y2-k-sun;
+}
+html[data-theme='y2k'] .y2-sun-arm {
+  --y2-sz: 13vh;
+  --y2-r: 150vh;
+}
+html[data-theme='y2k'] .y2-sun-arm > div {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+html[data-theme='y2k'] .y2-sun-arm > .y2-sun-glow {
+  inset: -110%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95) 0 14%,
+    rgba(205, 236, 255, 0.55) 26%,
+    rgba(255, 214, 250, 0.22) 42%,
+    transparent 68%
+  );
+}
+html[data-theme='y2k'] .y2-sun {
+  background: radial-gradient(
+    circle at 38% 32%,
+    #ffffff 0 20%,
+    #eef7ff 32%,
+    #bcd8f6 56%,
+    #86acd9 76%,
+    #e2f0ff 92%,
+    #ffffff 100%
+  );
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    0 0 40px rgba(255, 255, 255, 0.9);
+}
+html[data-theme='y2k'] .y2-sun-warm {
+  background: radial-gradient(
+    circle at 38% 32%,
+    #fffbe8 0 16%,
+    #ffd29a 42%,
+    #ff8ec2 78%,
+    #ffe0f2 100%
+  );
+  opacity: 0;
+  --y2-an: y2-k-sunwarm;
+}
+html[data-theme='y2k'] .y2-sun-arm > .y2-flare {
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 0;
+  opacity: 0;
+  --y2-an: y2-k-flare;
+}
+html[data-theme='y2k'] .y2-flare-rays {
+  left: -24vh;
+  top: -24vh;
+  width: 48vh;
+  height: 48vh;
+  fill: rgba(255, 255, 255, 0.4);
+  animation: y2-spin 70s linear infinite;
+}
+html[data-theme='y2k'] .y2-flare-streak {
+  left: -42vh;
+  top: -1.5px;
+  width: 84vh;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(150, 215, 255, 0.85) 30%,
+    #fff 50%,
+    rgba(255, 175, 235, 0.85) 70%,
+    transparent
+  );
+}
+html[data-theme='y2k'] .y2-flare-ghosts {
+  left: -7vh;
+  top: 0;
+  width: 14vh;
+  height: 49vh;
+  overflow: visible;
+  fill: rgba(175, 228, 255, 0.4);
+  transform: rotate(-38deg);
+  transform-origin: 50% 0;
+}
+html[data-theme='y2k'] .y2-flare-ghosts .y2-flare-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 2.5;
+}
+html[data-theme='y2k'] .y2-flare-ghosts .y2-flare-hex {
+  fill: rgba(255, 180, 236, 0.38);
+}
+
+html[data-theme='y2k'] .y2-orbit-planet {
+  left: 76%;
+  transform: rotate(-100deg);
+  --y2-an: y2-k-planet;
+}
+html[data-theme='y2k'] .y2-planet {
+  --y2-sz: 10vh;
+  --y2-r: 115vh;
+}
+html[data-theme='y2k'] .y2-planet-ball {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 34% 28%,
+    #ffffff 0 9%,
+    #d7e2f3 22%,
+    #8a9dc2 52%,
+    #2b3c68 80%,
+    #9db6e2 100%
+  );
+  box-shadow: 0 0 30px rgba(170, 210, 255, 0.55);
+}
+html[data-theme='y2k'] .y2-planet-ring {
+  left: -70%;
+  top: 10%;
+  width: 240%;
+  height: 80%;
+  overflow: visible;
+  transform: rotate(-14deg);
+  opacity: 0.6;
+}
+html[data-theme='y2k'] .y2-planet-ring-front {
+  opacity: 1;
+}
+html[data-theme='y2k'] .y2-planet-ring path {
+  fill: none;
+  stroke: url(#y2-holo);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+html[data-theme='y2k'] .y2-moon-x {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  animation: y2-osc-x 9s ease-in-out infinite alternate;
+}
+html[data-theme='y2k'] .y2-moon-y {
+  animation: y2-osc-y 9s ease-in-out -4.5s infinite alternate;
+}
+html[data-theme='y2k'] .y2-moon-y > i {
+  left: -0.8vh;
+  top: -0.8vh;
+  width: 1.6vh;
+  height: 1.6vh;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    #fff 0 20%,
+    #b9c7dc 60%,
+    #5e6f92
+  );
+}
+
+/* ---------- Nuvens (parallax) e névoa ---------- */
+
+html[data-theme='y2k'] .y2-clouds {
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+}
+html[data-theme='y2k'] .y2-clouds-sky {
+  top: 0;
+  height: 20vh;
+}
+html[data-theme='y2k'] .y2-clouds-floor {
+  bottom: 0;
+  height: 22vh;
+}
+html[data-theme='y2k'] .y2-cloud-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 640vh;
+  animation: y2-drift 190s linear infinite;
+}
+html[data-theme='y2k'] .y2-clouds-floor .y2-cloud-track {
+  width: 586.6vh;
+  animation-duration: 120s;
+}
+html[data-theme='y2k'] .y2-cloud-tint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+/* .scene-y2k no seletor: precisa vencer o position: absolute genérico das
+   svg da cena, senão as duas cópias do ladrilho se empilham e a metade
+   direita da trilha fica vazia */
+html[data-theme='y2k'] .scene-y2k .y2-cloud-tint svg {
+  position: relative;
+  flex: none;
+  width: 50%;
+  height: 100%;
+}
+html[data-theme='y2k'] :is(.y2-cl-white, .y2-fl-white) path {
+  fill: url(#y2-cloud);
+}
+html[data-theme='y2k'] :is(.y2-cl-holo, .y2-fl-holo) path {
+  fill: url(#y2-holo-soft);
+}
+html[data-theme='y2k'] .y2-cl-white {
+  --y2-an: y2-k-cl-white;
+}
+html[data-theme='y2k'] :is(.y2-cl-holo, .y2-fl-holo) {
+  opacity: 0;
+  --y2-an: y2-k-cl-holo;
+}
+html[data-theme='y2k'] .y2-fl-white {
+  --y2-an: y2-k-fl-white;
+}
+html[data-theme='y2k'] .y2-mist {
+  left: -10%;
+  right: -10%;
+  bottom: 0;
+  height: 46vh;
+  opacity: 0;
+  background:
+    radial-gradient(
+      ellipse 40% 55% at 22% 100%,
+      rgba(255, 255, 255, 0.85),
+      rgba(255, 238, 250, 0.4) 50%,
+      transparent 75%
+    ),
+    radial-gradient(
+      ellipse 45% 50% at 78% 100%,
+      rgba(255, 255, 255, 0.8),
+      rgba(230, 240, 255, 0.4) 50%,
+      transparent 75%
+    );
+  --y2-an: y2-k-mist;
+}
+
+/* ---------- Metal líquido (WebGL) e reserva sem WebGL ---------- */
+
+html[data-theme='y2k'] .y2-gl {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+html[data-theme='y2k'] .y2-gl-off {
+  display: none;
+  inset: 0;
+}
+html[data-theme='y2k'] .y2-gl[data-gl='off'] + .y2-gl-off {
+  display: block;
+}
+html[data-theme='y2k'] .y2-gl-off > i {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 36% 30%,
+    #ffffff 0 7%,
+    #e3ecf7 16%,
+    #91a8c8 38%,
+    #26385f 57%,
+    #b9d0f1 71%,
+    #f6d8ff 86%,
+    #ffffff 96%
+  );
+  box-shadow: 0 10px 24px rgba(30, 50, 90, 0.22);
+}
+html[data-theme='y2k'] .y2-blob-1 {
+  left: -6vh;
+  top: -8vh;
+  width: 21vh;
+}
+html[data-theme='y2k'] .y2-blob-2 {
+  right: -5vh;
+  top: -7vh;
+  width: 18vh;
+}
+html[data-theme='y2k'] .y2-blob-3 {
+  right: -8vh;
+  bottom: -9vh;
+  width: 26vh;
+}
+html[data-theme='y2k'] .y2-blob-4 {
+  left: -7vh;
+  bottom: -8vh;
+  width: 21vh;
+}
+html[data-theme='y2k'] .y2-blob-5 {
+  left: -4vh;
+  top: 52vh;
+  width: 11vh;
+}
+html[data-theme='y2k'] .y2-blob-6 {
+  right: -3vh;
+  top: 26vh;
+  width: 9vh;
+}
+
+/* ---------- CDs ---------- */
+
+html[data-theme='y2k'] .y2-cd {
+  aspect-ratio: 1;
+}
+html[data-theme='y2k'] :is(.y2-cd, .y2-pl-cd) > i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+html[data-theme='y2k'] .y2-cd-disc {
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 15%,
+      rgba(255, 255, 255, 0.95) 15.5% 16.5%,
+      rgba(206, 215, 229, 0.95) 17% 28.5%,
+      rgba(255, 255, 255, 0.85) 29% 30%,
+      transparent 30.5% 96%,
+      rgba(255, 255, 255, 0.9) 96.5%
+    ),
+    repeating-radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0) 0 3px,
+      rgba(255, 255, 255, 0.16) 3px 4px
+    ),
+    conic-gradient(
+      from 20deg,
+      #e6ebf2,
+      #ffc6f0 9%,
+      #aef2ff 19%,
+      #fff2a6 27%,
+      #cdbdff 36%,
+      #e6ebf2 50%,
+      #ffc6f0 59%,
+      #aef2ff 69%,
+      #fff2a6 77%,
+      #cdbdff 86%,
+      #e6ebf2
+    );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent 0 8%,
+    #000 8.5% 97.5%,
+    transparent 98.5%
+  );
+  mask-image: radial-gradient(
+    circle,
+    transparent 0 8%,
+    #000 8.5% 97.5%,
+    transparent 98.5%
+  );
+  animation: y2-spin 11s linear infinite;
+}
+/* disco "borrado" que entra por opacidade quando a roleta gira */
+html[data-theme='y2k'] .y2-cd-disc.y2-cd-fast {
+  opacity: 0;
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 15%,
+      rgba(255, 255, 255, 0.95) 15.5% 16.5%,
+      rgba(206, 215, 229, 0.95) 17% 28.5%,
+      transparent 29%
+    ),
+    conic-gradient(
+      #eef1f6,
+      #ffe0f6 25%,
+      #d8f8ff 50%,
+      #fff8d2 75%,
+      #eef1f6
+    );
+  animation-duration: 0.7s;
+  animation-play-state: paused;
+  transition: opacity 0.6s;
+}
+html[data-theme='y2k'] .y2-cd-shine {
+  background:
+    linear-gradient(
+      125deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.8) 44%,
+      transparent 54% 68%,
+      rgba(255, 255, 255, 0.5) 75%,
+      transparent 81%
+    ),
+    radial-gradient(circle at 50% 50%, transparent 60%, rgba(70, 100, 150, 0.18));
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent 0 8%,
+    #000 8.5% 97.5%,
+    transparent 98.5%
+  );
+  mask-image: radial-gradient(
+    circle,
+    transparent 0 8%,
+    #000 8.5% 97.5%,
+    transparent 98.5%
+  );
+}
+html[data-theme='y2k'] .y2-cd-1 {
+  width: 30vh;
+  left: -14vh;
+  top: 31vh;
+}
+html[data-theme='y2k'] .y2-cd-2 {
+  width: 36vh;
+  right: -17vh;
+  top: 47vh;
+}
+html[data-theme='y2k'] .y2-cd-2 .y2-cd-disc {
+  animation-duration: 17s;
+  animation-direction: reverse;
+}
+html[data-theme='y2k'] .y2-cd-2 .y2-cd-disc.y2-cd-fast {
+  animation-duration: 0.8s;
+}
+
+/* ---------- Globo de arame 3D (vão abaixo do seletor de temas) ---------- */
+
+html[data-theme='y2k'] .y2-globe {
+  left: calc(max(16px, 50vw - 784px) + 9px);
+  top: calc((518px + 100vh) / 2 - 64px);
+  width: 96px;
+  height: 96px;
+  perspective: 420px;
+}
+html[data-theme='y2k'] .y2-globe-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 36% 30%,
+    rgba(255, 255, 255, 0.95) 0 5%,
+    rgba(205, 240, 255, 0.6) 18%,
+    rgba(80, 170, 240, 0.42) 52%,
+    rgba(20, 70, 160, 0.62) 88%,
+    rgba(140, 210, 255, 0.85) 100%
+  );
+  box-shadow:
+    0 0 26px rgba(110, 200, 255, 0.55),
+    0 12px 18px rgba(30, 60, 120, 0.22);
+}
+html[data-theme='y2k'] :is(.y2-globe-tilt, .y2-globe-spin) {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+html[data-theme='y2k'] .y2-globe-tilt {
+  transform: rotateZ(-18deg) rotateX(-12deg);
+}
+html[data-theme='y2k'] .y2-globe-spin {
+  animation: y2-globe 24s linear infinite;
+}
+html[data-theme='y2k'] :is(.y2-mer, .y2-lat) {
+  border-radius: 50%;
+  border: 1.5px solid rgba(200, 250, 255, 0.92);
+}
+html[data-theme='y2k'] .y2-mer {
+  inset: 0;
+  transform: rotateY(var(--y2-a));
+}
+html[data-theme='y2k'] .y2-lat {
+  inset: var(--y2-i);
+  border-color: rgba(200, 250, 255, 0.7);
+  transform: translateY(var(--y2-y)) rotateX(90deg);
+}
+html[data-theme='y2k'] .y2-globe-shine {
+  position: absolute;
+  left: 15%;
+  top: 7%;
+  width: 50%;
+  height: 30%;
+  border-radius: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0)
+  );
+  transform: rotate(-24deg);
+}
+html[data-theme='y2k'] .y2-globe-orbit {
+  position: absolute;
+  left: -26%;
+  top: 36%;
+  width: 152%;
+  height: 30%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 170, 230, 0.8);
+  transform: rotate(-16deg);
+}
+html[data-theme='y2k'] .y2-globe-sat {
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #ffb3e6 55%, #a8458f);
+  box-shadow: 0 0 8px rgba(255, 150, 225, 0.9);
+  animation: y2-sat 8s linear infinite;
+}
+html[data-theme='y2k'] .y2-globe-tag {
+  position: absolute;
+  left: 50%;
+  top: 110px;
+  transform: translateX(-50%);
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 2px 6px rgba(61, 90, 128, 0.2);
+  color: #2f4a70;
+  font: 9px/14px var(--font-michroma);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+html[data-theme='y2k'] .y2-globe-tag b {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 3px;
+  border-radius: 50%;
+  background: #2fe57c;
+  box-shadow: 0 0 5px #2fe57c;
+  animation: y2-blink 1.6s steps(1) infinite;
+}
+
+/* ---------- Bolhas Aero ---------- */
+
+html[data-theme='y2k'] :is(.y2-bubbles, .y2-shower) {
+  inset: 0;
+  overflow: hidden;
+}
+html[data-theme='y2k'] .y2-bub {
+  aspect-ratio: 1;
+  width: var(--y2-s);
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 31% 27%,
+      #fff 0 5%,
+      rgba(255, 255, 255, 0) 13%
+    ),
+    radial-gradient(
+      circle at 69% 76%,
+      rgba(255, 255, 255, 0.65) 0 3%,
+      rgba(255, 255, 255, 0) 9%
+    ),
+    conic-gradient(
+      from 210deg,
+      rgba(255, 140, 220, 0.5),
+      rgba(140, 230, 255, 0.45),
+      rgba(205, 255, 150, 0.4),
+      rgba(255, 140, 220, 0) 55%,
+      rgba(255, 140, 220, 0.5)
+    );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 0.35) 0 52%,
+    #000 80%,
+    rgba(0, 0, 0, 0.9) 96%,
+    transparent 98%
+  );
+  mask-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 0.35) 0 52%,
+    #000 80%,
+    rgba(0, 0, 0, 0.9) 96%,
+    transparent 98%
+  );
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.9);
+}
+html[data-theme='y2k'] .y2-bubbles > .y2-bub {
+  left: var(--y2-x);
+  bottom: -12vh;
+  animation: y2-rise var(--y2-t) linear var(--y2-dl) infinite;
+}
+html[data-theme='y2k'] .y2-shower-l {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 300vh;
+  transform: translateY(105vh);
+  --y2-an: y2-k-shower;
+}
+html[data-theme='y2k'] .y2-shower-0 {
+  --y2-to: -310vh;
+}
+html[data-theme='y2k'] .y2-shower-1 {
+  --y2-to: -360vh;
+}
+html[data-theme='y2k'] .y2-shower-2 {
+  --y2-to: -420vh;
+}
+
+/* ---------- Borboletas e brilhinhos ---------- */
+
+html[data-theme='y2k'] .y2-butterflies {
+  opacity: 0;
+  --y2-an: y2-k-butterflies;
+}
+html[data-theme='y2k'] .y2-bf {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 32px;
+  animation: y2-fly-1 38s ease-in-out infinite;
+}
+/* posições-base: onde ficam paradas com movimento reduzido */
+html[data-theme='y2k'] .y2-bf-1 {
+  transform: translate(4vw, 46vh);
+}
+html[data-theme='y2k'] .y2-bf-2 {
+  transform: translate(36vw, 5vh);
+  width: 32px;
+  height: 26px;
+  animation-name: y2-fly-2;
+  animation-duration: 46s;
+  animation-delay: -20s;
+}
+html[data-theme='y2k'] .y2-bf-flap {
+  width: 100%;
+  height: 100%;
+  animation: y2-flap 0.26s ease-in-out infinite alternate;
+}
+html[data-theme='y2k'] .y2-bf-2 .y2-bf-flap {
+  animation-duration: 0.31s;
+}
+html[data-theme='y2k'] .y2-bf-flap svg {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+html[data-theme='y2k'] .y2-bf-flap path {
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 0.8;
+}
+html[data-theme='y2k'] .y2-bf-flap .y2-bf-body {
+  fill: #3d5a80;
+  stroke: none;
+}
+
+html[data-theme='y2k'] .y2-sparkles {
+  opacity: 0;
+  --y2-an: y2-k-sparkles;
+}
+html[data-theme='y2k'] .y2-sparkles svg {
+  animation: y2-twinkle var(--y2-tw) ease-in-out var(--y2-dl) infinite alternate;
+}
+html[data-theme='y2k'] .y2-sparkles path {
+  fill: #ffffff;
+}
+html[data-theme='y2k'] .y2-sparkles svg:nth-child(2) path {
+  fill: #ffd1f7;
+}
+html[data-theme='y2k'] .y2-sparkles svg:nth-child(3) path {
+  fill: #c9f6ff;
+}
+
+/* ---------- Fogos cromados da virada ---------- */
+
+html[data-theme='y2k'] .y2-fw {
+  width: var(--y2-s);
+  aspect-ratio: 1;
+  margin: calc(var(--y2-s) / -2) 0 0 calc(var(--y2-s) / -2);
+  opacity: 0;
+  transform: scale(0.15);
+  --y2-an: y2-k-fw;
+}
+html[data-theme='y2k'] .y2-fw svg {
+  inset: -20%;
+  width: 140%;
+  height: 140%;
+  overflow: visible;
+}
+html[data-theme='y2k'] .y2-fw path {
+  fill: none;
+  stroke-linecap: round;
+}
+html[data-theme='y2k'] .y2-fw .y2-fw-glow {
+  stroke: url(#y2-holo);
+  stroke-width: 8;
+  opacity: 0.6;
+}
+html[data-theme='y2k'] .y2-fw .y2-fw-ray {
+  stroke: #ffffff;
+  stroke-width: 2.4;
+}
+html[data-theme='y2k'] .y2-fw .y2-fw-tip {
+  fill: url(#y2-fw);
+}
+
+/* ---------- Janelinhas pop-up (ao lado do aparelho de som) ---------- */
+
+html[data-theme='y2k'] .y2-wins {
+  left: calc(50% + 232px);
+  top: 10px;
+  width: 216px;
+  height: 92px;
+}
+html[data-theme='y2k'] .y2-wins-cyc {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.4s;
+}
+html[data-theme='y2k'] .y2-win {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 216px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(214, 232, 252, 0.92)
+  );
+  border: 1px solid #fff;
+  box-shadow:
+    0 0 0 1px rgba(70, 100, 150, 0.35),
+    0 8px 20px rgba(30, 50, 100, 0.3);
+  opacity: 0;
+  transform-origin: 20% 0;
+}
+html[data-theme='y2k'] .y2-win-a {
+  --y2-an: y2-k-win-a;
+}
+html[data-theme='y2k'] .y2-win-b {
+  --y2-an: y2-k-win-b;
+}
+html[data-theme='y2k'] .y2-win-c {
+  --y2-an: y2-k-win-c;
+}
+html[data-theme='y2k'] .y2-win-bar {
+  position: relative;
+  height: 20px;
+  padding-left: 46px;
+  background: linear-gradient(#a9d8ff, #4d9af2 50%, #2b6fd6 51%, #6fb8ff);
+  color: #fff;
+  font: 9px/20px var(--font-michroma);
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+html[data-theme='y2k'] .y2-win-bar::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #ff7ccf 60%);
+  box-shadow:
+    12px 0 0 #8ff0ff,
+    24px 0 0 #c4ff7a;
+}
+html[data-theme='y2k'] .y2-win-c .y2-win-bar {
+  background: linear-gradient(#ffd9a8, #ff9a3d 50%, #e2602a 51%, #ffb070);
+}
+html[data-theme='y2k'] .y2-win-text {
+  padding: 6px 10px 0;
+  color: #1a3460;
+  font-size: 11px;
+  line-height: 15px;
+  white-space: nowrap;
+}
+html[data-theme='y2k'] .y2-win-text b {
+  color: #c2187a;
+}
+html[data-theme='y2k'] .y2-win-fix {
+  padding-bottom: 8px;
+  color: #4a6288;
+  font-style: italic;
+}
+html[data-theme='y2k'] .y2-win-ico {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe08a, #ff9f1c 60%, #c94b00);
+  color: #fff !important;
+  font: 700 10px/14px var(--font-geist-sans);
+  text-align: center;
+}
+html[data-theme='y2k'] .y2-win-track {
+  position: relative;
+  height: 13px;
+  margin: 7px 10px 10px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: rgba(4, 16, 60, 0.35);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+html[data-theme='y2k'] .y2-win-track > i {
+  position: absolute;
+  inset: 2px;
+  border-radius: 5px;
+  background: repeating-linear-gradient(
+    90deg,
+    #8ff7ff 0 9px,
+    #2f9bff 9px 11px
+  );
+  transform-origin: left;
+  transform: scaleX(0.05);
+  --y2-an: y2-k-prog;
+}
+html[data-theme='y2k'] .y2-win-btn {
+  display: inline-block;
+  margin: 6px 10px 9px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  border: 1px solid #0a5bb5;
+  background: linear-gradient(#c4ebff, #4ab3ff 48%, #0a7fe6 52%, #63ccff);
+  color: #fff;
+  font-size: 10px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+  animation: y2-nudge 1.2s ease-in-out infinite alternate;
+}
+/* vencedor: o pop-up do visitante nº 1.000.000 (fica parado) */
+html[data-theme='y2k'] .y2-win-won {
+  transform: scale(0.7);
+  transition:
+    opacity 0.35s,
+    transform 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+html[data-theme='y2k'] .y2-win-won .y2-win-bar {
+  background:
+    linear-gradient(
+      rgba(255, 255, 255, 0.55),
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(0, 0, 0, 0.12) 51%,
+      rgba(255, 255, 255, 0.25)
+    ),
+    var(--win-color, #ff7ccf);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+html[data-theme='y2k'] .y2-win-won .y2-win-track > i {
+  transform: none;
+  background: linear-gradient(
+      rgba(255, 255, 255, 0.6),
+      rgba(255, 255, 255, 0) 60%
+    ),
+    var(--win-color, #ff7ccf);
+}
+html[data-theme='y2k'][data-wheel='won'] .y2-wins-cyc {
+  opacity: 0;
+}
+html[data-theme='y2k'][data-wheel='won'] .y2-win-won {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Aparelho de som "CromoSystem 2000" ---------- */
+
+html[data-theme='y2k'] .y2-player {
+  left: 50%;
+  top: 8px;
+  width: 440px;
+  height: 80px;
+  margin-left: -220px;
+}
+html[data-theme='y2k'] .y2-player * {
+  position: absolute;
+}
+html[data-theme='y2k'] .y2-pl-body {
+  inset: 0;
+  border-radius: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.85) 0%,
+      rgba(255, 255, 255, 0) 46%
+    ),
+    linear-gradient(
+      180deg,
+      #f4f7fb 0%,
+      #c3cdda 45%,
+      #97a5ba 52%,
+      #dce4ee 80%,
+      #aebbcd 100%
+    );
+  box-shadow:
+    inset 0 -3px 5px rgba(60, 80, 120, 0.35),
+    inset 0 2px 0 #fff,
+    0 0 0 1px rgba(90, 110, 150, 0.4),
+    0 10px 24px rgba(40, 60, 110, 0.3);
+}
+html[data-theme='y2k'] .y2-pl-cd {
+  left: 9px;
+  top: 8px;
+  width: 62px;
+  height: 62px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #d8e1ec;
+  box-shadow:
+    inset 0 2px 6px rgba(20, 40, 80, 0.5),
+    0 1px 0 #fff;
+}
+html[data-theme='y2k'] .y2-pl-cd > .y2-cd-disc {
+  inset: 3px;
+  animation-duration: 3.2s;
+}
+html[data-theme='y2k'] .y2-pl-cd > .y2-cd-disc.y2-cd-fast {
+  animation-duration: 0.45s;
+}
+html[data-theme='y2k'] .y2-pl-dome {
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 60% 34% at 40% 22%,
+      rgba(255, 255, 255, 0.85),
+      rgba(255, 255, 255, 0) 70%
+    ),
+    radial-gradient(circle, transparent 60%, rgba(120, 190, 255, 0.35) 96%);
+}
+html[data-theme='y2k'] .y2-lcd {
+  left: 80px;
+  top: 9px;
+  width: 278px;
+  height: 62px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ddf7ff, #a3def8 58%, #bdeeff);
+  box-shadow:
+    inset 0 2px 6px rgba(10, 50, 100, 0.5),
+    0 1px 0 #fff;
+  color: #0b2f61;
+  font-family: var(--font-vt323), monospace;
+}
+html[data-theme='y2k'] .y2-lcd::before,
+html[data-theme='y2k'] .y2-lcd::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+html[data-theme='y2k'] .y2-lcd::before {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(10, 60, 120, 0.07) 0 1px,
+    transparent 1px 3px
+  );
+}
+/* vencedor: a luz de fundo do LCD acende na cor da fatia */
+html[data-theme='y2k'] .y2-lcd::after {
+  background: radial-gradient(
+    ellipse at 40% 50%,
+    var(--win-color, #ff9ad5),
+    transparent 85%
+  );
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+html[data-theme='y2k'][data-wheel='won'] .y2-lcd::after {
+  opacity: 0.4;
+}
+html[data-theme='y2k'] .y2-lcd-ticker {
+  left: 9px;
+  right: 9px;
+  top: 3px;
+  height: 16px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(11, 47, 97, 0.15);
+  font-size: 16px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+html[data-theme='y2k'] .y2-lcd-ticker span {
+  left: 0;
+  top: 0;
+  animation: y2-ticker 34s linear infinite;
+}
+html[data-theme='y2k'] .y2-lcd-main {
+  left: 9px;
+  right: 9px;
+  top: 21px;
+  bottom: 3px;
+}
+html[data-theme='y2k']
+  :is(.y2-lcd-cyc, .y2-lcd-spin, .y2-lcd-won, .y2-lcd-count, .y2-lcd-party, .y2-lcd-bug) {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 66px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+html[data-theme='y2k'] :is(.y2-lcd-cyc, .y2-lcd-spin, .y2-lcd-won) {
+  transition: opacity 0.4s;
+}
+html[data-theme='y2k'] :is(.y2-lcd-spin, .y2-lcd-won, .y2-lcd-party, .y2-lcd-bug) {
+  opacity: 0;
+  font-size: 27px;
+  letter-spacing: 0.02em;
+}
+html[data-theme='y2k'] .y2-lcd-count {
+  --y2-an: y2-k-lcd-count;
+}
+html[data-theme='y2k'] .y2-lcd-party {
+  --y2-an: y2-k-lcd-party;
+}
+html[data-theme='y2k'] .y2-lcd-bug {
+  color: #9b1050;
+  --y2-an: y2-k-lcd-bug;
+}
+html[data-theme='y2k'][data-wheel='spinning'] .y2-lcd-cyc,
+html[data-theme='y2k'][data-wheel='won'] .y2-lcd-cyc {
+  opacity: 0;
+}
+html[data-theme='y2k'][data-wheel='spinning'] .y2-lcd-spin,
+html[data-theme='y2k'][data-wheel='won'] .y2-lcd-won {
+  opacity: 1;
+}
+html[data-theme='y2k'] .y2-lcd-count small {
+  position: relative;
+  font-size: 13px;
+  line-height: 11px;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+html[data-theme='y2k'] .y2-lcd-digits {
+  position: relative;
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+html[data-theme='y2k'] .y2-dg {
+  position: relative;
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  vertical-align: top;
+}
+html[data-theme='y2k'] .y2-dg-strip {
+  position: relative;
+  display: block;
+  white-space: pre;
+  line-height: 1em;
+}
+/* contagem regressiva sincronizada com o ciclo (virada em 62,5% = 150 s) */
+html[data-theme='y2k'] .y2-dg-u .y2-dg-strip {
+  animation: y2-dg10 10s steps(10) infinite;
+  animation-delay: calc(var(--y2-cycle) * var(--y2-t0) * -1);
+}
+html[data-theme='y2k'] .y2-dg-t .y2-dg-strip {
+  animation: y2-dg6 60s steps(6) infinite;
+  animation-delay: calc(var(--y2-cycle) * var(--y2-t0) * -1 - 30s);
+}
+html[data-theme='y2k'] .y2-dg-m .y2-dg-strip {
+  animation: y2-dg4 240s steps(4) infinite;
+  animation-delay: calc(var(--y2-cycle) * var(--y2-t0) * -1 - 90s);
+}
+html[data-theme='y2k'] .y2-eq {
+  right: 0;
+  top: 8px;
+  width: 60px;
+  height: 22px;
+  overflow: hidden;
+}
+html[data-theme='y2k'] .y2-eq-strip {
+  left: 0;
+  top: 0;
+  width: 60px;
+  height: 176px;
+  animation: y2-eq 0.8s steps(8) infinite;
+}
+html[data-theme='y2k'] .y2-eq-wild {
+  opacity: 0;
+  animation-duration: 0.4s;
+  animation-play-state: paused;
+  transition: opacity 0.4s;
+}
+html[data-theme='y2k'] .y2-eq-lo {
+  fill: #0d6ed1;
+}
+html[data-theme='y2k'] .y2-eq-mid {
+  fill: #c2187a;
+}
+html[data-theme='y2k'] .y2-eq-hi {
+  fill: #0b2f61;
+}
+html[data-theme='y2k'] .y2-pl-side {
+  right: 10px;
+  top: 9px;
+  width: 62px;
+  height: 62px;
+}
+html[data-theme='y2k'] .y2-pl-spk {
+  left: 4px;
+  top: 4px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #3a4a6a 0 1.3px, transparent 1.7px) 0 0 / 5px 5px,
+    radial-gradient(circle at 40% 35%, #f0f4fa, #95a3b8 62%, #5d6b83);
+  box-shadow:
+    inset 0 2px 5px rgba(20, 30, 60, 0.55),
+    0 0 0 3px #e7edf5,
+    0 0 0 4px rgba(90, 110, 150, 0.45);
+  animation: y2-thump 0.5s cubic-bezier(0.2, 0.7, 0.4, 1) infinite;
+}
+html[data-theme='y2k'] .y2-pl-led {
+  right: -2px;
+  top: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #3dff8a 55%, #0a9e47);
+  box-shadow: 0 0 8px #3dff8a;
+  animation: y2-blink 1.8s steps(1) infinite;
+}
+html[data-theme='y2k'][data-wheel='spinning'] :is(.y2-cd-fast, .y2-eq-wild) {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+/* ---------- Componentes ---------- */
+
+/* título cromado em Michroma */
+html[data-theme='y2k'] .ui-title {
+  font-family: var(--font-michroma);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background-image: linear-gradient(
+    to bottom,
+    #7d93b2 0%,
+    #f4f8fc 38%,
+    #3d5a80 52%,
+    #8fb0d8 100%
+  );
+  -webkit-text-stroke: 1px rgba(61, 90, 128, 0.55);
+  filter: drop-shadow(0 2px 6px rgba(61, 90, 128, 0.4));
+}
+/* o subtítulo e o rodapé ganham uma cápsula de vidro: o céu escurece à
+   noite e o texto continua legível */
+html[data-theme='y2k'] .ui-subtitle {
+  display: inline-block;
+  padding: 0.1rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 2px 8px rgba(61, 90, 128, 0.2);
+  color: #2f4a70;
+}
+html[data-theme='y2k'] body > div > footer {
+  align-self: center;
+  margin-bottom: 0.4rem;
+  padding: 0.1rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #3d5a80;
+}
+/* vidro Aero brilhante: reflexo no topo e borda clara */
+html[data-theme='y2k'] :is(.ui-card, .ui-chip) {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(222, 236, 252, 0.8)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 1.5rem;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 22px 26px -22px rgba(255, 255, 255, 0.95),
+    0 0 0 1px rgba(120, 150, 200, 0.18),
+    0 12px 32px rgba(61, 90, 128, 0.25);
+}
+html[data-theme='y2k'] .ui-card-title {
+  font-family: var(--font-michroma);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  /* um tom abaixo de #1d6fe0 (4,4:1 no vidro claro) para passar de 4,5:1 */
+  color: #1a66d2;
+}
+html[data-theme='y2k'] .ui-panel {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(61, 90, 128, 0.18);
+}
+/* botões "gel" do Aqua */
+html[data-theme='y2k'] :is(.ui-cta, .ui-btn) {
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    #c4ebff 0%,
+    #4ab3ff 48%,
+    #0a7fe6 52%,
+    #63ccff 100%
+  );
+  border: 1px solid #0a5bb5;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 4px 14px rgba(10, 127, 230, 0.35);
+}
+html[data-theme='y2k'] .ui-cta {
+  font-family: var(--font-michroma);
+  letter-spacing: 0.15em;
+}
+/* aro cromado com reflexo furta-cor */
+html[data-theme='y2k'] .ui-rim {
+  background:
+    conic-gradient(
+      from 200deg,
+      rgba(255, 210, 245, 0.55),
+      rgba(255, 255, 255, 0) 12%,
+      rgba(190, 240, 255, 0.55) 30%,
+      rgba(255, 255, 255, 0) 45%,
+      rgba(255, 246, 190, 0.5) 62%,
+      rgba(255, 255, 255, 0) 78%,
+      rgba(255, 210, 245, 0.55)
+    ),
+    linear-gradient(180deg, #ffffff, #9aa7b8 45%, #eef2f7 55%, #7d8a9c);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.9),
+    0 20px 50px rgba(61, 90, 128, 0.35);
+}
+html[data-theme='y2k'] .ui-hub {
+  background: linear-gradient(to bottom, #ffffff, #b9c4d2);
+  color: #1d6fe0;
+  font-family: var(--font-michroma);
+}
+html[data-theme='y2k'] .ui-input {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* ---------- Ciclo (fração do ciclo; --y2-d desloca cada camada) ---------- */
+
+@keyframes y2-k-day {
+  0%,
+  3% {
+    opacity: 0;
+  }
+  14%,
+  56% {
+    opacity: 1;
+  }
+  57%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes y2-k-sunset {
+  0%,
+  27% {
+    opacity: 0;
+  }
+  39%,
+  57% {
+    opacity: 1;
+  }
+  58%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes y2-k-sheen {
+  0%,
+  29% {
+    opacity: 0;
+  }
+  38% {
+    opacity: 0.65;
+  }
+  48% {
+    opacity: 0.35;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes y2-k-night {
+  0%,
+  45% {
+    opacity: 0;
+  }
+  55%,
+  88% {
+    opacity: 1;
+  }
+  89%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes y2-k-dawn {
+  0%,
+  80% {
+    opacity: 0;
+  }
+  87%,
+  93% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes y2-k-stars {
+  0%,
+  46% {
+    opacity: 0;
+  }
+  56%,
+  84% {
+    opacity: 1;
+  }
+  91%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes y2-k-shoot {
+  0% {
+    opacity: 0;
+    transform: translateX(-10vw);
+  }
+  0.15% {
+    opacity: 1;
+  }
+  0.8%,
+  100% {
+    opacity: 0;
+    transform: translateX(30vw);
+  }
+}
+@keyframes y2-k-aurora {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.75;
+  }
+  55%,
+  69% {
+    opacity: 1;
+  }
+  78%,
+  100% {
+    opacity: 0;
+  }
+}
+/* sol: --y2-d 0.88 (arco largo e baixo: aparece à esquerda no fim do
+   amanhecer, culmina em 11% entre o título e o aparelho de som e sai pela
+   direita no pôr do sol, por volta de 34%) */
+@keyframes y2-k-sun {
+  0% {
+    transform: rotate(-60deg);
+  }
+  54% {
+    transform: rotate(80deg);
+  }
+  54.01%,
+  100% {
+    transform: rotate(-60deg);
+  }
+}
+/* planeta: --y2-d 0.42 (sobe por baixo ao anoitecer, culmina em 71% à
+   direita do aparelho de som, se põe no amanhecer); estacionado fora da
+   tela */
+@keyframes y2-k-planet {
+  0% {
+    transform: rotate(-100deg);
+  }
+  50% {
+    transform: rotate(72deg);
+  }
+  50.01%,
+  100% {
+    transform: rotate(-100deg);
+  }
+}
+@keyframes y2-k-sunwarm {
+  0% {
+    opacity: 0.55;
+  }
+  5%,
+  26% {
+    opacity: 0;
+  }
+  36%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+@keyframes y2-k-flare {
+  0%,
+  6% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  9.5%,
+  17.5% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  21%,
+  100% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+@keyframes y2-k-cl-white {
+  0%,
+  30% {
+    opacity: 1;
+  }
+  40%,
+  89% {
+    opacity: 0;
+  }
+  99%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes y2-k-cl-holo {
+  0%,
+  27% {
+    opacity: 0;
+  }
+  36%,
+  49% {
+    opacity: 0.85;
+  }
+  57%,
+  80% {
+    opacity: 0;
+  }
+  87%,
+  94% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes y2-k-fl-white {
+  0%,
+  30% {
+    opacity: 1;
+  }
+  40%,
+  52% {
+    opacity: 0;
+  }
+  60%,
+  82% {
+    opacity: 0.2;
+  }
+  89% {
+    opacity: 0;
+  }
+  99%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes y2-k-mist {
+  0% {
+    opacity: 0.45;
+  }
+  7%,
+  82% {
+    opacity: 0;
+  }
+  89% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.45;
+  }
+}
+/* chuva de bolhas: cada camada atravessa a tela uma vez (--y2-d) */
+@keyframes y2-k-shower {
+  0% {
+    transform: translateY(105vh);
+  }
+  11% {
+    transform: translateY(var(--y2-to));
+  }
+  11.01%,
+  100% {
+    transform: translateY(105vh);
+  }
+}
+@keyframes y2-k-butterflies {
+  0%,
+  17% {
+    opacity: 1;
+  }
+  19.5%,
+  31% {
+    opacity: 0;
+  }
+  33.5%,
+  41% {
+    opacity: 1;
+  }
+  45%,
+  88% {
+    opacity: 0;
+  }
+  92%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes y2-k-sparkles {
+  0% {
+    opacity: 0.8;
+  }
+  8%,
+  30% {
+    opacity: 0.3;
+  }
+  38%,
+  82% {
+    opacity: 0;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
+/* fogos: --y2-d é o instante de cada estouro (~2,6 s) */
+@keyframes y2-k-fw {
+  0% {
+    opacity: 0;
+    transform: scale(0.15);
+    animation-timing-function: cubic-bezier(0.15, 0.7, 0.3, 1);
+  }
+  0.06% {
+    opacity: 1;
+  }
+  0.55% {
+    opacity: 0.85;
+  }
+  1.1%,
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+/* janelas: --y2-d é o instante em que cada uma abre */
+@keyframes y2-k-win-a {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  0.25% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  0.45%,
+  17.6% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  18% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes y2-k-win-b {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  0.25% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  0.45%,
+  11% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  11.4% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes y2-k-win-c {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  0.15% {
+    opacity: 1;
+    transform: scale(1.06) rotate(-1deg);
+  }
+  0.3%,
+  5.6% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  6% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+/* barra de download (em degraus, como nos modems) */
+@keyframes y2-k-prog {
+  0% {
+    transform: scaleX(0.05);
+    animation-timing-function: steps(18, end);
+  }
+  17% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+/* LCD: contagem → FELIZ 2000! → 01·01·1900 ?! → contagem */
+@keyframes y2-k-lcd-count {
+  0%,
+  62.45% {
+    opacity: 1;
+  }
+  62.5%,
+  67.4% {
+    opacity: 0;
+  }
+  67.5%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes y2-k-lcd-party {
+  0%,
+  62.45% {
+    opacity: 0;
+  }
+  62.5%,
+  65.9% {
+    opacity: 1;
+  }
+  66%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes y2-k-lcd-bug {
+  0%,
+  65.95% {
+    opacity: 0;
+    transform: none;
+  }
+  66% {
+    opacity: 1;
+    transform: translateX(3px);
+  }
+  66.12% {
+    transform: translateX(-4px) skewX(-8deg);
+  }
+  66.25% {
+    transform: translateX(2px);
+  }
+  66.4%,
+  67.4% {
+    opacity: 1;
+    transform: none;
+  }
+  67.5%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* ---------- Laços curtos ---------- */
+
+@keyframes y2-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes y2-sheen {
+  to {
+    transform: translateX(25%);
+  }
+}
+@keyframes y2-twinkle {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.12;
+  }
+}
+@keyframes y2-sway {
+  from {
+    transform: translateX(-4%) scaleY(0.9);
+  }
+  to {
+    transform: translateX(4%) scaleY(1.08);
+  }
+}
+@keyframes y2-osc-x {
+  from {
+    transform: translateX(-10vh);
+  }
+  to {
+    transform: translateX(10vh);
+  }
+}
+@keyframes y2-osc-y {
+  from {
+    transform: translateY(-2.6vh);
+  }
+  to {
+    transform: translateY(2.6vh);
+  }
+}
+@keyframes y2-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+/* bolha subindo com balanço lateral (seno em 8 pontos) */
+@keyframes y2-rise {
+  0% {
+    transform: translate(0, 0);
+  }
+  12.5% {
+    transform: translate(calc(var(--y2-sx) * 0.71), -15.6vh);
+  }
+  25% {
+    transform: translate(var(--y2-sx), -31.2vh);
+  }
+  37.5% {
+    transform: translate(calc(var(--y2-sx) * 0.71), -46.9vh);
+  }
+  50% {
+    transform: translate(0, -62.5vh);
+  }
+  62.5% {
+    transform: translate(calc(var(--y2-sx) * -0.71), -78.1vh);
+  }
+  75% {
+    transform: translate(calc(var(--y2-sx) * -1), -93.8vh);
+  }
+  87.5% {
+    transform: translate(calc(var(--y2-sx) * -0.71), -109.4vh);
+  }
+  100% {
+    transform: translate(0, -125vh);
+  }
+}
+@keyframes y2-flap {
+  to {
+    transform: scaleX(0.28);
+  }
+}
+@keyframes y2-fly-1 {
+  0%,
+  100% {
+    transform: translate(1vw, 72vh) rotate(-8deg);
+  }
+  20% {
+    transform: translate(6vw, 54vh) rotate(6deg);
+  }
+  40% {
+    transform: translate(2vw, 38vh) rotate(-4deg);
+  }
+  55% {
+    transform: translate(7vw, 22vh) rotate(8deg);
+  }
+  72% {
+    transform: translate(3vw, 46vh) rotate(-6deg);
+  }
+  86% {
+    transform: translate(8vw, 63vh) rotate(4deg);
+  }
+}
+@keyframes y2-fly-2 {
+  0%,
+  100% {
+    transform: translate(29vw, 5vh) rotate(6deg);
+  }
+  25% {
+    transform: translate(35vw, 2.5vh) rotate(-6deg);
+  }
+  50% {
+    transform: translate(38vw, 6.5vh) rotate(8deg);
+  }
+  75% {
+    transform: translate(32vw, 3vh) rotate(-4deg);
+  }
+}
+@keyframes y2-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.15;
+  }
+}
+@keyframes y2-globe {
+  to {
+    transform: rotateY(1turn);
+  }
+}
+/* satélite numa elipse inclinada; mais apagado quando passa por trás */
+@keyframes y2-sat {
+  0% {
+    transform: translate(70px, -20px);
+    opacity: 1;
+  }
+  8.33% {
+    transform: translate(63px, -10px);
+  }
+  16.67% {
+    transform: translate(39px, 2px);
+  }
+  25% {
+    transform: translate(4px, 14px);
+  }
+  33.33% {
+    transform: translate(-32px, 22px);
+  }
+  41.67% {
+    transform: translate(-59px, 24px);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-70px, 20px);
+    opacity: 0.3;
+  }
+  58.33% {
+    transform: translate(-63px, 10px);
+  }
+  66.67% {
+    transform: translate(-39px, -2px);
+  }
+  75% {
+    transform: translate(-4px, -14px);
+  }
+  83.33% {
+    transform: translate(32px, -22px);
+  }
+  91.67% {
+    transform: translate(59px, -24px);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate(70px, -20px);
+    opacity: 1;
+  }
+}
+@keyframes y2-ticker {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes y2-eq {
+  to {
+    transform: translateY(-176px);
+  }
+}
+@keyframes y2-dg10 {
+  to {
+    transform: translateY(-10em);
+  }
+}
+@keyframes y2-dg6 {
+  to {
+    transform: translateY(-6em);
+  }
+}
+@keyframes y2-dg4 {
+  to {
+    transform: translateY(-4em);
+  }
+}
+@keyframes y2-thump {
+  0% {
+    transform: scale(1.06);
+  }
+  60%,
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes y2-nudge {
+  to {
+    transform: scale(1.08);
+  }
+}
+
+/* ---------- Telas menores ---------- */
+
+/* sem a coluna do seletor ao lado da roleta: o globo não tem vão */
+@media (max-width: 1023px) {
+  html[data-theme='y2k'] .y2-globe {
+    display: none;
+  }
+}
+@media (max-width: 1100px) {
+  html[data-theme='y2k'] :is(.y2-player, .y2-wins) {
+    transform: scale(0.8);
+    transform-origin: 50% 0;
+  }
+}
+/* celular: só o céu, o cromo, CDs e bolhas (cabeçalho livre) */
+@media (max-width: 640px) {
+  html[data-theme='y2k']
+    :is(.y2-player, .y2-wins, .y2-butterflies, .y2-fw, .y2-shower) {
+    display: none;
+  }
+}
+
+/* ---------- Movimento reduzido: tudo parado no pôr do sol ----------
+   src/app/themes.css desliga as animações do fundo (animation: none
+   !important). As camadas do ciclo voltam aqui, mais específicas, só que
+   pausadas: uma animação pausada com atraso negativo mostra exatamente o
+   momento --y2-t0. Os laços curtos ficam parados no estilo-base. */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme='y2k'] {
+    --y2-t0: 0.4;
+  }
+  html[data-theme='y2k'] .scene-y2k .y2-cyc {
+    animation: var(--y2-an) var(--y2-cycle) linear
+      calc(var(--y2-cycle) * (var(--y2-d) - var(--y2-t0) - 1)) infinite paused !important;
+  }
+  html[data-theme='y2k'] .scene-y2k .y2-dg-u .y2-dg-strip {
+    animation: y2-dg10 10s steps(10) calc(var(--y2-cycle) * var(--y2-t0) * -1)
+      infinite paused !important;
+  }
+  html[data-theme='y2k'] .scene-y2k .y2-dg-t .y2-dg-strip {
+    animation: y2-dg6 60s steps(6)
+      calc(var(--y2-cycle) * var(--y2-t0) * -1 - 30s) infinite paused !important;
+  }
+  html[data-theme='y2k'] .scene-y2k .y2-dg-m .y2-dg-strip {
+    animation: y2-dg4 240s steps(4)
+      calc(var(--y2-cycle) * var(--y2-t0) * -1 - 90s) infinite paused !important;
+  }
+}

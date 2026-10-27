@@ -1,11 +1,12 @@
 # Hearts of Iron: prompts de imagem de fundo
 
-O tema já tem uma cena viva feita em SVG/CSS (`Scene.tsx` e `theme.css`). Ela mostra
-uma carta topográfica sépia/oliva sobre a mesa de uma sala de guerra, com setas de
-frente, alfinetes, radar, papéis presos com fita e um ciclo de dia e noite de 4 minutos.
-Se quiser trocar o terreno desenhado por uma ilustração, gere uma das imagens abaixo e
-salve como `public/themes/hearts-of-iron/bg.webp`. Depois descomente o bloco no fim do
-`theme.css`. A luz do ciclo, o clima, o radar e as luzes das cidades continuam por cima.
+O tema já tem uma cena viva (`Scene.tsx`, `Board.tsx`, `Props.tsx` e `theme.css`): a mesa da sala
+de guerra vista de cima, inclinada em perspectiva, com a carta pintada (gerada em `map.ts` e
+desenhada uma vez como imagem SVG em `mapArt.ts`), a guerra de províncias, setas e blocos, os
+objetos de latão e papel nas margens e um ciclo de dia e noite de 4 minutos. Se quiser trocar a
+carta desenhada por uma ilustração, gere uma das imagens abaixo, salve como
+`public/themes/hearts-of-iron/bg.webp` e troque a `backgroundImage` do `.hoi-map` em
+`Board.tsx` por esse arquivo. A luz do ciclo, o clima, as peças vivas e os objetos continuam por cima.
 
 Regras para todas as imagens:
 

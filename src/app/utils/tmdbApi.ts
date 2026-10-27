@@ -20,13 +20,17 @@ export interface Movie {
   watchProviders?: WatchProvider[] // Optional array of watch providers
 }
 
-async function tmdb<T>(
+export async function tmdb<T>(
   path: string,
   params: Record<string, string>,
   signal?: AbortSignal,
+  init?: RequestInit,
 ): Promise<T> {
   const query = new URLSearchParams({ api_key: API_KEY, ...params })
-  const response = await fetch(`${BASE_URL}${path}?${query}`, { signal })
+  const response = await fetch(`${BASE_URL}${path}?${query}`, {
+    ...init,
+    signal,
+  })
   if (!response.ok) throw new Error(`TMDB respondeu ${response.status}`)
   return response.json()
 }

@@ -9,7 +9,10 @@ import ThemePicker from '../ThemePicker'
 import { DEFAULT_THEME_ID, applyTheme, getTheme } from '@/app/utils/themes'
 import OptionsEditor from '../OptionsEditor'
 import HistoryPanel from '../HistoryPanel'
+import ImportBanner from '../ImportBanner'
+import { preloadTmdbImage } from '../TmdbImage'
 import { HistoryEntry, RouletteOption, RouletteSettings } from '@/app/types'
+import { RouletteImport, takeRouletteImport } from '@/app/utils/rouletteImport'
 import { Movie } from '@/app/utils/tmdbApi'
 import { PALETTE, isLegacyColor, pickColor } from '@/app/utils/colors'
 import { usePersistentState } from '@/app/hooks/usePersistentState'
@@ -100,6 +103,10 @@ export function RoletaMain() {
   const [celebrating, setCelebrating] = useState(false)
   const [showWinner, setShowWinner] = useState(false)
   const [spinRequest, setSpinRequest] = useState(0)
+  const [pendingImport, setPendingImport] = useState<RouletteImport | null>(
+    null,
+  )
+  const importCheckedRef = useRef(false)
 
   const rotorRef = useRef<HTMLDivElement>(null)
   const pointerRef = useRef<HTMLDivElement>(null)
@@ -119,6 +126,24 @@ export function RoletaMain() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme.id
   }, [theme.id])
+
+  // As cenas de fundo reagem à roleta: data-wheel no <html> (girando /
+  // vencedor em destaque) e --win-color com a cor da fatia vencedora
+  const wheelPhase = isSpinning ? 'spinning' : celebrating ? 'won' : 'idle'
+  useEffect(() => {
+    document.documentElement.dataset.wheel = wheelPhase
+  }, [wheelPhase])
+  useEffect(() => {
+    if (winner)
+      document.documentElement.style.setProperty('--win-color', winner.color)
+  }, [winner])
+  // Com o modal do vencedor aberto a cena para atrás do fundo escuro e libera
+  // a GPU para a entrada do modal e o confete
+  useEffect(() => {
+    const root = document.documentElement
+    if (showWinner) root.dataset.dialog = 'open'
+    else delete root.dataset.dialog
+  }, [showWinner])
 
   const coloredOptions = useMemo(
     () => applyTheme(options, theme),
@@ -162,6 +187,16 @@ export function RoletaMain() {
       setMovies((prev) => prev.filter((m) => addedMovieIds.has(m.id)))
     }
   }, [addedMovieIds, movies, optionsLoaded, moviesLoaded, setMovies])
+
+  // Filmes enviados por outra página (ex.: /letterboxd). Lê uma vez só,
+  // depois do estado salvo: o ref segura o efeito duplo do StrictMode, e o
+  // import fica em memória até o usuário aplicar ou descartar
+  useEffect(() => {
+    if (!optionsLoaded || !moviesLoaded || importCheckedRef.current) return
+    importCheckedRef.current = true
+    const data = takeRouletteImport()
+    if (data) setPendingImport(data)
+  }, [optionsLoaded, moviesLoaded])
 
   // Qualquer mudança na roda apaga o destaque do último vencedor
   useEffect(() => {
@@ -220,6 +255,37 @@ export function RoletaMain() {
     ])
   }
 
+  const applyImport = (mode: 'replace' | 'add') => {
+    if (!pendingImport || isSpinning) return
+    const next = mode === 'replace' ? [] : [...options]
+    const seenIds = new Set(next.flatMap((o) => (o.movieId ? [o.movieId] : [])))
+    const seenTexts = new Set(next.map((o) => o.text.toLowerCase()))
+    const imported = new Map<number, Movie>()
+
+    pendingImport.items.forEach(({ title, movie }) => {
+      // Uma linha só: o editor de texto separa opções por quebra de linha
+      const text = title.replace(/\s+/g, ' ').trim()
+      const key = text.toLowerCase()
+      if (!text || seenTexts.has(key) || (movie && seenIds.has(movie.id)))
+        return
+      seenTexts.add(key)
+      if (movie) {
+        seenIds.add(movie.id)
+        imported.set(movie.id, movie)
+      }
+      // Acumula em `next` para cada opção nova pegar uma cor diferente
+      next.push(createOption(text, next, movie ? { movieId: movie.id } : {}))
+    })
+
+    setPendingImport(null)
+    if (imported.size > 0)
+      setMovies((prev) => [
+        ...prev.filter((m) => !imported.has(m.id)),
+        ...imported.values(),
+      ])
+    commitOptions(next)
+  }
+
   const flickPointer = () => {
     pointerRef.current?.animate(
       [
@@ -267,6 +333,24 @@ export function RoletaMain() {
     // cada opção é proporcional ao número de fatias dela
     const turns = 2 + spinSeconds * 1.1 + random() * 2
     const end = start + turns * 360 + random() * 360
+    // O vencedor já está decidido: as imagens dele baixam durante o giro e o
+    // modal abre sem esperar a rede
+    const next = snapshot[segmentIndexAt(end, count)]
+    const nextMovie = next?.movieId ? movieById.get(next.movieId) : undefined
+    if (nextMovie?.poster_path)
+      preloadTmdbImage({
+        path: nextMovie.poster_path,
+        fill: true,
+        sizes: '160px',
+      })
+    nextMovie?.watchProviders?.forEach((p) =>
+      preloadTmdbImage({
+        path: p.logo_path,
+        kind: 'logo',
+        width: 22,
+        height: 22,
+      }),
+    )
     let startedAt = 0
     let lastIndex = segmentIndexAt(start, count)
     let lastTickAt = 0
@@ -316,7 +400,7 @@ export function RoletaMain() {
       revealTimeoutRef.current = setTimeout(() => {
         setShowWinner(true)
         sound.win()
-      }, 600)
+      }, 350)
     }
 
     wheelStart.then((t) => {
@@ -379,7 +463,9 @@ export function RoletaMain() {
   const canSpin = !isSpinning && segments.length > 0
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:py-8 lg:min-h-0 lg:max-w-[1600px] lg:flex-1 lg:py-4">
+    // No desktop os cards terminam antes do pé da tela: a faixa de baixo fica
+    // livre para a cena animada do tema aparecer
+    <main className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:py-8 lg:min-h-0 lg:max-w-[1600px] lg:flex-1 lg:pb-[clamp(2.5rem,16vh_-_4rem,8rem)] lg:pt-4">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-4 lg:mb-4">
         <div>
           <h1
@@ -450,6 +536,15 @@ export function RoletaMain() {
           </aside>
 
           <div className="flex flex-col gap-4 lg:min-h-0 lg:min-w-0 lg:flex-1 lg:gap-3">
+            {pendingImport && (
+              <ImportBanner
+                data={pendingImport}
+                disabled={isSpinning}
+                onReplace={() => applyImport('replace')}
+                onAdd={() => applyImport('add')}
+                onDiscard={() => setPendingImport(null)}
+              />
+            )}
             {/* No desktop a roda ocupa o espaço que sobrar, limitada pela
               largura e pela altura (container query), para tudo caber na tela */}
             <div className="pt-4 lg:min-h-0 lg:flex-1">

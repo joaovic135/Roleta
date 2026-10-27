@@ -1,202 +1,68 @@
 import type { CSSProperties, ReactNode } from 'react'
+import {
+  CITY,
+  CITY_H,
+  CITY_W,
+  CLOUD_BELLY,
+  CLOUD_TOP,
+  FLARE_RAYS,
+  LANE_EAST,
+  LANE_WEST,
+  PX,
+  PY,
+  RAIN,
+  SPEED_LINES,
+  STAGGER,
+  STARS,
+  TILES,
+  TRAIN,
+  tile,
+} from './geometry'
+import { SideColumn, TrackTitle } from './Kinetic'
+import Listener from './Listener'
+import { Birds, Fireworks, FlyingCar, RadioTower, RecordDeck } from './Props'
 
 // Cena de fundo do tema Mirai Funk (só aparece com data-theme="mirai-funk").
-// Pôster duotone vivo: céu verde-água claro, cidade preta com grades de
-// janelinhas, reflexo listrado no chão verde-escuro e poeira de estrelas.
+// Um videoclipe de future funk que nunca acaba, desenhado como pôster
+// duotone: céu verde-água chapado, cidade preta com grades de janelinhas,
+// água listrada, tipografia branca enorme em itálico que vira em CSS 3D.
 //
-// Ciclo de --mf-cycle (4 min, ver theme.css): dia com flare gráfico → sol
-// se pondo atrás da cidade → entardecer verde-água profundo com as janelas
-// acendendo uma a uma → noite quase preta, lua, estrelas cintilando, estrela
-// cadente, avião, garoa em traços chapados → amanhecer. Um trem passa pela
-// via elevada duas vezes por ciclo (dia e noite).
+// O disco tem 6 faixas de 40 s (ciclo de --mf-cycle = 4 min, theme.css):
+//   A1 未来のファンク  dia, gaivotas, sol listrado, nuvens na frente do sol
+//   A2 恋のルーレット  dia, flare gráfico, trem-bala branco passando
+//   A3 夕焼けシティ    pôr do sol, janelas acendendo em grupos, neon ラジオ
+//                      e poste do cais ligando, carro voador (raro)
+//   — troca de lado: o braço levanta, o LP vira, a faixa do céu inverte
+//   B1 月面ディスコ    noite, lua com retícula, fogos, avião, trem com rastro
+//   B2 雨のメモリー    garoa chapada, relâmpagos suaves, estrela cadente
+//   B3 夜明けのビート  amanhecer; o LP volta para o lado A
+// Laços curtos o tempo todo: equalizador na fachada da rádio, batida e
+// cronômetro da faixa no cabeçalho, LP girando, carros na via expressa,
+// rádio portátil pulsando e pernas balançando no cais, estrelas
+// cintilando; a coluna vertical gira a cada 22 s, gaivotas a cada 73 s,
+// nuvens em 170–260 s.
 //
-// Sorteios com semente fixa (iguais no servidor e no navegador), formas
-// iguais agrupadas num <path> por cor e janelas desenhadas com <pattern>.
-// Cada camada animada é um <svg>/<div> próprio, para a opacidade e o
-// movimento rodarem na GPU sem repintar a cidade.
+// Onde fica cada coisa (1920 x 1080): o título cinético e o letreiro da
+// faixa no meio do cabeçalho; a coluna de letras gigantes (tategaki) e o
+// ouvinte no cais na margem esquerda; sol/lua, torre da rádio e o
+// toca-discos na margem direita; trem, via expressa, nuvens e reflexos
+// atravessando a tela toda (vistos nas margens e entre os cards). Atrás da
+// roleta fica só céu e cidade, sem nada piscando.
+//
+// Roleta: girando, o título dá lugar a faixas de texto correndo, entram
+// linhas de concentração de mangá, as janelas pulsam na batida, ON AIR
+// acende, o LP vira um borrão e o ouvinte levanta e dança. No vencedor:
+// clarão duotone suave (inverte as cores por um instante, 2 pulsos),
+// 大当たり bate letra por letra na cor vencedora (--win-color), dois anéis
+// e dois fogos nessa cor uma vez, o ouvinte pula de braços para cima, e
+// fica só um brilho calmo enquanto o resultado estiver aberto.
+//
+// Sorteios com semente fixa (geometry.ts); formas iguais num <path> por
+// cor e janelas com <pattern>. Cada camada animada é um <svg>/<div>
+// próprio, para opacidade e movimento rodarem na GPU sem repintar.
 
-const seeded = (seed: number) => () => {
-  seed = (seed + 0x6d2b79f5) | 0
-  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-}
-const rect = (x: number, y: number, w: number, h: number) =>
-  `M${x} ${y}h${w}v${h}h${-w}z`
-const n = (v: number) => +v.toFixed(1)
 // atraso no ciclo (fração), lido pelo CSS em --mf-k
 const phase = (k: number) => ({ '--mf-k': k.toFixed(3) }) as CSSProperties
-
-// ---- Cidade ----
-// Grade de 8 x 10 unidades: prédios e janelas alinhados a ela, assim o
-// padrão de janelas nunca fica cortado na beira de um prédio.
-const CITY_W = 2400
-const CITY_H = 360
-const PX = 8
-const PY = 10
-const RAIL_Y = CITY_H - 34
-
-// Ladrilhos de janelas: de dia (verde-água refletindo o céu) e de noite
-// (acesas em branco-água), cada um com o seu sorteio
-const TILES = [
-  { cols: 6, rows: 6 },
-  { cols: 7, rows: 7 },
-  { cols: 5, rows: 8 },
-]
-const tile = (cols: number, rows: number, seed: number, on: number) => {
-  const rand = seeded(seed)
-  let lit = ''
-  let dim = ''
-  for (let r = 0; r < rows; r++)
-    for (let c = 0; c < cols; c++) {
-      const v = rand()
-      const w = rect(c * PX + 2, r * PY + 3, 4, 5)
-      if (v < on) lit += w
-      else if (v < on + 0.3) dim += w
-    }
-  return { lit, dim }
-}
-const NIGHT_GROUPS = 8
-// quanto cada grupo de janelas se adianta no ciclo (acendem fora de ordem)
-const STAGGER = [0, 0.034, 0.012, 0.051, 0.022, 0.06, 0.006, 0.043]
-
-const skyline = () => {
-  const rand = seeded(1986)
-  let front = ''
-  let far = ''
-  let antenna = ''
-  const day: string[] = TILES.map(() => '')
-  const night: string[] = Array.from({ length: NIGHT_GROUPS }, () => '')
-  const nightTile: number[] = Array.from(
-    { length: NIGHT_GROUPS },
-    (_, i) => i % 3,
-  )
-  let blink = ''
-  // fundo: blocos baixos e largos em verde-escuro
-  for (let x = -PX * 2; x < CITY_W; ) {
-    const w = PX * (8 + Math.floor(rand() * 14))
-    const h = PY * (12 + Math.floor(rand() * 16))
-    far += rect(x, CITY_H - h, w, h)
-    x += w
-  }
-  // frente: prédios pretos de alturas variadas, alguns com recuo no topo
-  for (let x = -PX; x < CITY_W; ) {
-    const w = PX * (5 + Math.floor(rand() * 11))
-    const tall = rand() < 0.18
-    const h =
-      PY * (tall ? 22 + Math.floor(rand() * 10) : 7 + Math.floor(rand() * 15))
-    const top = CITY_H - h
-    front += rect(x, top, w, h)
-    if (w >= PX * 9 && rand() < 0.45) {
-      const sw = PX * Math.max(3, Math.floor(w / PX / 2) - 1)
-      const sh = PY * (2 + Math.floor(rand() * 3))
-      const sx = x + PX * Math.floor((w - sw) / PX / 2)
-      front += rect(sx, top - sh, sw, sh)
-      if (rand() < 0.6) {
-        antenna += rect(sx + sw / 2 - 1, top - sh - 26, 2, 26)
-        blink += rect(sx + sw / 2 - 2, top - sh - 30, 4, 4)
-      }
-    } else if (rand() < 0.22) {
-      antenna += rect(x + PX * 2, top - 18, 2, 18)
-    }
-    // janelas: área interna do prédio (acima da via do trem)
-    const bottom = Math.min(CITY_H - PY, RAIL_Y - 6)
-    const area =
-      w >= PX * 4 && bottom - top > PY * 3
-        ? rect(x + PX, top + PY, w - PX * 2, bottom - top - PY)
-        : ''
-    const kind = Math.floor(rand() * 7) % 4
-    if (area && kind < 3) {
-      day[kind] += area
-      night[Math.floor(rand() * NIGHT_GROUPS)] += area
-    }
-    x += w + (rand() < 0.3 ? PX : 0)
-  }
-  // via elevada: viga e pilares
-  let rail = rect(0, RAIL_Y + 8, CITY_W, 5)
-  for (let x = 30; x < CITY_W; x += 120) rail += rect(x, RAIL_Y + 13, 6, 21)
-  return { front, far, antenna, day, night, nightTile, blink, rail }
-}
-const CITY = skyline()
-
-// Trem: carros pretos com janelas acesas (só as janelas aparecem de noite)
-const train = () => {
-  let body = ''
-  let windows = ''
-  for (let c = 0; c < 6; c++) {
-    // no meio da cidade: o CSS desliza a camada inteira de -100% a +100%
-    const x = 1000 + c * 66
-    body += rect(x, RAIL_Y - 8, 62, 16)
-    for (let wx = x + 6; wx < x + 56; wx += 9)
-      windows += rect(wx, RAIL_Y - 4, 5, 5)
-  }
-  return { body, windows }
-}
-const TRAIN = train()
-
-// ---- Estrelas e chuva ----
-// Tela de 1600 x 900 (cobre a página). Poeira fina no chão escuro, poucas
-// estrelas no céu de dia e um céu cheio só de noite.
-const sparkle = (x: number, y: number, s: number) =>
-  `M${n(x)} ${n(y - s)}Q${n(x)} ${n(y)} ${n(x + s)} ${n(y)}Q${n(x)} ${n(y)} ${n(x)} ${n(y + s)}Q${n(x)} ${n(y)} ${n(x - s)} ${n(y)}Q${n(x)} ${n(y)} ${n(x)} ${n(y - s)}Z`
-const dot = (x: number, y: number, r: number) =>
-  `M${n(x - r)} ${n(y)}a${n(r)} ${n(r)} 0 1 0 ${n(r * 2)} 0a${n(r)} ${n(r)} 0 1 0 ${n(-r * 2)} 0`
-
-const starfield = () => {
-  const rand = seeded(7)
-  let dust = ''
-  let glints = ''
-  let sky = ''
-  let night = ''
-  let twinkleA = ''
-  let twinkleB = ''
-  for (let i = 0; i < 160; i++)
-    dust += dot(rand() * 1600, 545 + rand() * 355, 0.6 + rand() * 1.3)
-  for (let i = 0; i < 18; i++)
-    glints += sparkle(rand() * 1600, 560 + rand() * 330, 4 + rand() * 7)
-  for (let i = 0; i < 30; i++) {
-    const x = rand() * 1600
-    const y = 20 + rand() * 300
-    sky += i % 5 ? dot(x, y, 0.8 + rand()) : sparkle(x, y, 3 + rand() * 4)
-  }
-  for (let i = 0; i < 110; i++)
-    night += dot(rand() * 1600, rand() * 470, 0.5 + rand() * 1.1)
-  for (let i = 0; i < 26; i++) {
-    const s = sparkle(rand() * 1600, 10 + rand() * 450, 3 + rand() * 6)
-    if (i % 2) twinkleA += s
-    else twinkleB += s
-  }
-  return { dust, glints, sky, night, twinkleA, twinkleB }
-}
-const STARS = starfield()
-
-// Garoa: traços retos e chapados, repetidos duas vezes na vertical para o
-// laço de queda não ter emenda
-const rain = () => {
-  const rand = seeded(404)
-  let d = ''
-  for (let i = 0; i < 90; i++) {
-    const x = n(rand() * 1600)
-    const y = n(rand() * 900)
-    const len = n(24 + rand() * 40)
-    d += `M${x} ${y}v${len}M${x} ${n(y + 900)}v${len}`
-  }
-  return d
-}
-const RAIN = rain()
-
-// Flare gráfico: raios finos, anéis e "fantasmas" chapados
-const flareRays = () => {
-  let d = ''
-  for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2
-    const r = i % 2 ? 230 : 300
-    const s = 0.035
-    d += `M300 300L${n(300 + Math.cos(a - s) * r)} ${n(300 + Math.sin(a - s) * r)}L${n(300 + Math.cos(a + s) * r)} ${n(300 + Math.sin(a + s) * r)}Z`
-  }
-  return d
-}
-const FLARE_RAYS = flareRays()
 
 const CityLayer = ({
   className,
@@ -218,19 +84,40 @@ const CityLayer = ({
   </svg>
 )
 
+// padrões de janelas (dia e noite), definidos uma vez na camada da cidade
+const WINDOW_PATTERNS = TILES.map(({ cols, rows }, i) => {
+  const dayTile = tile(cols, rows, 11 + i * 12, 0.42)
+  const nightTile = tile(cols, rows, 101 + i * 7, 0.34)
+  const box = {
+    width: cols * PX,
+    height: rows * PY,
+    patternUnits: 'userSpaceOnUse',
+    y: CITY_H % (rows * PY),
+  }
+  return [
+    <pattern key={`d${i}`} id={`mf-win-day-${i}`} {...box}>
+      <path className="mf-win-dim" d={dayTile.dim} />
+      <path className="mf-win-lit" d={dayTile.lit} />
+    </pattern>,
+    <pattern key={`n${i}`} id={`mf-win-night-${i}`} {...box}>
+      <path className="mf-win-on" d={nightTile.lit} />
+    </pattern>,
+    // todas as janelas acesas: pulso da batida enquanto a roleta gira
+    <pattern key={`b${i}`} id={`mf-win-beat-${i}`} {...box}>
+      <path className="mf-win-on" d={nightTile.lit + dayTile.lit} />
+    </pattern>,
+  ]
+})
+const ALL_NIGHT = CITY.night.join('')
+
 export default function MiraiFunkScene() {
   return (
     <>
       {/* paletas duotone do entardecer e da noite, por cima da do dia */}
       <div className="mf-sky mf-sky-dusk mf-cyc" />
       <div className="mf-sky mf-sky-night mf-cyc" />
-
-      {/* faixas finas do pôster e tipografia de fundo (no cabeçalho) */}
-      <div className="mf-rules" />
-      <div className="mf-type">
-        <span className="mf-type-jp">未来のファンク</span>
-        <span className="mf-type-thin">mirai no fanku · roleta do futuro</span>
-      </div>
+      {/* retícula de impressão nos cantos do céu */}
+      <div className="mf-halftone" />
 
       <svg
         className="mf-stars"
@@ -264,18 +151,23 @@ export default function MiraiFunkScene() {
         <i className="mf-cyc" />
       </div>
       <div className="mf-shooting mf-shooting-2">
-        <i className="mf-cyc" style={phase(0.86)} />
+        <i className="mf-cyc" style={phase(0.16)} />
       </div>
 
-      {/* sol chapado com flare gráfico; lua crescente à noite */}
+      {/* sol listrado com halos chapados; lua com retícula à noite */}
       <div className="mf-sunbox">
-        <div className="mf-sun mf-cyc" />
-        <div className="mf-moon mf-cyc" />
+        <div className="mf-sun mf-cyc">
+          <i className="mf-sun-halo" />
+          <i className="mf-sun-disc" />
+        </div>
+        <div className="mf-moon mf-cyc">
+          <i className="mf-moon-halo" />
+          <i className="mf-moon-disc" />
+        </div>
       </div>
+      {/* fantasmas parados antes dos raios que giram: pintam na camada do
+          próprio flare (branco sobre branco, a ordem não muda a cor) */}
       <div className="mf-flare mf-cyc">
-        <svg className="mf-flare-rays" viewBox="0 0 600 600">
-          <path d={FLARE_RAYS} />
-        </svg>
         <svg className="mf-flare-ghosts" viewBox="0 0 600 600">
           <circle className="mf-flare-ring" cx="300" cy="300" r="118" />
           <circle className="mf-flare-ring" cx="300" cy="300" r="150" />
@@ -283,38 +175,47 @@ export default function MiraiFunkScene() {
           <circle cx="168" cy="444" r="10" />
           <path d="M120 498l14-24h28l14 24-14 24h-28z" />
         </svg>
+        <svg className="mf-flare-rays" viewBox="0 0 600 600">
+          <path d={FLARE_RAYS} />
+        </svg>
       </div>
+
+      {/* nuvens chapadas atravessando devagar (passam na frente do sol) */}
+      <div className="mf-clouds mf-cyc">
+        {[1, 2, 3].map((k) => (
+          <svg
+            key={k}
+            className={`mf-cloud mf-cloud-${k}`}
+            viewBox="0 0 200 64"
+          >
+            <path className="mf-cloud-top" d={CLOUD_TOP} />
+            <path className="mf-cloud-belly" d={CLOUD_BELLY} />
+          </svg>
+        ))}
+      </div>
+
+      {/* atores do céu */}
+      <Birds />
       <div className="mf-plane mf-cyc">
         <i />
       </div>
+      <FlyingCar />
+      <Fireworks />
 
-      {/* cidade: fundo, frente com janelas de dia, janelas de noite em
-          grupos que acendem cada um no seu tempo, luzes de antena e trem */}
+      {/* cidade: fundo, contorno claro desalinhado (impressão), frente com
+          janelas de dia, janelas de noite em grupos que acendem cada um no
+          seu tempo, brilho das janelas, luzes de antena e trem */}
       <CityLayer className="mf-city-far mf-cyc">
         <path d={CITY.far} />
       </CityLayer>
+      {/* névoa clara no pé da cidade do fundo (de noite vira o clarão das
+          luzes da cidade no horizonte) */}
+      <div className="mf-haze" />
+      <CityLayer className="mf-city-misreg">
+        <path d={CITY.front + CITY.antenna} />
+      </CityLayer>
       <CityLayer className="mf-city-front">
-        <defs>
-          {TILES.map(({ cols, rows }, i) => {
-            const dayTile = tile(cols, rows, 11 + i * 12, 0.42)
-            const nightTile = tile(cols, rows, 101 + i * 7, 0.34)
-            const box = {
-              width: cols * PX,
-              height: rows * PY,
-              patternUnits: 'userSpaceOnUse',
-              y: CITY_H % (rows * PY),
-            }
-            return [
-              <pattern key={`d${i}`} id={`mf-win-day-${i}`} {...box}>
-                <path className="mf-win-dim" d={dayTile.dim} />
-                <path className="mf-win-lit" d={dayTile.lit} />
-              </pattern>,
-              <pattern key={`n${i}`} id={`mf-win-night-${i}`} {...box}>
-                <path className="mf-win-on" d={nightTile.lit} />
-              </pattern>,
-            ]
-          })}
-        </defs>
+        <defs>{WINDOW_PATTERNS}</defs>
         <path
           className="mf-city-black"
           d={CITY.front + CITY.antenna + CITY.rail}
@@ -336,19 +237,86 @@ export default function MiraiFunkScene() {
           <path d={d} fill={`url(#mf-win-night-${CITY.nightTile[i]})`} />
         </CityLayer>
       ))}
+      <CityLayer className="mf-city-bloom mf-cyc">
+        <path d={ALL_NIGHT} fill="url(#mf-win-night-0)" />
+      </CityLayer>
+      <CityLayer className="mf-city-beat">
+        {CITY.night.map((d, i) => (
+          <path key={i} d={d} fill={`url(#mf-win-beat-${i % 3})`} />
+        ))}
+      </CityLayer>
       <div className="mf-beacons mf-cyc">
         <CityLayer className="mf-beacon-blink">
           <path d={CITY.blink} />
         </CityLayer>
       </div>
-      <div className="mf-train-track">
-        <CityLayer className="mf-train mf-cyc">
-          <path className="mf-train-body" d={TRAIN.body} />
+
+      {/* trem-bala na via elevada: 4 passagens por ciclo; à noite as
+          janelas acendem e as pontas deixam rastros de luz */}
+      <div className="mf-train mf-cyc">
+        <CityLayer className="mf-train-body">
+          <path d={TRAIN.body} />
+          <path className="mf-train-stripe" d={TRAIN.stripe} />
           <path className="mf-train-win" d={TRAIN.windows} />
         </CityLayer>
+        <div className="mf-train-lit mf-cyc">
+          <CityLayer className="mf-train-glow">
+            {/* à noite a carroceria escurece e as janelas acendem */}
+            <path className="mf-train-shade" d={TRAIN.body} />
+            <defs>
+              <linearGradient id="mf-trail-l" x1="1" x2="0">
+                <stop offset="0" stopColor="#e8fbf8" stopOpacity="0.9" />
+                <stop offset="1" stopColor="#e8fbf8" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="mf-trail-r" x1="0" x2="1">
+                <stop offset="0" stopColor="#e8fbf8" stopOpacity="0.9" />
+                <stop offset="1" stopColor="#e8fbf8" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <rect
+              x={TRAIN.x0 - 420}
+              y={TRAIN.y + 8}
+              width="420"
+              height="3"
+              fill="url(#mf-trail-l)"
+            />
+            <rect
+              x={TRAIN.x1}
+              y={TRAIN.y + 8}
+              width="420"
+              height="3"
+              fill="url(#mf-trail-r)"
+            />
+            <path d={TRAIN.windows + TRAIN.lights} />
+          </CityLayer>
+        </div>
       </div>
 
-      {/* reflexo da cidade no chão escuro, em faixas horizontais */}
+      {/* torre da rádio (margem direita, na frente da cidade) */}
+      <RadioTower />
+
+      {/* via expressa na beira d'água: faixas de luz indo e vindo */}
+      <div className="mf-highway">
+        <div className="mf-lanes mf-cyc">
+          <svg
+            className="mf-lane mf-lane-e"
+            viewBox="0 0 2000 8"
+            preserveAspectRatio="none"
+          >
+            <path d={LANE_EAST} />
+          </svg>
+          <svg
+            className="mf-lane mf-lane-w"
+            viewBox="0 0 2000 8"
+            preserveAspectRatio="none"
+          >
+            <path d={LANE_WEST} />
+          </svg>
+        </div>
+      </div>
+
+      {/* reflexo da cidade no chão escuro, em faixas horizontais, e as
+          colunas de luz das janelas e da lua na água */}
       <svg
         className="mf-reflection mf-cyc"
         viewBox={`0 0 ${CITY_W} ${CITY_H}`}
@@ -357,7 +325,28 @@ export default function MiraiFunkScene() {
       >
         <path d={CITY.front} transform={`matrix(1 0 0 -1 0 ${CITY_H})`} />
       </svg>
+      <svg
+        className="mf-reflection-lit mf-cyc"
+        viewBox={`0 0 ${CITY_W} ${CITY_H}`}
+        preserveAspectRatio="xMidYMin slice"
+        shapeRendering="crispEdges"
+      >
+        <path
+          d={ALL_NIGHT}
+          fill="url(#mf-win-night-1)"
+          transform={`matrix(1 0 0 -1 0 ${CITY_H})`}
+        />
+      </svg>
+      <div className="mf-moonpath mf-cyc">
+        <i />
+      </div>
       <div className="mf-ground" />
+
+      {/* toca-discos na água (margem direita) */}
+      <RecordDeck />
+
+      {/* ouvinte sentado no cais (margem esquerda, embaixo) */}
+      <Listener />
 
       {/* garoa em traços diagonais chapados, com clarão de relâmpago */}
       <div className="mf-rain mf-cyc">
@@ -368,6 +357,50 @@ export default function MiraiFunkScene() {
         </div>
       </div>
       <div className="mf-flash mf-cyc" />
+
+      {/* girando: linhas de concentração em volta da roleta */}
+      <div className="mf-lines">
+        <svg viewBox="-1000 -1000 2000 2000">
+          <path d={SPEED_LINES} />
+        </svg>
+      </div>
+
+      {/* moldura do pôster: filetes, marcas de corte, ficha técnica (filete
+          e marcas numa caixa só = uma camada na GPU, não cinco) */}
+      <div className="mf-frame">
+        <div className="mf-rules" />
+        <div className="mf-crop mf-crop-tl" />
+        <div className="mf-crop mf-crop-tr" />
+        <div className="mf-crop mf-crop-bl" />
+        <div className="mf-crop mf-crop-br" />
+      </div>
+      <div className="mf-notes mf-notes-l">
+        <span className="mf-swatches">
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+        LP · ESTÉREO · MF-1986 · 未来レコード
+      </div>
+      <div className="mf-notes mf-notes-r">
+        33⅓ RPM · LADO A / LADO B · ℗ 1986 MIRAI RECORDS
+        <i className="mf-barcode" />
+      </div>
+
+      {/* tipografia cinética: coluna vertical e título da faixa */}
+      <SideColumn />
+      <TrackTitle />
+
+      {/* vencedor: anéis e fogos na cor vencedora, clarão duotone */}
+      <div className="mf-win-rings">
+        <i />
+        <i />
+      </div>
+      <Fireworks win />
+      <div className="mf-win-glow" />
+      <div className="mf-drop mf-cyc" />
+      <div className="mf-invert" />
     </>
   )
 }

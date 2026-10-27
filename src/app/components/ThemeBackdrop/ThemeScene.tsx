@@ -25,7 +25,31 @@ const SCENES: Record<string, ComponentType> = {
   'aranha-pixel': dynamic(() => import('@/app/themes/aranha-pixel/Scene'), {
     ssr: false,
   }),
+  aranha: dynamic(() => import('@/app/themes/aranha/Scene'), { ssr: false }),
+  'future-funk': dynamic(() => import('@/app/themes/future-funk/Scene'), {
+    ssr: false,
+  }),
+  y2k: dynamic(() => import('@/app/themes/y2k/Scene'), { ssr: false }),
+  darksynth: dynamic(() => import('@/app/themes/darksynth/Scene'), {
+    ssr: false,
+  }),
+  cyberpunk: dynamic(() => import('@/app/themes/cyberpunk/Scene'), {
+    ssr: false,
+  }),
+  retrowave: dynamic(() => import('@/app/themes/retrowave/Scene'), {
+    ssr: false,
+  }),
+  cassino: dynamic(() => import('@/app/themes/cassino/Scene'), { ssr: false }),
   'city-pop': dynamic(() => import('@/app/themes/city-pop/Scene'), {
+    ssr: false,
+  }),
+  vaporwave: dynamic(() => import('@/app/themes/vaporwave/Scene'), {
+    ssr: false,
+  }),
+  'cine-pulp': dynamic(() => import('@/app/themes/cine-pulp/Scene'), {
+    ssr: false,
+  }),
+  'alto-contraste': dynamic(() => import('@/app/themes/alto-contraste/Scene'), {
     ssr: false,
   }),
 }

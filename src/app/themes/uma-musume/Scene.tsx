@@ -1,339 +1,207 @@
 import type { CSSProperties } from 'react'
+import {
+  BURST_DOTS,
+  BURST_INNER,
+  BURST_RAYS,
+  CLOUDS,
+  CROWD_HAIR,
+  FERRIS,
+  SKYLINE,
+  STAND,
+  STAND_ROWS,
+  TOWER,
+  TRACK,
+  TREES,
+  circle,
+  heart,
+  rect,
+  seeded,
+  sparkle,
+  star,
+  swag,
+} from './geo'
+import Jumbotron from './Jumbotron'
+import { DashPack, Race, SpriteDefs } from './Runners'
 
 // Cena de fundo do tema Uma Musume (só aparece com data-theme="uma-musume").
-// Uma pista de corrida de idols viva: céu com nuvens em parallax, varal de
-// bandeirinhas, pista de grama em perspectiva com cerca branca, poste de
-// chegada com bandeira quadriculada, torres de refletores e arquibancada.
-// O ciclo (--um-cycle, 4 min) vai de manhã de sol → chuva rápida + arco-íris
-// → tarde dourada → pôr do sol → corrida noturna com refletores, holofotes de
-// palco, lightsticks, flashes e fogos → amanhecer. Tudo é estático aqui; as
-// animações (só transform/opacity) ficam em theme.css. Formas iguais viram um
-// <path> por cor e os sorteios usam semente fixa (igual no servidor e no
-// navegador). Motivos genéricos: nada de personagens nem logos.
+// "Grande Prêmio Estrela Doce": um hipódromo de idols vivo, desenhado como
+// ilustração de anime em camadas (céu, nuvens em parallax, cidade-doce ao
+// longe, pista em perspectiva, torres de refletores, arquibancada) e com um
+// jogo rodando nas beiradas, onde a interface deixa ver:
+// - faixa de baixo: a reta final. Cinco corredoras originais (garotas-
+//   cavalo chibi: Morango Veloz, Nuvem de Algodão, Menta Relâmpago, Pudim
+//   Dourado e Céu de Anis) entram trotando no portão de largada (canto de
+//   baixo à esquerda), luzes vermelha-vermelha-verde, os portões abrem em
+//   CSS 3D e elas disparam até o poste de chegada (canto direito), com
+//   ultrapassagens; a vencedora comemora pulando (Runners.tsx, race.ts);
+// - faixa de cima: o telão (Jumbotron.tsx), um prisma 3D que gira entre
+//   ranking, câmera AO VIVO (a líder correndo; à noite o Winning Live com
+//   três idols dançando) e o título do Grande Prêmio; varais de
+//   bandeirinhas, sol, nuvens, passarinhos, dirigível-cenoura;
+// - laterais: torre de refletores e juiz no pódio (esquerda); arquibancada
+//   com torcida de orelhinhas, bandeiras e lightsticks (direita).
+//
+// Escalas de tempo (theme.css):
+// - laços de segundos: passadas (4 quadros), bandeirinhas ao vento,
+//   brilhos, lightsticks, telão girando a cada 11 s;
+// - eventos de 20–70 s: páreos a cada 72 s (3 histórias, 216 s), câmeras
+//   da torcida, pássaros, balão de coração que escapa (130 s);
+// - raros (minutos): dirigível-cenoura (190 s), estrela cadente, chuva com
+//   arco-íris, fogos do Winning Live, uma vez por ciclo do dia.
+// Ciclo do dia (--um-cycle, 240 s): manhã → pancada de chuva + arco-íris →
+// tarde dourada → pôr do sol → noite do Winning Live (refletores ligam em
+// sequência, holofotes, lightsticks, fogos) → amanhecer com neblina.
+// Como os páreos têm 216 s, cada volta do dia vê corridas em horas novas.
+//
+// Roleta (data-wheel no <html>): girando, entra um pelotão em disparada
+// pela reta, a torcida pula, o telão mostra GIRANDO! e os holofotes
+// aceleram; no vencedor, o pelotão cruza a chegada e comemora (a primeira
+// veste a cor vencedora), o telão mostra 1º LUGAR! na --win-color, uma
+// roseta desce, dois canhões soltam confete na cor vencedora e dois
+// holofotes convergem no telão; depois fica só um brilho calmo.
+//
+// Tudo estático aqui; animações só de transform/opacity em theme.css (e
+// keyframes gerados em race.ts). Formas iguais viram um <path> por cor e
+// os sorteios usam semente fixa. Personagens, nomes e marcas são originais.
 
-const seeded = (seed: number) => () => {
-  seed = (seed + 0x6d2b79f5) | 0
-  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-}
-const n1 = (v: number) => Math.round(v * 10) / 10
 const vars = (o: Record<string, string | number>) => o as CSSProperties
 
-const circle = (cx: number, cy: number, r: number) =>
-  `M${n1(cx - r)} ${n1(cy)}a${n1(r)} ${n1(r)} 0 1 0 ${n1(2 * r)} 0` +
-  `a${n1(r)} ${n1(r)} 0 1 0 ${n1(-2 * r)} 0z`
+const SWAGS = [swag(5, 40), swag(9, 46), swag(13, 44), swag(21, 38)]
+const FLAG_COLORS = 6
 
-// ---- Nuvens fofinhas: bolhas sobrepostas, com a sombra azulada embaixo ----
-const PUFFS = [
-  [0, 0, 0.8],
-  [0.8, -0.45, 1.05],
-  [1.75, -0.2, 0.95],
-  [2.5, 0.15, 0.7],
-  [1.2, 0.3, 0.85],
-]
-const cloud = (x: number, y: number, s: number) =>
-  PUFFS.map(([px, py, pr]) =>
-    circle(x + px * 30 * s, y + py * 30 * s, pr * 30 * s),
-  ).join('')
-
-// Faixa de 1600 de largura repetida 3 vezes (-1600, 0, +1600): ao deslizar
-// meia largura (-50%) o desenho volta ao ponto de partida sem emenda
-const cloudLayer = (
-  seed: number,
-  count: number,
-  [yMin, yMax]: [number, number],
-  [sMin, sMax]: [number, number],
-) => {
-  const rand = seeded(seed)
-  const items = Array.from({ length: count }, (_, i) => ({
-    x: ((i + rand() * 0.55) * 1600) / count,
-    y: yMin + rand() * (yMax - yMin),
-    s: sMin + rand() * (sMax - sMin),
-  }))
-  let light = ''
-  let shade = ''
-  for (const off of [-1600, 0, 1600])
-    for (const c of items) {
-      shade += cloud(c.x + off, c.y + 9 * c.s, c.s)
-      light += cloud(c.x + off, c.y, c.s)
-    }
-  return { light, shade }
-}
-const CLOUDS = {
-  far: cloudLayer(11, 7, [40, 110], [0.5, 0.8]),
-  near: cloudLayer(23, 5, [70, 150], [1, 1.45]),
-  rain: cloudLayer(37, 9, [30, 120], [1.15, 1.6]),
-}
-
-// ---- Varal de bandeirinhas (4 curvas, 6 bandeiras cada) ----
-const GARLAND = (() => {
-  const rand = seeded(5)
-  let string = ''
-  const flags: { d: string; c: number; delay: number }[] = []
-  for (let sw = 0; sw < 4; sw++) {
-    const x0 = sw * 200
-    string += `M${x0} 3Q${x0 + 100} 50 ${x0 + 200} 3`
-    for (let k = 1; k <= 6; k++) {
-      const t = k / 7
-      const x = x0 + 200 * t
-      const y = (1 - t) ** 2 * 3 + 2 * (1 - t) * t * 50 + t * t * 3
-      flags.push({
-        d: `M${n1(x - 11)} ${n1(y)}h22l-11 27z`,
-        c: (sw * 6 + k) % 6,
-        delay: -n1(rand() * 2.6),
-      })
-    }
-  }
-  return { string, flags }
-})()
-
-// ---- Pista em perspectiva (viewBox 1600×360, esticada na largura) ----
-type Pt = [number, number]
-const quad = (p0: Pt, c: Pt, p1: Pt, t: number): Pt => [
-  (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * c[0] + t * t * p1[0],
-  (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * c[1] + t * t * p1[1],
-]
-const FAR: [Pt, Pt, Pt] = [
-  [-40, 200],
-  [600, 104],
-  [1640, 96],
-]
-const NEAR: [Pt, Pt, Pt] = [
-  [-40, 400],
-  [700, 160],
-  [1640, 128],
-]
-const far = (t: number) => quad(...FAR, t)
-const near = (t: number) => quad(...NEAR, t)
-// largura da pista no ponto t, usada como escala da perspectiva
-const depth = (t: number) => (near(t)[1] - far(t)[1]) / 200
-const pt = ([x, y]: Pt) => `${n1(x)} ${n1(y)}`
-// passos mais largos perto (esquerda) e mais curtos ao fundo (direita)
-const persp = (k: number, n: number) => 1 - (1 - k / n) ** 1.8
-
-const TRACK = (() => {
-  const band =
-    `M${pt(FAR[0])}Q${pt(FAR[1])} ${pt(FAR[2])}` +
-    `L${pt(NEAR[2])}Q${pt(NEAR[1])} ${pt(NEAR[0])}Z`
-  const outer = `M${pt(NEAR[0])}Q${pt(NEAR[1])} ${pt(NEAR[2])}L1640 400Z`
-  // faixas da grama cortada
-  let stripes = ''
-  const N = 18
-  for (let k = 0; k < N; k += 2) {
-    const a = persp(k, N)
-    const b = persp(k + 1, N)
-    stripes += `M${pt(far(a))}L${pt(far(b))}L${pt(near(b))}L${pt(near(a))}Z`
-  }
-  // cerca: trilho + mourões, encolhendo com a distância
-  const rail = (edge: (t: number) => Pt) => {
-    const top: string[] = []
-    const bottom: string[] = []
-    for (let i = 0; i <= 40; i++) {
-      const t = i / 40
-      const [x, y] = edge(t)
-      const s = depth(t)
-      top.push(pt([x, y - 22 * s]))
-      bottom.unshift(pt([x, y - 16 * s]))
-    }
-    let posts = ''
-    for (let j = 0; j <= 30; j++) {
-      const t = persp(j, 30)
-      const [x, y] = edge(t)
-      const s = depth(t)
-      posts += `M${n1(x - 2.4 * s)} ${n1(y - 22 * s)}h${n1(4.8 * s)}v${n1(22 * s)}h${n1(-4.8 * s)}z`
-    }
-    return { bar: `M${top.join('L')}L${bottom.join('L')}Z`, posts }
-  }
-  // linha de chegada atravessando a pista
-  const fa = far(0.085)
-  const fb = far(0.1)
-  const na = near(0.085)
-  const nb = near(0.1)
-  const finish = `M${pt(fa)}L${pt(fb)}L${pt(nb)}L${pt(na)}Z`
-  return { band, outer, stripes, far: rail(far), near: rail(near), finish }
-})()
-
-const TREES = (() => {
-  const rand = seeded(77)
+// passarinhos: duas linhas da folha (asas em fases opostas)
+const BIRD_UP = 'q6 -7 12 0q6 -7 12 0'
+const BIRD_DOWN = 'q6 5 12 0q6 5 12 0'
+const flock = (birds: number[][]) => {
   let d = ''
-  for (let x = -10; x < 1620; x += 26 + rand() * 22)
-    d += circle(x, 74 - rand() * 8, 14 + rand() * 12)
-  return d
-})()
-
-// ---- Arquibancada (lado direito, viewBox 200×740) ----
-const STAND_ROWS = [522, 552, 582, 612, 642, 672]
-const CROWD_COLORS = ['#ff8fc8', '#7fe3c8', '#9ecbff', '#ffc27a', '#c9a2ff']
-const STAND = (() => {
-  const rand = seeded(303)
-  const heads: string[] = CROWD_COLORS.map(() => '')
-  const lights: string[] = CROWD_COLORS.map(() => '')
-  const spots: Pt[] = []
-  STAND_ROWS.forEach((y, row) => {
-    for (let x = 6 + (row % 2) * 6; x < 196; x += 12) {
-      const c = Math.floor(rand() * CROWD_COLORS.length)
-      const hy = y + 10 - rand() * 3
-      heads[c] += circle(x, hy, 4.2)
-      // lightstick de cada fã: um traço acima da cabeça
-      if (rand() < 0.55)
-        lights[c] += `M${n1(x)} ${n1(hy - 6)}l${n1(rand() * 6 - 3)} -11`
-      if (rand() < 0.08) spots.push([x, hy - 2])
-    }
+  birds.forEach(([x, y], i) => {
+    const a = i % 2 ? BIRD_DOWN : BIRD_UP
+    const b = i % 2 ? BIRD_UP : BIRD_DOWN
+    d += `M${x} ${y + 12}${a}M${x} ${y + 62}${b}`
   })
-  return { heads, lights, flashes: spots.slice(0, 9) }
-})()
-
-// ---- Torres de refletores (12 lâmpadas) ----
-const lampGrid = (x0: number, y0: number) => {
-  let d = ''
-  for (let r = 0; r < 3; r++)
-    for (let c = 0; c < 4; c++)
-      d += circle(x0 + 9 + c * 14, y0 + 10 + r * 14, 5)
   return d
 }
-const tower = (cx: number) => {
-  const legs =
-    `M${cx - 22} 560L${cx - 7} 96h5L${cx - 15} 560z` +
-    `M${cx + 22} 560L${cx + 7} 96h-5L${cx + 15} 560z`
-  let braces = ''
-  for (let y = 120; y < 550; y += 36) {
-    const w1 = 7 + ((y - 96) / 464) * 15
-    const w2 = 7 + ((y + 36 - 96) / 464) * 15
-    braces += `M${n1(cx - w1)} ${y}L${n1(cx + w2)} ${y + 36}M${n1(cx + w1)} ${y}L${n1(cx - w2)} ${y + 36}`
-  }
-  return {
-    legs,
-    braces,
-    lamps: lampGrid(cx - 32, 44),
-    box: `M${cx - 34} 40h68v48h-68z`,
-  }
-}
-const TOWER_L = tower(38)
-const TOWER_R = tower(162)
-
-// ---- Bandeira quadriculada do poste de chegada ----
-const CHECKER = (() => {
-  let d = ''
-  for (let r = 0; r < 4; r++)
-    for (let c = 0; c < 7; c++)
-      if ((r + c) % 2 === 0)
-        d += `M${88 + c * 8.3} ${318 + r * 11}h8.3v11h-8.3z`
-  return d
-})()
-// estrela de 5 pontas
-const star = (cx: number, cy: number, R: number, r: number) =>
-  Array.from({ length: 10 }, (_, i) => {
-    const a = (Math.PI / 5) * i - Math.PI / 2
-    const rr = i % 2 ? r : R
-    return `${i ? 'L' : 'M'}${n1(cx + Math.cos(a) * rr)} ${n1(cy + Math.sin(a) * rr)}`
-  }).join('') + 'Z'
-// listras do poste (como um poste de barbeiro em rosa)
-const POLE_STRIPES = Array.from(
-  { length: 12 },
-  (_, i) => `M146 ${312 + i * 21}l8 -7v9l-8 7z`,
-).join('')
-
-// ---- Fogos de artifício ----
-const burst = (n: number, r0: number, r1: number, off = 0) =>
-  Array.from({ length: n }, (_, i) => {
-    const a = ((i + off) / n) * Math.PI * 2
-    const c = Math.cos(a)
-    const s = Math.sin(a)
-    return `M${n1(50 + c * r0)} ${n1(50 + s * r0)}L${n1(50 + c * r1)} ${n1(50 + s * r1)}`
-  }).join('')
-const BURST_RAYS = burst(14, 10, 40)
-const BURST_DOTS = burst(14, 44, 45, 0.5)
-// no alto, entre o título e o varal, e nas faixas laterais
-const FIREWORKS = [
-  { x: 21, y: -4, size: 15, a: '#ff8fc8', b: '#fff3a8', dur: 2.9, delay: -0.4 },
-  { x: 74, y: -3, size: 13, a: '#7fe3c8', b: '#ffffff', dur: 3.4, delay: -1.9 },
+const FLOCKS = [
   {
-    x: 0.5,
-    y: 11,
-    size: 14,
+    top: 15,
+    dur: 46,
+    delay: -8,
+    d: flock([
+      [4, 10],
+      [34, 20],
+      [60, 12],
+      [26, 0],
+    ]),
+  },
+  {
+    top: 27,
+    dur: 62,
+    delay: -40,
+    d: flock([
+      [4, 12],
+      [30, 20],
+      [54, 6],
+    ]),
+  },
+]
+
+// lightsticks da arquibancada: um <svg> por par de fileiras (HTML anima)
+const STICK_COLORS = [
+  '#ff8fc8',
+  '#7fe3c8',
+  '#9ecbff',
+  '#ffc27a',
+  '#c9a2ff',
+  '#fff3a8',
+]
+const STICK_GROUPS = [0, 1, 2].map((g) => {
+  const paths = STICK_COLORS.map(() => '')
+  for (const s of STAND.sticks)
+    if (Math.floor(s.row / 2) === g)
+      paths[s.c] += `M${s.x} ${s.y}l${s.c % 2 ? 2.5 : -2.5} -15`
+  return paths
+})
+
+// fogos à noite: cantos de cima e laterais
+const FIREWORKS = [
+  { x: 14, y: 2, size: 15, a: '#ff8fc8', b: '#fff3a8', dur: 3.1, delay: -0.4 },
+  { x: 79, y: 1, size: 13, a: '#7fe3c8', b: '#ffffff', dur: 3.6, delay: -2.1 },
+  {
+    x: 1.5,
+    y: 14,
+    size: 13,
     a: '#ffd36b',
     b: '#ff8fc8',
-    dur: 3.1,
+    dur: 3.3,
     delay: -1.2,
   },
-  { x: 90, y: 20, size: 15, a: '#c9a2ff', b: '#7fe3c8', dur: 3.6, delay: -2.6 },
-  { x: 2, y: 38, size: 11, a: '#ff6fae', b: '#ffd36b', dur: 3.3, delay: -0.8 },
-  { x: 93, y: 45, size: 10, a: '#9ecbff', b: '#ffffff', dur: 2.7, delay: -2.1 },
+  { x: 90, y: 18, size: 15, a: '#c9a2ff', b: '#7fe3c8', dur: 3.8, delay: -2.8 },
+  { x: 32, y: -2, size: 11, a: '#ff6fae', b: '#ffd36b', dur: 3.5, delay: -0.9 },
+  { x: 62, y: -3, size: 12, a: '#9ecbff', b: '#ffffff', dur: 2.9, delay: -1.7 },
 ]
 
-// ---- Confete caindo nas laterais e canhões de confete nos cantos ----
-const CONFETTI = (() => {
+// pétalas caindo nas laterais
+const PETALS = (() => {
   const rand = seeded(91)
-  return Array.from({ length: 14 }, (_, i) => {
-    // metade na faixa da esquerda, metade na da direita
-    const left = i % 2 ? 91 + rand() * 8 : 0.5 + rand() * 8
-    return vars({
-      left: `${n1(left)}vw`,
-      '--c': `var(--um-c${i % 6})`,
-      '--sway': `${n1(rand() * 8 - 4)}vw`,
-      '--spin': `${Math.round(360 + rand() * 540)}deg`,
-      animationDuration: `${n1(8 + rand() * 7)}s`,
-      animationDelay: `${-n1(rand() * 15)}s`,
-    })
-  })
+  return Array.from({ length: 8 }, (_, i) =>
+    vars({
+      left: `${(i % 2 ? 90 + rand() * 9 : 0.5 + rand() * 8.5).toFixed(1)}vw`,
+      '--um-sway': `${(rand() * 10 - 5).toFixed(1)}vw`,
+      '--um-spin': `${Math.round(240 + rand() * 400)}deg`,
+      animationDuration: `${(11 + rand() * 8).toFixed(1)}s`,
+      animationDelay: `${-(rand() * 19).toFixed(1)}s`,
+    }),
+  )
 })()
+
+// confete do vencedor (canhões nos cantos de baixo, só no 'won')
 const cannon = (seed: number, dir: 1 | -1) => {
   const rand = seeded(seed)
-  return Array.from({ length: 9 }, (_, i) =>
+  return Array.from({ length: 10 }, (_, i) =>
     vars({
-      '--c': `var(--um-c${i % 6})`,
-      '--dx': `${n1(dir * (4 + rand() * 16))}vw`,
-      '--dy': `${-n1(28 + rand() * 30)}vh`,
-      '--spin': `${Math.round(dir * (200 + rand() * 500))}deg`,
+      '--um-dx': `${(dir * (3 + rand() * 18)).toFixed(1)}vw`,
+      '--um-dy': `${-(30 + rand() * 34).toFixed(1)}vh`,
+      '--um-rot': `${Math.round(dir * (240 + rand() * 520))}deg`,
+      animationDelay: `${(rand() * 0.35 + (i % 3) * 0.12).toFixed(2)}s`,
     }),
   )
 }
 const CANNON_L = cannon(17, 1)
 const CANNON_R = cannon(29, -1)
 
-// corações, ferraduras e estrelas subindo pelas laterais
-const FLOATERS = (() => {
-  const rand = seeded(55)
-  const kinds = ['heart', 'shoe', 'star']
-  return Array.from({ length: 8 }, (_, i) => ({
-    kind: kinds[i % 3],
-    style: vars({
-      left: `${n1(i % 2 ? 92 + rand() * 6 : 1 + rand() * 6)}vw`,
-      animationDuration: `${n1(14 + rand() * 10)}s`,
-      animationDelay: `${-n1(rand() * 24)}s`,
-    }),
-  }))
+// poste de chegada (viewBox 80×300): mastro listrado + placa redonda
+const POLE_STRIPES = Array.from(
+  { length: 11 },
+  (_, i) => `M36 ${96 + i * 18}l8 -6v8l-8 6z`,
+).join('')
+const CHECKER = (() => {
+  let d = ''
+  for (let r = 0; r < 4; r++)
+    for (let c = 0; c < 6; c++)
+      if ((r + c) % 2 === 0) d += rect(1 + c * 6, 1 + r * 6, 6, 6)
+  return d
 })()
 
-const BIRD = 'M0 6q6 -7 12 0q6 -7 12 0'
-const FLOCKS = [
-  {
-    top: 13,
-    dur: 38,
-    delay: -6,
-    birds: [
-      [0, 0],
-      [30, 12],
-      [56, 4],
-      [22, -14],
-    ],
-  },
-  {
-    top: 27,
-    dur: 52,
-    delay: -30,
-    birds: [
-      [0, 0],
-      [26, 9],
-      [48, -6],
-    ],
-  },
-]
+// estrelas do céu noturno (fixas; o CSS só pisca camadas inteiras)
+const STARS = (() => {
+  const rand = seeded(808)
+  let small = ''
+  let big = ''
+  for (let i = 0; i < 120; i++) {
+    const x = rand() * 1600
+    const y = rand() * 520
+    small += circle(x, y, 0.8 + rand() * 1.1)
+  }
+  for (let i = 0; i < 18; i++)
+    big += sparkle(rand() * 1600, rand() * 420, 4 + rand() * 4)
+  return { small, big }
+})()
 
 export default function UmaMusumeScene() {
   return (
     <div className="um-scene">
+      <SpriteDefs />
+
       {/* céu: camadas que cruzam a opacidade ao longo do ciclo */}
       <div className="um-sky um-sky-gold" />
       <div className="um-sky um-sky-sunset" />
@@ -341,11 +209,21 @@ export default function UmaMusumeScene() {
       <div className="um-sky um-sky-dawn" />
       <div className="um-sky um-sky-rain" />
 
+      {/* noite: estrelas, via-láctea e estrela cadente */}
+      <div className="um-night-sky">
+        <svg viewBox="0 0 1600 520" preserveAspectRatio="xMidYMin slice">
+          <path className="um-star-s" d={STARS.small} />
+          <path className="um-star-b" d={STARS.big} />
+        </svg>
+        <div className="um-twinkle" />
+        <div className="um-shooting" />
+      </div>
       <div className="um-rainbow" />
 
-      {/* sol (com raios e reflexo de lente) girando num arco pelo céu */}
+      {/* sol (raios e reflexo de lente) e lua girando em arco pelo céu */}
       <div className="um-orbit um-sun-orbit">
         <div className="um-sun">
+          <div className="um-sun-halo" />
           <div className="um-sun-rays" />
           <div className="um-sun-disc" />
           <div className="um-flare">
@@ -356,70 +234,144 @@ export default function UmaMusumeScene() {
           </div>
         </div>
       </div>
-
-      <div className="um-clouds um-clouds-far">
-        <svg viewBox="0 0 3200 220" preserveAspectRatio="none">
-          <path className="um-cloud-shade" d={CLOUDS.far.shade} />
-          <path className="um-cloud-light" d={CLOUDS.far.light} />
-        </svg>
-      </div>
-      <div className="um-clouds um-clouds-near">
-        <svg viewBox="0 0 3200 220" preserveAspectRatio="none">
-          <path className="um-cloud-shade" d={CLOUDS.near.shade} />
-          <path className="um-cloud-light" d={CLOUDS.near.light} />
-        </svg>
-      </div>
-      <div className="um-clouds um-clouds-rain">
-        <svg viewBox="0 0 3200 220" preserveAspectRatio="none">
-          <path className="um-cloud-shade" d={CLOUDS.rain.shade} />
-          <path className="um-cloud-light" d={CLOUDS.rain.light} />
-        </svg>
+      <div className="um-orbit um-moon-orbit">
+        <div className="um-moon">
+          <svg viewBox="0 0 100 100">
+            <path d="M58 8A42 42 0 1 0 94 70A34 34 0 1 1 58 8Z" />
+          </svg>
+        </div>
       </div>
 
-      {/* passarinhos de dia */}
+      {(['far', 'near', 'rain'] as const).map((k) => (
+        <div key={k} className={`um-clouds um-clouds-${k}`}>
+          <svg viewBox="0 0 3200 220" preserveAspectRatio="none">
+            <path className="um-cloud-shade" d={CLOUDS[k].shade} />
+            <path className="um-cloud-light" d={CLOUDS[k].light} />
+            <path className="um-cloud-rim" d={CLOUDS[k].rim} />
+          </svg>
+        </div>
+      ))}
+
+      {/* passarinhos de dia (cada bando bate as asas em degraus) */}
       <div className="um-birds">
-        {FLOCKS.map((flock, i) => (
+        {FLOCKS.map((f, i) => (
           <div
             key={i}
             className="um-flock"
             style={vars({
-              top: `${flock.top}vh`,
-              animationDuration: `${flock.dur}s`,
-              animationDelay: `${flock.delay}s`,
+              top: `${f.top}vh`,
+              animationDuration: `${f.dur}s`,
+              animationDelay: `${f.delay}s`,
             })}
           >
-            <svg viewBox="-10 -24 100 50">
-              {/* o <g> posiciona; o CSS bate as asas no <path> */}
-              {flock.birds.map(([x, y], j) => (
-                <g key={j} transform={`translate(${x} ${y})`}>
-                  <path
-                    className="um-bird"
-                    d={BIRD}
-                    style={{ animationDelay: `${-j * 0.17}s` }}
-                  />
-                </g>
-              ))}
-            </svg>
+            <div className="um-flock-win">
+              <svg viewBox="0 0 90 100" className="um-flock-sheet">
+                <path d={f.d} />
+              </svg>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* pista de grama com cerca branca e linha de chegada */}
+      {/* raro: dirigível-cenoura com faixa de torcida */}
+      <div className="um-blimp">
+        <svg viewBox="0 0 260 90">
+          <path className="um-bl-banner" d="M150 52h92l-8 9l8 9h-92z" />
+          <text className="um-bl-text" x="196" y="65">
+            VAI, MORANGO!
+          </text>
+          <path className="um-bl-rope" d="M134 50L150 56M134 58L150 66" />
+          <path
+            className="um-bl-leaf"
+            d="M118 34q22 -26 30 -10q-12 6 -30 14zM118 40q26 -2 26 16q-14 -2 -26 -10z"
+          />
+          <path
+            className="um-bl-body"
+            d="M8 38q0 -26 56 -26q46 0 58 22q4 8 0 14q-12 22 -58 22q-56 0 -56 -32z"
+          />
+          <path
+            className="um-bl-ring"
+            d="M40 16q-6 22 0 44M64 13q-6 24 0 50M88 15q-6 22 0 46"
+          />
+          <path
+            className="um-bl-shine"
+            d="M22 30q14 -12 40 -12q-30 6 -40 20z"
+          />
+          <path className="um-bl-gondola" d="M50 68h28l-4 9h-20z" />
+          <path
+            className="um-bl-win"
+            d={rect(55, 70, 4, 3) + rect(62, 70, 4, 3) + rect(69, 70, 4, 3)}
+          />
+        </svg>
+      </div>
+      {/* raro: balão de coração que escapa da arquibancada */}
+      <div className="um-balloon">
+        <svg viewBox="0 0 40 90">
+          <path className="um-ba-string" d="M20 40q-6 14 2 26t-2 24" />
+          <path className="um-ba-body" d={heart(20, 20, 16)} />
+          <path className="um-ba-shine" d="M10 12q4 -6 9 -5q-6 3 -7 9z" />
+        </svg>
+      </div>
+
+      {/* roda-gigante pastel no horizonte (gira devagar; acende à noite) */}
+      <div className="um-ferris">
+        <svg className="um-ferris-wheel" viewBox="0 0 300 340">
+          <path className="um-fw-spoke" d={FERRIS.spokes} />
+          <path className="um-fw-rim" d={FERRIS.rim} />
+          {FERRIS.cars.map((d, i) => (
+            <path key={i} className={`um-fw-car um-fw-car-${i}`} d={d} />
+          ))}
+        </svg>
+        <svg className="um-ferris-legs" viewBox="0 0 300 340">
+          <path className="um-fw-leg" d={FERRIS.legs} />
+          <path className="um-fw-hub" d={FERRIS.hub} />
+        </svg>
+      </div>
+      {/* balão de ar quente de sorvete (lateral direita, balança no ar) */}
+      <div className="um-icecream">
+        <svg viewBox="0 0 80 124">
+          <path
+            className="um-ic-scoop"
+            d="M8 50q-4 -42 32 -44q36 2 32 44q-4 6 -8 2q-4 8 -9 2q-5 7 -10 0q-5 7 -10 0q-5 6 -9 -2q-4 6 -8 0q-6 4 -10 -2z"
+          />
+          <path
+            className="um-ic-sprinkle"
+            d="M22 22l5 -3M44 16l4 4M56 30l-5 3M30 38l5 2M18 40l3 -4M48 42l-4 3M36 26l2 -5"
+          />
+          <path className="um-ic-shine" d="M18 22q6 -10 16 -12q-10 6 -12 16z" />
+          <path className="um-ic-cherry" d={circle(40, 6, 5)} />
+          <path className="um-ic-stem" d="M40 2q2 -6 8 -6" />
+          <path className="um-ic-rope" d="M20 56L30 92M60 56L50 92M40 58V92" />
+          <path className="um-ic-cone" d="M26 92h28l-14 30z" />
+          <path
+            className="um-ic-waffle"
+            d="M30 96l12 12M38 94l9 9M28 100l10 10M50 96l-12 12M42 94l-9 9M52 100l-10 10"
+          />
+        </svg>
+      </div>
+
+      {/* fundo: morros, cidade-doce, árvores e a pista em perspectiva */}
       <svg
         className="um-track"
         viewBox="0 0 1600 360"
         preserveAspectRatio="none"
       >
         <path
-          className="um-hills"
-          d="M0 76Q120 40 260 66T560 60T880 70T1200 54T1600 66V360H0Z"
+          className="um-hills-far"
+          d="M0 70Q160 30 330 58T640 46T960 60T1280 40T1600 58V360H0Z"
         />
-        <path className="um-trees" d={TREES} />
+        <path className="um-skyline" d={SKYLINE.d} />
+        <path className="um-skyline-win" d={SKYLINE.win} />
+        <path
+          className="um-hills"
+          d="M0 76Q120 52 260 70T560 66T880 74T1200 60T1600 70V360H0Z"
+        />
+        <path className="um-trees" d={TREES.d} />
+        <path className="um-trees-light" d={TREES.light} />
         <path className="um-field" d="M0 84Q800 70 1600 82V360H0Z" />
         <path className="um-outer" d={TRACK.outer} />
         <path className="um-turf" d={TRACK.band} />
         <path className="um-turf-stripes" d={TRACK.stripes} />
-        <path className="um-finish-line" d={TRACK.finish} />
         <path className="um-rail-post" d={TRACK.far.posts} />
         <path className="um-rail" d={TRACK.far.bar} />
         <path className="um-rail-post" d={TRACK.near.posts} />
@@ -428,169 +380,167 @@ export default function UmaMusumeScene() {
       <div className="um-wet" />
       <div className="um-fog" />
 
-      {/* lateral esquerda: torre de refletores + poste de chegada */}
-      <svg className="um-side um-side-l" viewBox="0 0 200 740">
-        <path className="um-tower" d={TOWER_L.legs} />
-        <path className="um-tower-brace" d={TOWER_L.braces} />
-        <path className="um-tower-box" d={TOWER_L.box} />
-        <path className="um-tower-lamp" d={TOWER_L.lamps} />
-        <ellipse className="um-shadow" cx="150" cy="562" rx="22" ry="5" />
-        <path className="um-pole" d="M146 300h8v262h-8z" />
-        <path className="um-pole-stripe" d={POLE_STRIPES} />
-        <g className="um-checker">
-          <path className="um-checker-white" d="M88 318h58v44h-58z" />
-          <path className="um-checker-dark" d={CHECKER} />
-        </g>
-        <circle className="um-goal-disc" cx="150" cy="268" r="32" />
-        <path className="um-goal-star" d={star(150, 269, 19, 8)} />
-        <path className="um-pole-cap" d={circle(150, 230, 6)} />
-      </svg>
+      {/* torres de refletores nas duas laterais */}
+      {(['l', 'r'] as const).map((s) => (
+        <svg key={s} className={`um-tower um-tower-${s}`} viewBox="0 0 120 740">
+          <path className="um-tw-leg" d={TOWER.legs} />
+          <path className="um-tw-brace" d={TOWER.braces} />
+          <path className="um-tw-box" d={TOWER.box} />
+          <path className="um-tw-visor" d={TOWER.visor} />
+          <path className="um-tw-lamp" d={TOWER.lamps} />
+        </svg>
+      ))}
 
-      {/* lateral direita: torre de refletores + arquibancada com toldo */}
-      <svg className="um-side um-side-r" viewBox="0 0 200 740">
-        <path className="um-tower" d={TOWER_R.legs} />
-        <path className="um-tower-brace" d={TOWER_R.braces} />
-        <path className="um-tower-box" d={TOWER_R.box} />
-        <path className="um-tower-lamp" d={TOWER_R.lamps} />
-        <path className="um-stand" d="M0 500H200V740H0Z" />
-        <path
-          className="um-stand-rows"
-          d={STAND_ROWS.map((y) => `M0 ${y + 16}h200v6h-200z`).join('')}
-        />
-        {STAND.heads.map((d, i) => (
-          <path key={i} d={d} style={{ fill: CROWD_COLORS[i] }} />
+      {/* arquibancada (direita): estrutura, torcida pulando e bandeiras */}
+      <div className="um-stand">
+        <svg className="um-stand-back" viewBox="0 0 260 600">
+          <path className="um-st-wall" d="M0 150H260V600H0Z" />
+          <path
+            className="um-st-seat"
+            d={STAND_ROWS.map((y) => rect(0, y - 2, 260, 30)).join('')}
+          />
+        </svg>
+        <div className="um-crowd">
+          <svg viewBox="0 0 260 600">
+            {STAND.shirts.map((d, i) => (
+              <path key={i} className={`um-st-shirt um-st-shirt-${i}`} d={d} />
+            ))}
+            <path className="um-st-skin" d={STAND.skin} />
+            {STAND.hair.map((d, i) => (
+              <path key={i} d={d} style={{ fill: CROWD_HAIR[i] }} />
+            ))}
+            <path className="um-st-ear" d={STAND.ears} />
+            <path className="um-st-ear-in" d={STAND.earIn} />
+          </svg>
+        </div>
+        <svg className="um-stand-front" viewBox="0 0 260 600">
+          <path className="um-st-step" d={STAND.steps} />
+          <path className="um-st-step-top" d={STAND.stepTop} />
+          {/* toldo listrado com babado e colunas */}
+          <path
+            className="um-st-post"
+            d="M8 150h6v300h-6zM126 150h6v300h-6zM246 150h6v300h-6z"
+          />
+          <path className="um-st-roof" d="M-6 112L130 92L266 112V152H-6Z" />
+          <path
+            className="um-st-roof-stripe"
+            d={Array.from({ length: 10 }, (_, i) =>
+              rect(i * 28 - 4, 112, 14, 40),
+            ).join('')}
+          />
+          <path
+            className="um-st-scallop"
+            d={Array.from({ length: 20 }, (_, i) =>
+              circle(i * 14 + 7, 152, 7),
+            ).join('')}
+          />
+          <path
+            className="um-st-sign"
+            d="M60 60h140a10 10 0 0 1 10 10v16H50V70a10 10 0 0 1 10 -10z"
+          />
+          <text className="um-st-sign-text" x="130" y="80">
+            ESTRELA DOCE
+          </text>
+          <path className="um-st-heart" d={heart(130, 46, 10)} />
+          <path className="um-st-wall-front" d="M0 520H260V600H0Z" />
+          <path className="um-st-wall-stripe" d="M0 530H260V538H0Z" />
+          <text className="um-st-banner" x="130" y="572">
+            ♥ VAI, MENINAS! ♥
+          </text>
+        </svg>
+        {/* bandeirões balançando (HTML: o SVG fica parado por dentro) */}
+        {STAND.flags.slice(0, 3).map((f, i) => (
+          <div
+            key={i}
+            className="um-fan-flag"
+            style={vars({
+              left: `${((f.x / 260) * 100).toFixed(1)}%`,
+              top: `${(((f.y - 30) / 600) * 100).toFixed(1)}%`,
+              animationDelay: `${-i * 0.7}s`,
+            })}
+          >
+            <svg viewBox="0 0 30 34">
+              <path className="um-g-stick" d="M2 33V2" />
+              <path
+                d="M3 2h24v16H3z"
+                style={{ fill: STICK_COLORS[(f.c + i) % 6] }}
+              />
+              <path className="um-ff-heart" d={heart(15, 10, 4)} />
+            </svg>
+          </div>
         ))}
-        <path className="um-stand-wall" d="M0 694H200V740H0Z" />
-        <path className="um-stand-wall-stripe" d="M0 704H200V712H0Z" />
-        <path className="um-awning" d="M-4 470H204V500H-4Z" />
-        <path
-          className="um-awning-stripe"
-          d={Array.from(
-            { length: 9 },
-            (_, i) => `M${i * 26} 470h13v30h-13z`,
-          ).join('')}
-        />
-        <path
-          className="um-awning-scallop"
-          d={Array.from({ length: 16 }, (_, i) =>
-            circle(i * 13 + 6.5, 500, 6.5),
-          ).join('')}
-        />
-        <path
-          className="um-stand-post"
-          d="M8 506h5v188h-5zM100 506h5v188h-5zM188 506h5v188h-5z"
-        />
-      </svg>
+      </div>
 
-      {/* tom da luz do ambiente (pôr do sol / noite) sobre a cena */}
+      {/* poste de chegada (na linha --um-fx) com bandeira quadriculada */}
+      <div className="um-goal">
+        <svg viewBox="0 0 80 300">
+          <ellipse className="um-goal-shadow" cx="40" cy="296" rx="18" ry="4" />
+          <path className="um-goal-pole" d="M36 80h8v216h-8z" />
+          <path className="um-goal-stripe" d={POLE_STRIPES} />
+          <path className="um-goal-disc" d={circle(40, 50, 30)} />
+          <path className="um-goal-ring" d={circle(40, 50, 24)} />
+          <path className="um-goal-star" d={star(40, 51, 17, 7.5)} />
+          <path className="um-goal-cap" d={circle(40, 14, 6)} />
+        </svg>
+        <div className="um-goal-flag">
+          <svg viewBox="0 0 38 26">
+            <path className="um-checker-white" d="M1 1h36v24H1z" />
+            <path className="um-checker-dark" d={CHECKER} />
+          </svg>
+        </div>
+      </div>
+
+      {/* reta final: grama, cerca interna com balizas de pirulito */}
+      <div className="um-strip" />
+
+      {/* tom da luz do ambiente (pôr do sol / noite) sobre o cenário */}
       <div className="um-tint um-tint-warm" />
       <div className="um-tint um-tint-night" />
 
-      {/* noite: estrelas, lua e estrela cadente */}
-      <div className="um-stars" />
-      <div className="um-orbit um-moon-orbit">
-        <svg className="um-moon" viewBox="0 0 100 100">
-          <path d="M58 8A42 42 0 1 0 94 70A34 34 0 1 1 58 8Z" />
-        </svg>
+      {/* luzes da noite (por cima do tom): refletores, poças de luz,
+          placa da chegada, lightsticks e flashes da torcida */}
+      <div className="um-night-lights">
+        <div className="um-flood um-flood-l" />
+        <div className="um-flood um-flood-r" />
+        <div className="um-pool" />
+        <div className="um-ferris um-ferris-lit">
+          <svg className="um-ferris-wheel" viewBox="0 0 300 340">
+            <path className="um-fw-bulb" d={FERRIS.bulbs} />
+          </svg>
+        </div>
+        <div className="um-goal-glow" />
+        <div className="um-sticks">
+          {STICK_GROUPS.map((paths, g) => (
+            <div key={g} className={`um-stick-row um-stick-row-${g}`}>
+              <svg viewBox="0 0 260 600">
+                {paths.map((d, i) => (
+                  <path key={i} d={d} style={{ stroke: STICK_COLORS[i] }} />
+                ))}
+              </svg>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="um-shooting" />
+      <div className="um-flashes">
+        {[0, 1, 2, 3].map((i) => (
+          <i key={i} className={`um-flash-${i}`} />
+        ))}
+      </div>
 
       {/* holofotes de palco varrendo o céu à noite */}
-      <div className="um-spot um-spot-1" />
-      <div className="um-spot um-spot-2" />
-      <div className="um-spot um-spot-3" />
-      <div className="um-spot um-spot-4" />
+      <div className="um-spots">
+        <div className="um-spot um-spot-1" />
+        <div className="um-spot um-spot-2" />
+        <div className="um-spot um-spot-3" />
+        <div className="um-spot um-spot-4" />
+      </div>
+      {/* holofotes rápidos (entram quando a roleta gira) */}
+      <div className="um-spots-fast">
+        <div className="um-spot um-spot-1" />
+        <div className="um-spot um-spot-2" />
+      </div>
 
-      {/* luzes das laterais (por cima do tom da noite) */}
-      <svg className="um-side um-lights um-lights-l" viewBox="0 0 200 740">
-        <defs>
-          <linearGradient
-            id="um-beam-l"
-            gradientUnits="userSpaceOnUse"
-            x1="38"
-            y1="64"
-            x2="520"
-            y2="700"
-          >
-            <stop offset="0" stopColor="#fffbe6" stopOpacity="0.75" />
-            <stop offset="1" stopColor="#fffbe6" stopOpacity="0" />
-          </linearGradient>
-          <radialGradient id="um-glow">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="0.35" stopColor="#fff6c8" stopOpacity="0.8" />
-            <stop offset="1" stopColor="#fff6c8" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <path
-          className="um-beam"
-          d="M18 70L60 58L640 640L120 740Z"
-          fill="url(#um-beam-l)"
-        />
-        <circle
-          className="um-lamp-glow"
-          cx="38"
-          cy="64"
-          r="58"
-          fill="url(#um-glow)"
-        />
-        <path className="um-lamp-on" d={TOWER_L.lamps} />
-        <circle
-          className="um-disc-glow"
-          cx="150"
-          cy="268"
-          r="46"
-          fill="url(#um-glow)"
-        />
-      </svg>
-      <svg className="um-side um-lights um-lights-r" viewBox="0 0 200 740">
-        <defs>
-          <linearGradient
-            id="um-beam-r"
-            gradientUnits="userSpaceOnUse"
-            x1="162"
-            y1="64"
-            x2="-320"
-            y2="700"
-          >
-            <stop offset="0" stopColor="#fffbe6" stopOpacity="0.75" />
-            <stop offset="1" stopColor="#fffbe6" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path
-          className="um-beam"
-          d="M182 70L140 58L-440 640L80 740Z"
-          fill="url(#um-beam-r)"
-        />
-        <circle
-          className="um-lamp-glow"
-          cx="162"
-          cy="64"
-          r="58"
-          fill="url(#um-glow)"
-        />
-        <path className="um-lamp-on" d={TOWER_R.lamps} />
-        <g className="um-penlights">
-          {STAND.lights.map((d, i) => (
-            <path key={i} d={d} style={{ stroke: CROWD_COLORS[i] }} />
-          ))}
-        </g>
-        {STAND.flashes.map(([x, y], i) => (
-          <circle
-            key={i}
-            className="um-camera"
-            cx={x}
-            cy={y}
-            r="7"
-            fill="url(#um-glow)"
-            style={{
-              animationDuration: `${(2.3 + ((i * 1.37) % 3.4)).toFixed(2)}s`,
-              animationDelay: `${(-i * 0.83).toFixed(2)}s`,
-            }}
-          />
-        ))}
-      </svg>
-
-      {/* fogos de artifício à noite (no alto e nas laterais) */}
+      {/* fogos de artifício à noite */}
       <div className="um-fireworks">
         {FIREWORKS.map((fw, i) => (
           <svg
@@ -606,9 +556,20 @@ export default function UmaMusumeScene() {
             })}
           >
             <path d={BURST_RAYS} style={{ stroke: fw.a }} />
+            <path d={BURST_INNER} style={{ stroke: fw.b }} />
             <path d={BURST_DOTS} style={{ stroke: fw.b }} />
           </svg>
         ))}
+      </div>
+
+      {/* a corrida (portão, corredoras, portas) e o pelotão da roleta */}
+      <Race />
+      <DashPack />
+
+      {/* lightsticks da primeira fila, na beirada de baixo (só à noite) */}
+      <div className="um-front-sticks">
+        <div className="um-fs um-fs-a" />
+        <div className="um-fs um-fs-b" />
       </div>
 
       {/* chuva rápida, respingos e relâmpago */}
@@ -619,25 +580,48 @@ export default function UmaMusumeScene() {
       </div>
       <div className="um-flash" />
 
-      {/* brilhos, confete e corações */}
-      <div className="um-sparkles" />
-      <div className="um-garland">
-        <svg viewBox="0 0 800 64">
-          <path className="um-garland-string" d={GARLAND.string} />
-          {GARLAND.flags.map((flag, i) => (
-            <path
-              key={i}
-              className={`um-flag um-f${flag.c}`}
-              d={flag.d}
-              style={{ animationDelay: `${flag.delay}s` }}
-            />
-          ))}
-        </svg>
+      {/* varais de bandeirinhas presos ao telão */}
+      <div className="um-garland um-garland-l">
+        {SWAGS.slice(0, 2).map((s, i) => (
+          <div key={i} className={`um-swag um-swag-${i}`}>
+            <svg viewBox="0 0 400 100" preserveAspectRatio="none">
+              <path className="um-swag-string" d={s.string} />
+              {s.flags.slice(0, FLAG_COLORS).map((d, c) => (
+                <path key={c} className={`um-f${c}`} d={d} />
+              ))}
+              <path className="um-swag-shine" d={s.shine} />
+            </svg>
+          </div>
+        ))}
       </div>
-      <div className="um-confetti">
-        {CONFETTI.map((style, i) => (
+      <div className="um-garland um-garland-r">
+        {SWAGS.slice(2).map((s, i) => (
+          <div key={i} className={`um-swag um-swag-${i + 2}`}>
+            <svg viewBox="0 0 400 100" preserveAspectRatio="none">
+              <path className="um-swag-string" d={s.string} />
+              {s.flags.slice(0, FLAG_COLORS).map((d, c) => (
+                <path key={c} className={`um-f${c}`} d={d} />
+              ))}
+              <path className="um-swag-shine" d={s.shine} />
+            </svg>
+          </div>
+        ))}
+      </div>
+
+      <Jumbotron />
+
+      {/* brilhos e pétalas nas bordas */}
+      <div className="um-sparkles" />
+      <div className="um-petals">
+        {PETALS.map((style, i) => (
           <i key={i} style={style} />
         ))}
+      </div>
+
+      {/* vencedor: holofotes convergindo no telão e confete na cor dele */}
+      <div className="um-converge">
+        <div className="um-cv um-cv-l" />
+        <div className="um-cv um-cv-r" />
       </div>
       <div className="um-cannon um-cannon-l">
         {CANNON_L.map((style, i) => (
@@ -647,11 +631,6 @@ export default function UmaMusumeScene() {
       <div className="um-cannon um-cannon-r">
         {CANNON_R.map((style, i) => (
           <i key={i} style={style} />
-        ))}
-      </div>
-      <div className="um-floaters">
-        {FLOATERS.map((f, i) => (
-          <i key={i} className={`um-${f.kind}`} style={f.style} />
         ))}
       </div>
     </div>

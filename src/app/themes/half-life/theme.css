@@ -1,25 +1,41 @@
-/* Tema Half-Life: estilos ficam todos sob html[data-theme='half-life'].
-   Complexo de pesquisa subterrâneo + HUD do traje: painéis escuros
-   translúcidos com borda laranja fina e cantoneiras, rótulos condensados em
-   caixa alta, botão zebrado, aro industrial com listras de perigo e um
-   miolo que parece uma luz de alerta.
+/* Tema Half-Life: estilos ficam todos sob html[data-theme='half-life'] ou
+   em classes com o prefixo hl- (que só existem na cena deste tema).
 
-   Cena viva: um turno do complexo em ciclo de --hl-cycle (210 s):
-     0–28%   turno normal
-     28–48%  alarme de violação de contenção (giroflex + luz vermelha)
-     48–64%  queda de energia (lâmpadas apagam, luz de emergência)
-     64–82%  tempestade de portal (surtos verdes, arcos, feixe mais forte)
-     82–100% volta ao normal
-   Todas as animações do ciclo usam a mesma duração e o mesmo atraso
-   (--hl-t0), então ficam sincronizadas. Só transform e opacity. */
+   Cena: primeira pessoa num bonde de monotrilho cruzando os túneis do
+   Complexo de Pesquisa Pedra Funda (nível -3), em CSS 3D de verdade:
+   perspective: 74vh com o ponto de fuga em 50% 45% (atrás da roda). Unidade
+   do mundo: vh, então a composição é a mesma em qualquer tela 16:9.
+   - túnel fixo (SVG): tudo que corre ao longo do túnel não muda com o
+     movimento, então é um desenho parado saindo do ponto de fuga;
+   - cambotas de aço em translateZ (8 em fila, uma a cada 2,5 s) trazem as
+     luminárias, lâmpadas âmbar, braçadeiras, SOS e placas de saída;
+   - comporta blindada 07 (a cada 95 s), poeira em bokeh, drone ZC-3;
+   - cabine (letreiro de LED, alças, giroflex, console) e HUD do traje.
+
+   Ciclo do complexo (--hl-cycle, 180 s; 1% = 1,8 s):
+     0–36%   viagem normal
+     36–38%  lâmpadas piscam e apagam
+     38–52%  apagão (guias verdes, lâmpadas vermelhas, brilho da câmara)
+     52–70%  tempestade de ressonância (surtos, arcos e faíscas verdes)
+     70–74%  energia volta piscando
+     74–100% viagem normal
+   Roleta (html[data-wheel]): 'spinning' = alarme (giroflex âmbar, túnel 5×
+   mais rápido com rastros, vagão trepidando, "ANOMALIA DETECTADA");
+   'won' = anel de ressonância na cor da fatia atravessando o túnel, um
+   clarão suave (2 pulsos, ≤ 0,24), "+1 SORTEIO" no HUD e depois só um
+   brilho calmo na cor vencedora (guias de LED e fundo) enquanto o modal
+   fica aberto.
+   Desempenho: só transform e opacity animam, nada anima dentro de um
+   <svg>; cambotas e comporta são bitmaps (public/themes/half-life) e os SVGs
+   grandes usam só cores chapadas (gradiente de SVG e SVG grande em camada
+   que escala são repintados a cada mudança de estilo da página); a
+   aceleração do giro troca o playbackRate das animações (Speed.tsx), sem
+   uma segunda cópia do túnel; tudo que acende com a roleta fica numa camada
+   própria desde o início (sem rasterizar de novo no meio do giro). */
 
 html[data-theme='half-life'] {
-  --hl-cycle: 210s;
+  --hl-cycle: 180s;
   --hl-t0: 0s;
-  --hl-o: #ff9b00;
-  --hl-o-soft: rgba(255, 155, 0, 0.35);
-  --hl-green: #6dff3a;
-  --hl-yellow: #f2b800;
 }
 
 html[data-theme='half-life'] .scene-half-life {
@@ -35,460 +51,1168 @@ html[data-theme='half-life'] body {
   letter-spacing: 0.015em;
 }
 
-/* ---------- Fundo: concreto, painéis de metal e brilho da câmara ---------- */
+/* ---------- Fundo ---------- */
 
 html[data-theme='half-life'] .theme-backdrop {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.62 0 0 0 0 0.68 0 0 0 0 0.64 0 0 0 0.11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.38) 0 2px, rgba(255, 255, 255, 0.03) 2px 3px, transparent 3px 192px),
-    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.32) 0 2px, rgba(255, 255, 255, 0.025) 2px 3px, transparent 3px 128px),
-    radial-gradient(ellipse 70% 45% at 50% 0%, rgba(210, 255, 225, 0.07), transparent 70%),
-    linear-gradient(to bottom, #1b201f 0%, #131716 55%, #0a0c0c 100%);
+  background: #040706;
 }
 html[data-theme='half-life'] .bd-scanlines {
   display: block;
-  opacity: 0.28;
+  opacity: 0.22;
 }
 
-/* ---------- Cena ---------- */
-
-html[data-theme='half-life'] .scene-half-life > * {
+html[data-theme='half-life'] .scene-half-life > *,
+.hl-view > *,
+.hl-rumble > * {
   position: absolute;
   pointer-events: none;
 }
+.hl-defs {
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
 
-/* câmara de testes atrás da roda */
-.hl-chamber-wrap,
-.hl-beam-wrap {
+/* ---------- Mundo (balança junto com o vagão) ---------- */
+
+.hl-view,
+.hl-rumble {
   inset: 0;
 }
-.hl-chamber-wrap {
-  transform-origin: 48% 55%;
-  animation: hl-chamber-cycle var(--hl-cycle) linear var(--hl-t0) infinite;
+.hl-view {
+  animation: hl-sway 9.4s ease-in-out infinite alternate;
 }
-.hl-chamber {
+/* camada própria desde o início: a trepidação do giro não muda a divisão em
+   camadas (senão o túnel fixo inteiro seria rasterizado de novo) */
+.hl-rumble {
+  will-change: transform;
+}
+/* SVGs no sistema do túnel: 1 unidade = 0,1vh, ponto de fuga em 50% 45% */
+.hl-tunnel {
   position: absolute;
-  left: 48%;
-  top: 55%;
-  width: 135vmin;
-  height: 135vmin;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(
-    circle closest-side,
-    rgba(120, 255, 70, 0.3),
-    rgba(70, 210, 40, 0.13) 38%,
-    rgba(40, 140, 30, 0.04) 62%,
-    transparent 78%
-  );
+  left: -4vh;
+  top: -4vh;
+  width: calc(100% + 8vh);
+  height: calc(100% + 8vh);
 }
 
-/* teto */
-.hl-ceiling {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 70px;
-  overflow: visible;
-}
-.hl-steel {
-  fill: #171b1a;
-  stroke: #303836;
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-.hl-bolts {
-  fill: #3d4643;
-}
-.hl-coil {
-  fill: #ff9b00;
-  opacity: 0.85;
-}
-.hl-lens {
-  fill: #d8ffb0;
-}
-.hl-lights {
-  animation: hl-power var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-.hl-tube {
-  animation-name: hl-flicker;
-  animation-timing-function: steps(1, end);
-  animation-iteration-count: infinite;
+/* névoa do fundo (escurece o que está longe) e um pouco de luz nas bordas,
+   onde as lâmpadas passam perto; a elipse tem a proporção da seção do
+   túnel, então a névoa segue a profundidade em todas as faces */
+.hl-fog {
+  left: -4vh;
+  top: -4vh;
+  width: calc(100% + 8vh);
+  height: calc(100% + 8vh);
+  background:
+    radial-gradient(
+      ellipse 73vh 43vh at 50% 49vh,
+      rgba(3, 6, 5, 1),
+      rgba(3, 6, 5, 0.96) 28%,
+      rgba(4, 7, 6, 0.5) 60%,
+      rgba(4, 7, 6, 0) 100%
+    ),
+    radial-gradient(
+      ellipse 150vh 100vh at 50% 49vh,
+      rgba(170, 215, 200, 0) 55%,
+      rgba(170, 215, 200, 0.07) 100%
+    );
 }
 
-/* feixe de ressonância */
-.hl-beam-wrap {
-  transform-origin: 50% 0;
-  animation: hl-beam-cycle var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-.hl-beam {
-  position: absolute;
+/* câmara de ressonância lá no fundo */
+.hl-far-wrap {
   left: 50%;
-  top: 30px;
-  bottom: 12vh;
-  width: 84px;
-  margin-left: -42px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(109, 255, 58, 0.08) 22%,
-    rgba(150, 255, 100, 0.4) 44%,
-    rgba(236, 255, 222, 0.95) 50%,
-    rgba(150, 255, 100, 0.4) 56%,
-    rgba(109, 255, 58, 0.08) 78%,
+  top: 45%;
+  width: 0;
+  height: 0;
+  opacity: 0.85;
+  animation: hl-cyc-far var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-far {
+  position: absolute;
+  left: -38vh;
+  top: -27vh;
+  width: 76vh;
+  height: 54vh;
+  background: radial-gradient(
+    closest-side,
+    rgba(232, 255, 214, 0.95),
+    rgba(150, 255, 100, 0.55) 9%,
+    rgba(96, 232, 52, 0.2) 30%,
+    rgba(60, 170, 30, 0.07) 58%,
     transparent
   );
-  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
-  mask-image: linear-gradient(to bottom, #000 55%, transparent);
-  animation: hl-beam-pulse 2.4s ease-in-out infinite alternate;
+  animation: hl-far-pulse 3.3s ease-in-out infinite alternate;
 }
-.hl-lens-glow {
-  top: 0;
+.hl-winglow {
   left: 50%;
-  width: 280px;
-  height: 90px;
-  margin-left: -140px;
+  top: 45%;
+  width: 120vh;
+  height: 84vh;
+  margin: -42vh 0 0 -60vh;
   background: radial-gradient(
-    ellipse 50% 60% at 50% 36%,
-    rgba(182, 255, 122, 0.75),
-    rgba(109, 255, 58, 0.18) 55%,
-    transparent 100%
+    closest-side,
+    var(--win-color, #6dff3a),
+    transparent
   );
-  animation: hl-beam-pulse 2.4s ease-in-out infinite alternate;
+  opacity: 0;
+  transition: opacity 2.5s ease;
 }
 
-/* paredes */
-.hl-side {
-  top: 0;
+/* conjuntos 3D: cada um com a sua perspectiva (pode esmaecer sem achatar) */
+.hl-set {
+  position: absolute;
+  inset: 0;
+  perspective: 74vh;
+  perspective-origin: 50% 45%;
+  pointer-events: none;
+}
+.hl-set > * {
+  position: absolute;
+}
+
+/* cambota: a caixa é a seção do túnel (184 × 114vh) */
+.hl-rib,
+.hl-door,
+.hl-ring {
+  left: calc(50% - 92vh);
+  top: calc(45% - 52vh);
+  width: 184vh;
+  height: 114vh;
+}
+.hl-rib {
+  animation: hl-run 20s linear infinite;
+}
+/* cambotas e comporta em bitmap (WebP com alfa, 2048 px de largura): a arte
+   vetorial de Art.tsx desenhada uma vez. Uma camada que só desenha imagens
+   não volta a ser rasterizada quando o estilo da página muda; com o SVG em
+   linha cada troca de data-wheel / --win-color re-rasterizava as 8 cambotas
+   de uma vez (engasgo de 100–200 ms no início do giro). Cada peça vem em 3
+   pedaços (topo com a luminária; pilares esquerdo e direito) para o miolo
+   transparente não ocupar memória de textura. */
+.hl-rib-a,
+.hl-rib-b,
+.hl-rib-c,
+.hl-door-frame {
+  background-repeat: no-repeat;
+  background-position:
+    0 0,
+    0 100%,
+    100% 100%;
+  /* topo: 470 de 1269 px; pilares: 267 × 803 de 2048 × 1269 */
+  background-size:
+    100% 37.037%,
+    13.037% 63.278%,
+    13.037% 63.278%;
+}
+.hl-rib-a {
+  background-image:
+    url('/themes/half-life/rib-a-top.webp'),
+    url('/themes/half-life/rib-a-l.webp'),
+    url('/themes/half-life/rib-a-r.webp');
+}
+.hl-rib-b {
+  background-image:
+    url('/themes/half-life/rib-b-top.webp'),
+    url('/themes/half-life/rib-b-l.webp'),
+    url('/themes/half-life/rib-b-r.webp');
+}
+.hl-rib-c {
+  background-image:
+    url('/themes/half-life/rib-c-top.webp'),
+    url('/themes/half-life/rib-c-l.webp'),
+    url('/themes/half-life/rib-c-r.webp');
+}
+.hl-door-frame {
+  position: absolute;
+  inset: 0;
+  background-image:
+    url('/themes/half-life/door-frame-top.webp'),
+    url('/themes/half-life/door-frame-l.webp'),
+    url('/themes/half-life/door-frame-r.webp');
+}
+.hl-leaf {
+  background-position: 0 0;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.hl-leaf-l {
+  background-image: url('/themes/half-life/door-l.webp');
+}
+.hl-leaf-r {
+  background-image: url('/themes/half-life/door-r.webp');
+}
+.hl-ring svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
   height: 100%;
-  overflow: visible;
 }
-.hl-side-l {
+/* luminária queimada: pisca de vez em quando */
+.hl-fault {
+  position: absolute;
+  left: 27.2%;
+  top: -13.3%;
+  width: 45.6%;
+  height: 47.4%;
+  background: radial-gradient(
+    closest-side,
+    rgba(240, 255, 240, 0.62),
+    rgba(205, 255, 215, 0.24) 20%,
+    rgba(190, 255, 205, 0.06) 52%,
+    transparent
+  );
+  opacity: 0;
+  animation: hl-fault 3.7s steps(1, end) infinite;
+}
+.hl-fault::after {
+  content: '';
+  position: absolute;
+  left: 42.6%;
+  top: 43.7%;
+  width: 14.8%;
+  height: 1.7%;
+  background: #f4fff6;
+}
+
+/* comporta 07: a caixa corta as folhas que entram nas paredes */
+.hl-door {
+  overflow: hidden;
+  opacity: 0;
+  animation: hl-door-z 95s linear 7.5s infinite;
+}
+.hl-leaf {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+}
+.hl-leaf-l {
   left: 0;
-  width: 300px;
+  animation: hl-leaf-l 95s linear 7.5s infinite;
 }
-.hl-side-r {
+.hl-leaf-r {
   right: 0;
-  width: 170px;
+  animation: hl-leaf-r 95s linear 7.5s infinite;
 }
-.hl-cable {
-  fill: none;
-  stroke: #070808;
-  stroke-width: 4;
+
+/* poeira no ar: vira bokeh perto da câmera */
+.hl-mote,
+.hl-spark {
+  width: 0.55vh;
+  height: 0.55vh;
+  margin: -0.27vh;
+  border-radius: 50%;
+  opacity: 0;
+  animation: hl-mote 16s linear infinite;
 }
-.hl-slat {
-  fill: #050606;
+.hl-mote {
+  background: rgba(255, 238, 205, 0.9);
+  box-shadow: 0 0 0.7vh 0.25vh rgba(255, 196, 120, 0.35);
 }
-.hl-paint-green {
-  fill: #2f6b2a;
+
+/* vapor das válvulas (cada um no seu ciclo) */
+.hl-steam {
+  width: 16vh;
+  height: 12vh;
+  margin: -6vh 0 0 -8vh;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(228, 242, 236, 0.4),
+    rgba(200, 222, 214, 0.16) 52%,
+    transparent
+  );
+  opacity: 0;
 }
-.hl-plate {
-  fill: #111413;
+.hl-steam-r {
+  left: calc(50% + 86vh);
+  top: calc(45% - 30vh);
+  animation: hl-steam-r 37s linear -9s infinite;
 }
-.hl-sign-yellow {
-  fill: #f2b800;
+.hl-steam-l {
+  left: calc(50% - 87vh);
+  top: calc(45% - 22vh);
+  animation: hl-steam-l 53s linear -31s infinite;
 }
-.hl-sign-ink {
-  fill: #121212;
+
+/* ---------- Rastros de luz (roleta girando) ----------
+   O túnel acelera mudando o playbackRate das próprias animações (Speed.tsx);
+   aqui ficam só os rastros finos nas paredes, que aparecem com o giro. */
+.hl-set-streaks {
+  opacity: 0;
+  transition: opacity 1.2s ease;
 }
-.hl-sign-big,
-.hl-sign-small,
-.hl-sign-label,
-.hl-sign-sector {
-  font-family: var(--font-saira-condensed), sans-serif;
+.hl-streak {
+  animation: none;
 }
-.hl-sign-big {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  fill: #f2b800;
+html[data-wheel='spinning'] .hl-streak,
+html[data-wheel='won'] .hl-streak {
+  animation: hl-streak 1.2s linear infinite;
 }
-.hl-sign-small {
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  fill: #ff9b00;
+.hl-streak {
+  width: 64vh;
+  height: 0.5vh;
+  margin-top: -0.25vh;
+  border-radius: 1vh;
+  transform-origin: 0 50%;
+  transform: translateZ(-170vh) rotateY(90deg);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 246, 220, 0.95),
+    rgba(255, 178, 64, 0.5) 22%,
+    rgba(255, 140, 0, 0) 100%
+  );
 }
-.hl-sign-label {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.3em;
-  fill: #ff9b00;
+
+/* ---------- Apagão, emergência e tempestade ---------- */
+
+.hl-dark,
+.hl-emerg,
+.hl-emerg > i,
+.hl-storm,
+.hl-storm > i,
+.hl-alarm,
+.hl-alarm > i,
+.hl-arcs,
+.hl-arc,
+.hl-winflash,
+.hl-glass {
+  inset: 0;
 }
-.hl-sign-sector {
-  font-size: 42px;
-  font-weight: 800;
-  fill: #f2b800;
+.hl-emerg > i,
+.hl-storm > i,
+.hl-alarm > i,
+.hl-arc {
+  position: absolute;
 }
-.hl-valve {
-  fill: none;
-  stroke: #8a2216;
-  stroke-width: 5;
+.hl-dark {
+  background: radial-gradient(
+    ellipse 36% 32% at 50% 45%,
+    rgba(1, 3, 2, 0.3),
+    rgba(1, 3, 2, 0.93) 100%
+  );
+  opacity: 0;
+  animation: hl-cyc-dark var(--hl-cycle) linear var(--hl-t0) infinite;
 }
-.hl-valve-hub {
-  fill: #8a2216;
+.hl-guides {
+  opacity: 0.85;
 }
-.hl-gauge {
-  fill: #cfc8ad;
-  stroke: #0b0c0c;
-  stroke-width: 4;
-}
-.hl-needle {
-  stroke: #b0200f;
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  animation: hl-needle 5s ease-in-out infinite alternate;
-}
-.hl-led-green {
+.hl-guide-glow {
   fill: #6dff3a;
 }
-.hl-led-amber {
-  fill: #ff9b00;
-}
-.hl-led-red {
-  fill: #ff3b1f;
-}
-.hl-blink {
-  animation: hl-blink 1.1s steps(1, end) infinite;
-}
-.hl-blink-alt {
-  animation: hl-blink 1.7s steps(1, end) -0.6s infinite;
-}
-.hl-beacon {
-  fill: #4a120b;
-}
-.hl-beacon-lit {
-  fill: #ff4a2a;
-}
-.hl-emerg-lamp {
-  fill: #ff7a4a;
-}
-
-/* giroflex e luz de emergência (só em partes do ciclo) */
-.hl-alarm {
-  opacity: 0;
-  animation: hl-alarm-win var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-.hl-cone {
-  animation: hl-rotate 1.6s linear infinite;
-}
-.hl-cone-rev {
-  animation-direction: reverse;
+.hl-guide-core {
+  fill: #c4ffa6;
 }
 .hl-emerg {
   opacity: 0;
-  animation: hl-emerg-win var(--hl-cycle) linear var(--hl-t0) infinite;
+  animation: hl-win-emerg var(--hl-cycle) linear var(--hl-t0) infinite;
 }
-
-/* piso */
-.hl-floor {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 34px;
-  border-top: 1px solid #000;
+.hl-emerg > i {
   background:
-    repeating-linear-gradient(-45deg, #d9a400 0 10px, #121212 10px 20px) top / 100% 5px no-repeat,
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0 2px, transparent 2px 9px),
-    linear-gradient(#1f2524, #0b0d0c);
+    radial-gradient(
+      ellipse 26% 36% at 6% 0%,
+      rgba(255, 50, 25, 0.34),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 26% 36% at 94% 0%,
+      rgba(255, 50, 25, 0.34),
+      transparent 70%
+    ),
+    linear-gradient(to top, rgba(255, 40, 20, 0.12), transparent 22%);
+  animation: hl-pulse 2.4s ease-in-out infinite alternate;
 }
-.hl-floor-lights {
-  left: 0;
-  right: 0;
-  bottom: 13px;
-  height: 8px;
-  background: radial-gradient(circle, #ff7a4a 0 2px, rgba(255, 60, 30, 0.35) 3px, transparent 7px) 0 0 / 90px 8px repeat-x;
-  -webkit-mask-image: linear-gradient(90deg, #000 30%, transparent 38% 62%, #000 70%);
-  mask-image: linear-gradient(90deg, #000 30%, transparent 38% 62%, #000 70%);
-  opacity: 0;
-  animation: hl-emerg-win var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-
-/* apagão, alarme e tempestade */
-.hl-blackout {
-  inset: 0;
-  background: radial-gradient(ellipse 60% 55% at 50% 55%, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.85));
-  opacity: 0;
-  animation: hl-dark-win var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-.hl-redwash,
-.hl-storm {
+/* tempestade: o invólucro liga/desliga brilho, arcos, faíscas e criatura */
+.hl-stormfx {
   inset: 0;
   opacity: 0;
+  animation: hl-win-stormfx var(--hl-cycle) linear var(--hl-t0) infinite;
 }
-.hl-redwash > div,
-.hl-storm > div {
+.hl-stormfx > * {
   position: absolute;
-  inset: 0;
-}
-.hl-redwash {
-  animation: hl-red-win var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-.hl-redwash > div {
-  background:
-    linear-gradient(to bottom, rgba(255, 30, 10, 0.28), transparent 18%),
-    radial-gradient(ellipse 72% 68% at 50% 52%, transparent 45%, rgba(255, 40, 20, 0.32) 100%);
-  animation: hl-pulse 1.6s ease-in-out infinite alternate;
 }
 .hl-storm {
-  animation: hl-storm-win var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-/* brilho verde constante durante a tempestade (os surtos piscam por cima) */
-.hl-storm::before {
-  content: "";
-  position: absolute;
-  inset: 0;
   background:
-    linear-gradient(to bottom, rgba(120, 255, 70, 0.16), transparent 22%),
-    linear-gradient(to top, rgba(120, 255, 70, 0.12), transparent 18%),
-    radial-gradient(ellipse 16% 70% at 0% 55%, rgba(110, 255, 60, 0.2), transparent 75%),
-    radial-gradient(ellipse 16% 70% at 100% 55%, rgba(110, 255, 60, 0.2), transparent 75%);
+    linear-gradient(to bottom, rgba(120, 255, 70, 0.14), transparent 22%),
+    radial-gradient(
+      ellipse 18% 70% at 0% 55%,
+      rgba(110, 255, 60, 0.16),
+      transparent 75%
+    ),
+    radial-gradient(
+      ellipse 18% 70% at 100% 55%,
+      rgba(110, 255, 60, 0.16),
+      transparent 75%
+    ),
+    radial-gradient(
+      ellipse 40% 36% at 50% 45%,
+      rgba(140, 255, 90, 0.3),
+      transparent 70%
+    );
 }
-.hl-storm > div {
+.hl-storm > i {
   background:
-    radial-gradient(ellipse 45% 30% at 50% 0%, rgba(170, 255, 120, 0.5), transparent 70%),
-    radial-gradient(ellipse 70% 60% at 48% 58%, rgba(110, 255, 60, 0.22), transparent 70%),
-    radial-gradient(ellipse 20% 60% at 0% 60%, rgba(110, 255, 60, 0.18), transparent 70%),
-    radial-gradient(ellipse 20% 60% at 100% 60%, rgba(110, 255, 60, 0.18), transparent 70%);
+    radial-gradient(
+      ellipse 50% 32% at 50% 0%,
+      rgba(180, 255, 130, 0.42),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 70% 60% at 50% 45%,
+      rgba(110, 255, 60, 0.2),
+      transparent 70%
+    );
   opacity: 0;
   animation: hl-surge 3.7s linear infinite;
 }
-.hl-arcs {
-  top: 0;
-  left: 50%;
-  width: 600px;
-  height: 110px;
-  margin-left: -300px;
-  opacity: 0;
-  animation: hl-storm-win var(--hl-cycle) linear var(--hl-t0) infinite;
-}
 .hl-arc {
-  fill: none;
-  stroke: #d6ffb0;
-  stroke-width: 1.6;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 3px #6dff3a) drop-shadow(0 0 8px rgba(109, 255, 58, 0.7));
-  animation: hl-arc 0.9s steps(1, end) infinite;
-}
-.hl-arc-b {
-  animation-duration: 1.3s;
-  animation-delay: -0.5s;
-}
-
-/* faíscas */
-.hl-spark {
-  top: 18px;
-  width: 40px;
-  height: 30px;
-  margin-left: -20px;
   opacity: 0;
-  transform-origin: 50% 27%;
-  animation-name: hl-spark;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+  animation: hl-arc 1.9s steps(1, end) infinite;
 }
-.hl-spark path {
-  stroke: #fff1a8;
-  stroke-width: 1.4;
+.hl-arc-1 {
+  animation-duration: 2.3s;
+  animation-delay: -0.7s;
+}
+.hl-arc-2 {
+  animation-duration: 2.9s;
+  animation-delay: -1.3s;
+}
+.hl-arc-3 {
+  animation-duration: 3.3s;
+  animation-delay: -2s;
+}
+.hl-arc-glow,
+.hl-arc-core {
+  fill: none;
+  stroke-linejoin: round;
   stroke-linecap: round;
 }
-.hl-spark circle {
-  fill: #fff;
+.hl-arc-glow {
+  stroke: rgba(109, 255, 58, 0.4);
+  stroke-width: 14;
 }
-
-/* partículas verdes */
-.hl-motes {
-  inset: 0;
-  opacity: 0.7;
-  animation: hl-motes-cycle var(--hl-cycle) linear var(--hl-t0) infinite;
+.hl-arc-core {
+  stroke: #e4ffcc;
+  stroke-width: 3.2;
 }
-.hl-motes span {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #c4ff92;
-  box-shadow: 0 0 6px 2px rgba(109, 255, 58, 0.6);
+.hl-spark {
+  background: #dcffc0;
+  box-shadow: 0 0 0.8vh 0.35vh rgba(109, 255, 58, 0.6);
+}
+/* criatura de ressonância (só na tempestade, uma passagem por ciclo) */
+.hl-critter {
+  left: calc(50% - 92vh);
+  top: calc(45% + 3vh);
+  width: 13vh;
+  height: 16vh;
   opacity: 0;
-  animation-name: hl-mote;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+  animation: hl-critter var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-critter-body {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 30%;
+  background: radial-gradient(
+    ellipse 60% 40% at 50% 32%,
+    rgba(170, 255, 130, 0.42),
+    rgba(110, 255, 70, 0.12) 55%,
+    transparent 75%
+  );
+  animation: hl-critter-pulse 1.7s ease-in-out infinite alternate;
+}
+.hl-critter svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.hl-critter-bell {
+  fill: rgba(150, 255, 110, 0.32);
+  stroke: #d2ffb8;
+  stroke-width: 2.5;
+}
+.hl-critter-core {
+  fill: #efffd8;
+  opacity: 0.85;
+}
+.hl-critter-tent {
+  fill: none;
+  stroke: rgba(190, 255, 150, 0.7);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+/* guias na cor vencedora: as paradas do gradiente vêm do CSS */
+.hl-guides-win {
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+.hl-guides-win .hl-guide-glow,
+.hl-guides-win .hl-guide-core {
+  fill: var(--win-color, #6dff3a);
 }
 
-/* faixa de varredura do CRT */
-.hl-sweep {
+/* ---------- Roleta: alarme e ressonância ---------- */
+
+.hl-alarm {
+  opacity: 0.004;
+  transition: opacity 0.8s ease;
+}
+.hl-alarm > i {
+  background:
+    linear-gradient(to bottom, rgba(255, 130, 0, 0.2), transparent 24%),
+    linear-gradient(to top, rgba(255, 110, 0, 0.14), transparent 20%),
+    radial-gradient(
+      ellipse 80% 75% at 50% 50%,
+      transparent 55%,
+      rgba(255, 120, 0, 0.22) 100%
+    );
+}
+.hl-ring {
+  opacity: 0;
+  transform: translateZ(-170vh);
+}
+.hl-ring path {
+  fill: none;
+  stroke-linejoin: round;
+}
+.hl-ring-glow {
+  stroke: var(--win-color, #6dff3a);
+  stroke-width: 90;
+  opacity: 0.28;
+}
+.hl-ring-core {
+  stroke: var(--win-color, #6dff3a);
+  stroke-width: 24;
+}
+.hl-ring-hot {
+  stroke: #fbfff4;
+  stroke-width: 7;
+}
+.hl-ring-2 .hl-ring-glow,
+.hl-ring-2 .hl-ring-core {
+  stroke: #6dff3a;
+}
+.hl-winflash {
+  background: radial-gradient(
+    ellipse 70% 65% at 50% 45%,
+    var(--win-color, #6dff3a),
+    transparent 75%
+  );
+  opacity: 0;
+}
+
+html[data-wheel='spinning'] .hl-set-streaks {
+  opacity: 1;
+  transition-duration: 0.5s;
+}
+html[data-wheel='spinning'] .hl-rumble {
+  animation: hl-rumble 0.27s ease-in-out infinite alternate;
+}
+html[data-wheel='spinning'] .hl-alarm {
+  opacity: 1;
+}
+html[data-wheel='spinning'] .hl-alarm > i {
+  animation: hl-pulse 1.1s ease-in-out infinite alternate;
+}
+/* o anel sai rápido do fundo e desacelera nas bordas (onde aparece) */
+html[data-wheel='won'] .hl-ring {
+  animation: hl-ring 2.6s cubic-bezier(0.15, 0.7, 0.3, 1) both;
+}
+html[data-wheel='won'] .hl-ring-2 {
+  animation-delay: 0.45s;
+}
+html[data-wheel='won'] .hl-guides-win {
+  opacity: 1;
+}
+html[data-wheel='won'] .hl-winflash {
+  animation: hl-flash 1.8s ease-out both;
+}
+html[data-wheel='won'] .hl-winglow {
+  opacity: 0.42;
+}
+
+
+/* ---------- Camadas fixas para as reações da roleta ----------
+   Tudo que acende/apaga com data-wheel fica numa camada própria o tempo
+   todo (will-change ou translateZ(0)). Assim uma transição que começa ou
+   termina não muda a divisão em camadas e nada grande (túnel fixo, vidro,
+   console) precisa ser rasterizado de novo no meio do giro. */
+.hl-set-streaks,
+.hl-alarm,
+.hl-guides-win,
+.hl-winflash {
+  will-change: opacity;
+}
+.hl-winglow,
+.hl-alarm > i,
+.hl-beacon b::after,
+.hl-v-spin,
+.hl-v-won,
+.hl-v-cruise,
+.hl-cyc,
+.hl-handle > i,
+.hl-drone-react {
+  transform: translateZ(0);
+}
+
+/* ---------- Cabine do bonde ---------- */
+
+/* reflexos no para-brisa e vinheta da moldura */
+.hl-glass {
+  background:
+    linear-gradient(
+      112deg,
+      transparent 0 14%,
+      rgba(210, 255, 235, 0.03) 15% 19%,
+      transparent 20% 58%,
+      rgba(210, 255, 235, 0.022) 59% 61.5%,
+      transparent 62.5%
+    ),
+    radial-gradient(
+      ellipse 88% 82% at 50% 48%,
+      transparent 60%,
+      rgba(0, 0, 0, 0.5) 100%
+    );
+}
+.hl-cab-top {
   left: 0;
   right: 0;
   top: 0;
-  height: 140px;
-  background: linear-gradient(to bottom, transparent, rgba(150, 255, 120, 0.035) 70%, rgba(200, 255, 180, 0.07) 96%, transparent);
-  animation: hl-scan 9s linear infinite;
+  height: 1.5vh;
+  background:
+    radial-gradient(
+        circle,
+        #75847e 0 0.16vh,
+        #161b1a 0.2vh,
+        transparent 0.28vh
+      )
+      1.5vh 50% / 4vh 100% repeat-x,
+    linear-gradient(#2e3634, #121615 70%, #050606);
+  box-shadow: 0 0.3vh 0.9vh rgba(0, 0, 0, 0.75);
+}
+/* lâmpadas vermelhas de emergência penduradas na barra */
+.hl-elamp {
+  position: absolute;
+  top: 100%;
+  width: 2.6vh;
+  height: 1.1vh;
+  border-radius: 0 0 0.7vh 0.7vh;
+  background: linear-gradient(#5a1209, #2a0703);
+  box-shadow: 0 0 0 0.12vh #070808;
+}
+.hl-elamp-l {
+  left: 12vh;
+}
+.hl-elamp-r {
+  right: 12vh;
+}
+/* cópia acesa das duas lâmpadas num invólucro só, que acende no apagão */
+.hl-elamps-lit {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: hl-win-emerg var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-elamps-lit .hl-elamp {
+  background: linear-gradient(#ffb09a, #ff3b1f);
+}
+.hl-elamps-lit .hl-elamp::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34vh;
+  height: 26vh;
+  margin: -9vh 0 0 -17vh;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 70, 40, 0.5),
+    rgba(255, 40, 20, 0.14) 40%,
+    transparent
+  );
 }
 
-/* HUD do traje */
+/* giroflex âmbar nos cantos (acende com a roleta girando) */
+.hl-beacon {
+  top: 1.5vh;
+  width: 3.2vh;
+  height: 2.2vh;
+}
+.hl-beacon-l {
+  left: 3vh;
+}
+.hl-beacon-r {
+  right: 3vh;
+}
+.hl-beacon b {
+  position: absolute;
+  inset: 0;
+  border-radius: 1.6vh 1.6vh 0.3vh 0.3vh;
+  background: radial-gradient(circle at 50% 75%, #8a4a08, #4a2604 60%);
+  box-shadow:
+    0 0 0 0.2vh #090b0a,
+    inset 0 -0.3vh 0 #1a1c1b;
+}
+.hl-beacon b::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 70%, #fff1c4, #ffb02e 40%, #ff7a00);
+  box-shadow: 0 0 2vh 0.6vh rgba(255, 150, 20, 0.6);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.hl-beacon-beam {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 180vh;
+  height: 180vh;
+  margin: -90vh 0 0 -90vh;
+  /* cunha do centro para a direita; o elemento inteiro gira */
+  background: linear-gradient(
+    90deg,
+    transparent 50%,
+    rgba(255, 200, 100, 0.42) 50%,
+    rgba(255, 155, 0, 0.17) 66%,
+    rgba(255, 155, 0, 0.05) 84%,
+    rgba(255, 155, 0, 0) 100%
+  );
+  clip-path: polygon(50% 50%, 100% 41%, 100% 59%);
+  opacity: 0.004;
+  transform: translateZ(0);
+  transition: opacity 0.5s ease;
+}
+html[data-wheel='spinning'] .hl-beacon b::after,
+html[data-wheel='spinning'] .hl-beacon-beam {
+  opacity: 1;
+}
+html[data-wheel='spinning'] .hl-beacon-beam {
+  animation: hl-turn 1.3s linear infinite;
+}
+html[data-wheel='spinning'] .hl-beacon-r .hl-beacon-beam {
+  animation-direction: reverse;
+  animation-delay: -0.4s;
+}
+
+/* alças de mão balançando com o vagão */
+.hl-handle {
+  top: 1.4vh;
+  width: 2.8vh;
+  height: 12vh;
+  transform-origin: 50% 0;
+  animation: hl-handle 3.3s ease-in-out infinite alternate;
+}
+.hl-handle-l {
+  left: 7vh;
+}
+.hl-handle-r {
+  right: 7vh;
+  animation-duration: 3.9s;
+  animation-delay: -1.2s;
+}
+.hl-handle > i {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 0;
+}
+.hl-handle > i::before,
+.hl-handle > i::after {
+  content: '';
+  position: absolute;
+}
+.hl-handle > i::before {
+  left: 50%;
+  top: 0;
+  width: 1.1vh;
+  height: 7.6vh;
+  margin-left: -0.55vh;
+  border-radius: 0.3vh;
+  background: linear-gradient(90deg, #0b0d0d, #333a38 45%, #121514);
+}
+.hl-handle > i::after {
+  left: 0;
+  right: 0;
+  top: 7vh;
+  height: 4.4vh;
+  border: 0.55vh solid #b8860f;
+  border-radius: 1.2vh 1.2vh 1.9vh 1.9vh;
+  box-shadow:
+    inset 0 0 0 0.12vh rgba(0, 0, 0, 0.45),
+    0 0.5vh 0.9vh rgba(0, 0, 0, 0.6);
+}
+html[data-wheel='spinning'] .hl-handle > i {
+  animation: hl-handle-kick 0.7s ease-in-out infinite alternate;
+}
+
+/* letreiro de LED do itinerário */
+.hl-led {
+  left: calc(50% + 2vh);
+  top: 1.7vh;
+  width: min(42vh, 590px - 2vh);
+  height: 5.6vh;
+  padding: 0.55vh;
+  border-radius: 0.5vh;
+  background: linear-gradient(#2c3432, #0f1312);
+  box-shadow:
+    0 0 0 0.15vh #050606,
+    0 0.6vh 1.6vh rgba(0, 0, 0, 0.6),
+    inset 0 0.1vh 0 rgba(255, 255, 255, 0.08);
+}
+.hl-led::before,
+.hl-led::after {
+  content: '';
+  position: absolute;
+  top: -1.7vh;
+  width: 0.5vh;
+  height: 1.7vh;
+  background: linear-gradient(90deg, #0c0f0e, #3a4441, #0c0f0e);
+}
+.hl-led::before {
+  left: 12%;
+}
+.hl-led::after {
+  right: 12%;
+}
+.hl-led-screen {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 0.25vh;
+  background: #0b0400;
+  box-shadow: inset 0 0 1.2vh rgba(0, 0, 0, 0.9);
+}
+.hl-led-rows {
+  height: 100%;
+  font-family: var(--font-silkscreen), monospace;
+  font-size: 2.2vh;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: #ffb02e;
+  text-shadow:
+    0 0 0.5vh rgba(255, 140, 0, 0.95),
+    0 0 1.5vh rgba(255, 110, 0, 0.5);
+}
+.hl-led-rows > .hl-v-spin,
+.hl-led-rows > .hl-v-won,
+.hl-led-dark,
+.hl-led-red,
+.hl-led-door,
+.hl-led-route {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.hl-led-rows > .hl-v-spin,
+.hl-led-red {
+  color: #ff6a3a;
+  text-shadow:
+    0 0 0.5vh rgba(255, 70, 30, 0.95),
+    0 0 1.5vh rgba(255, 50, 20, 0.5);
+}
+/* fita do ciclo: cada linha tem a altura da tela do letreiro */
+.hl-led-flip {
+  height: 100%;
+  overflow: hidden;
+}
+.hl-led-flip > .hl-flip-strip {
+  display: flex;
+  flex-direction: column;
+  height: 300%;
+}
+.hl-led-flip > .hl-flip-strip > * {
+  flex: 1 1 0;
+  min-height: 0;
+}
+.hl-led-route {
+  justify-content: flex-start;
+  animation: hl-led-route 95s linear 7.5s infinite;
+}
+.hl-led-door {
+  color: #ffd27a;
+  opacity: 0;
+  animation: hl-led-door 95s linear 7.5s infinite;
+}
+.hl-led-track {
+  display: inline-flex;
+  animation: hl-marquee 34s linear infinite;
+}
+.hl-led-track > span {
+  padding-right: 3vh;
+}
+.hl-led-blink {
+  display: inline-block;
+  animation: hl-blink 1.4s steps(1, end) infinite;
+}
+.hl-led-dots {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      circle,
+      transparent 0 36%,
+      rgba(11, 4, 0, 0.82) 58%
+    )
+    0 0 / 0.42vh 0.42vh;
+}
+
+/* console do bonde com faixa zebrada */
+.hl-dash {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3.9vh;
+  border-top: 0.15vh solid #000;
+  background:
+    repeating-linear-gradient(-45deg, #d9a400 0 1vh, #121212 1vh 2vh) top /
+      100% 0.55vh no-repeat,
+    radial-gradient(circle, #ff5a2a 0 0.22vh, transparent 0.32vh) 2.2vh 62% /
+      1.2vh 1.2vh no-repeat,
+    radial-gradient(circle, #6dff3a 0 0.22vh, transparent 0.32vh) 3.6vh 62% /
+      1.2vh 1.2vh no-repeat,
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.5) 0 0.2vh, transparent 0.2vh 1vh),
+    linear-gradient(#232a28, #090b0b);
+  box-shadow: 0 -1vh 3vh rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Drone de carga ZC-3 ---------- */
+
+.hl-drone {
+  font-size: 1vh;
+  left: 3.5vh;
+  top: max(69vh, 560px);
+  width: 17em;
+  height: 11.7em;
+  animation: hl-drone-drift 31s ease-in-out infinite alternate;
+}
+.hl-drone-react,
+.hl-drone-bob {
+  position: absolute;
+  inset: 0;
+}
+.hl-drone-bob {
+  animation: hl-drone-bob 4.7s ease-in-out infinite alternate;
+}
+.hl-drone svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.hl-drone ellipse {
+  opacity: 0.22;
+}
+.hl-drone-eye {
+  position: absolute;
+  left: 50%;
+  top: 42.7%;
+  width: 1.3em;
+  height: 1.3em;
+  margin: -0.65em;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 40% 40%,
+    #eaffd8,
+    #6dff3a 45%,
+    #1e7a10
+  );
+  box-shadow: 0 0 0.8em 0.3em rgba(109, 255, 58, 0.55);
+  animation: hl-drone-eye 9s ease-in-out infinite;
+}
+.hl-drone-beam {
+  position: absolute;
+  left: 50%;
+  top: 42.7%;
+  width: 36em;
+  height: 14em;
+  margin-top: -7em;
+  transform-origin: 0 50%;
+  transform: rotate(28deg);
+  background: linear-gradient(
+    90deg,
+    rgba(205, 255, 190, 0.3),
+    rgba(205, 255, 190, 0.08) 45%,
+    transparent
+  );
+  clip-path: polygon(0 47%, 100% 0, 100% 100%, 0 53%);
+  opacity: 0.6;
+  animation: hl-drone-scan 47s ease-in-out -20s infinite;
+}
+.hl-nav {
+  position: absolute;
+  top: 26%;
+  width: 0.7em;
+  height: 0.7em;
+  margin: -0.35em;
+  border-radius: 50%;
+  animation: hl-blink 1.3s steps(1, end) infinite;
+}
+.hl-nav-l {
+  left: 14%;
+  background: #ff3b1f;
+  box-shadow: 0 0 0.8em 0.3em rgba(255, 59, 31, 0.7);
+}
+.hl-nav-r {
+  left: 86%;
+  background: #6dff3a;
+  box-shadow: 0 0 0.8em 0.3em rgba(109, 255, 58, 0.7);
+  animation-delay: -0.65s;
+}
+.hl-crate {
+  position: absolute;
+  left: 50%;
+  top: 81%;
+  width: 5.4em;
+  height: 4.4em;
+  margin-left: -2.7em;
+  border: 0.3em solid #141414;
+  border-radius: 0.3em;
+  transform-origin: 50% -0.8em;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23141414' d='M40.8 50a9.2 9.2 0 1 0 18.4 0a9.2 9.2 0 1 0-18.4 0ZM56.9 62L73 89.8A46 46 0 0 1 27 89.8L43.1 62A13.8 13.8 0 0 0 56.9 62ZM36.2 50H4A46 46 0 0 1 27 10.2L43.1 38A13.8 13.8 0 0 0 36.2 50ZM56.9 38L73 10.2A46 46 0 0 1 96 50H63.8A13.8 13.8 0 0 0 56.9 38Z'/%3E%3C/svg%3E")
+      center 60% / 52% no-repeat,
+    repeating-linear-gradient(-45deg, #141414 0 0.4em, #e0ad1a 0.4em 0.8em) top /
+      100% 0.7em no-repeat,
+    linear-gradient(#e8b820, #a77b08);
+  box-shadow: 0 0.6em 1em rgba(0, 0, 0, 0.55);
+  animation: hl-crate 4.7s ease-in-out infinite alternate;
+}
+.hl-drone-say {
+  position: absolute;
+  right: -0.46em;
+  top: -1em;
+  font-family: var(--font-saira-condensed), sans-serif;
+  font-size: 2.6em;
+  font-weight: 800;
+  color: #ff9b00;
+  text-shadow: 0 0 0.3em rgba(255, 155, 0, 0.7);
+  opacity: 0;
+  transform: scale(0.6) translateZ(0);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+.hl-say-won {
+  color: var(--win-color, #6dff3a);
+  text-shadow: 0 0 0.3em var(--win-color, #6dff3a);
+}
+html[data-wheel='spinning'] .hl-say-spin {
+  opacity: 1;
+  transform: translateZ(0);
+}
+html[data-wheel='spinning'] .hl-drone-react {
+  animation: hl-drone-shake 0.24s linear infinite;
+}
+html[data-wheel='won'] .hl-drone-react {
+  animation: hl-drone-hop 1.5s ease-out 2;
+}
+html[data-wheel='won'] .hl-say-won {
+  animation: hl-say 3.2s ease-out both;
+}
+
+/* ---------- HUD do traje ---------- */
+
 .hl-hud {
-  bottom: 44px;
+  bottom: 4.8vh;
   font-family: var(--font-saira-condensed), sans-serif;
   color: #ff9b00;
-  text-shadow: 0 0 8px rgba(255, 155, 0, 0.55);
+  text-shadow: 0 0 0.8vh rgba(255, 155, 0, 0.55);
   line-height: 1;
 }
-.hl-hud small {
+.hl-hud-l {
+  left: 2.2vh;
+}
+.hl-hud-r {
+  right: 2.2vh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.7vh;
+  text-align: right;
+}
+.hl-stack {
+  display: grid;
+}
+.hl-stack > * {
+  grid-area: 1 / 1;
+}
+.hl-status {
+  margin-bottom: 0.6vh;
+  font-size: 1.15vh;
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: 0.2em;
+}
+.hl-status .hl-f3-1,
+.hl-status .hl-v-spin {
+  color: #ff5a3a;
+  text-shadow: 0 0 0.8vh rgba(255, 60, 30, 0.7);
+}
+.hl-status .hl-f3-2 {
+  color: #9dff6a;
+  text-shadow: 0 0 0.8vh rgba(109, 255, 58, 0.7);
+}
+.hl-boxes {
+  display: flex;
+  gap: 0.8vh;
+}
+.hl-hud-r .hl-boxes {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.7vh;
+}
+.hl-box {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 0.7vh;
+  padding: 0.6vh 1vh 0.7vh;
+  border-radius: 0.6vh;
+  background: rgba(12, 9, 2, 0.45);
+  box-shadow: inset 0 0 0 0.1vh rgba(255, 155, 0, 0.24);
+}
+.hl-box small,
+.hl-energy small {
   display: block;
-  font-size: 10px;
+  grid-column: 1 / -1;
+  margin-bottom: 0.4vh;
+  font-size: 0.95vh;
   font-weight: 700;
   letter-spacing: 0.24em;
   opacity: 0.8;
 }
-.hl-hud-l {
-  left: 22px;
-}
-.hl-hud-r {
-  right: 22px;
-  text-align: right;
-}
-.hl-status,
-.hl-num,
-.hl-bar {
-  display: grid;
-}
-.hl-status > *,
-.hl-num > *,
-.hl-bar > * {
-  grid-area: 1 / 1;
-}
-.hl-status {
-  margin-bottom: 10px;
-  font-size: 11px;
+.hl-box em {
+  align-self: end;
+  margin-bottom: 0.3vh;
+  font-size: 1.1vh;
+  font-style: normal;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  opacity: 0.8;
 }
-.hl-status .hl-ph-alarm {
-  color: #ff5a3a;
-  text-shadow: 0 0 8px rgba(255, 60, 30, 0.7);
+.hl-num {
+  font-size: 3.4vh;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
 }
-.hl-status .hl-ph-storm {
-  color: #9dff6a;
-  text-shadow: 0 0 8px rgba(109, 255, 58, 0.7);
+.hl-num .hl-f2-1 {
+  color: #ffb547;
 }
-.hl-readouts {
-  display: flex;
-  gap: 22px;
-}
-.hl-readout {
-  display: grid;
-  grid-template-columns: auto auto;
-  align-items: center;
-  column-gap: 8px;
-}
-.hl-readout small {
-  grid-column: 1 / -1;
-  margin-bottom: 4px;
+.hl-box .hl-v-spin {
+  color: #ff6a3a;
 }
 .hl-cross,
 .hl-shield {
-  width: 20px;
-  height: 20px;
-  filter: drop-shadow(0 0 4px rgba(255, 155, 0, 0.7));
+  width: 2.1vh;
+  height: 2.1vh;
+  filter: drop-shadow(0 0 0.4vh rgba(255, 155, 0, 0.7));
 }
 .hl-cross {
   background:
@@ -499,229 +1223,381 @@ html[data-theme='half-life'] .scene-half-life > * {
   background: #ff9b00;
   clip-path: polygon(50% 0, 100% 16%, 100% 52%, 50% 100%, 0 52%, 0 16%);
 }
-.hl-num {
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums;
-}
-.hl-hud-r .hl-num {
-  justify-items: end;
-}
-.hl-num .hl-ph-storm {
-  color: #ffb547;
-}
-.hl-hud-r .hl-ph-storm {
-  color: #9dff6a;
-  text-shadow: 0 0 8px rgba(109, 255, 58, 0.7);
-}
-.hl-hud-r .hl-ph-alarm,
-.hl-hud-r .hl-ph-dark {
-  color: #ff6a3a;
-}
-.hl-bar {
-  width: 120px;
-  height: 7px;
-  margin: 6px 0 0 auto;
-  background: repeating-linear-gradient(90deg, rgba(255, 155, 0, 0.18) 0 10px, transparent 10px 12px);
-}
-.hl-bar i {
+/* fitas de variantes (rolam entre as fases do ciclo) */
+.hl-flip {
   display: block;
-  height: 100%;
-  background: repeating-linear-gradient(90deg, #ff9b00 0 10px, transparent 10px 12px);
-  transform-origin: left;
+  height: 1lh;
+  overflow: hidden;
 }
-.hl-bar .hl-ph-alarm {
-  transform: scaleX(0.9);
-  background: repeating-linear-gradient(90deg, #ff6a3a 0 10px, transparent 10px 12px);
+.hl-flip-strip {
+  display: flex;
+  flex-direction: column;
 }
-.hl-bar .hl-ph-dark {
+.hl-flip > .hl-flip-strip > * {
+  flex: none;
+  height: 1lh;
+}
+.hl-flip-3 {
+  animation: hl-flip3 var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-flip-2 {
+  animation: hl-flip2 var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+/* hodômetro: fitas de dígitos rolando */
+.hl-odo {
+  display: inline-flex;
+}
+.hl-roll {
+  display: inline-block;
+  height: 1lh;
+  overflow: hidden;
+}
+.hl-roll-strip {
+  display: flex;
+  flex-direction: column;
+}
+.hl-roll-strip > span {
+  height: 1lh;
+}
+.hl-roll-0 {
+  animation: hl-roll 12s steps(10, end) -3.6s infinite;
+}
+.hl-roll-1 {
+  animation: hl-roll 120s steps(10, end) -84s infinite;
+}
+.hl-roll-2 {
+  animation: hl-roll 1200s steps(10, end) -240s infinite;
+}
+.hl-energy {
+  margin-top: 0.2vh;
+}
+.hl-bar.hl-flip {
+  width: 13vh;
+  height: 0.75vh;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 155, 0, 0.18) 0 1vh,
+    transparent 1vh 1.2vh
+  );
+}
+.hl-bar.hl-flip > .hl-flip-strip > i {
+  display: block;
+  height: 0.75vh;
+  transform-origin: 100% 50%;
+  background: repeating-linear-gradient(
+    90deg,
+    #ff9b00 0 1vh,
+    transparent 1vh 1.2vh
+  );
+}
+.hl-bar.hl-flip > .hl-flip-strip > .hl-bar-dark {
   transform: scaleX(0.12);
-  background: repeating-linear-gradient(90deg, #ff3b1f 0 10px, transparent 10px 12px);
+  background: repeating-linear-gradient(
+    90deg,
+    #ff3b1f 0 1vh,
+    transparent 1vh 1.2vh
+  );
 }
-.hl-bar .hl-ph-storm {
-  background: repeating-linear-gradient(90deg, #9dff6a 0 10px, transparent 10px 12px);
+.hl-bar.hl-flip > .hl-flip-strip > .hl-bar-storm {
+  background: repeating-linear-gradient(
+    90deg,
+    #9dff6a 0 1vh,
+    transparent 1vh 1.2vh
+  );
+}
+/* item coletado: "+1 SORTEIO" com a cor da fatia */
+.hl-pickup {
+  display: flex;
+  align-items: center;
+  gap: 0.8vh;
+  padding: 0.7vh 1.2vh;
+  border-radius: 0.6vh;
+  background: rgba(12, 9, 2, 0.6);
+  box-shadow:
+    inset 0 0 0 0.12vh rgba(255, 155, 0, 0.5),
+    0 0 2vh rgba(255, 155, 0, 0.25);
+  font-size: 2.2vh;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  transform: translate3d(130%, 0, 0);
+}
+.hl-pickup-chip {
+  width: 2.2vh;
+  height: 2.2vh;
+  border-radius: 0.4vh;
+  background: var(--win-color, #6dff3a);
+  box-shadow:
+    0 0 1vh var(--win-color, #6dff3a),
+    inset 0 0 0 0.15vh rgba(0, 0, 0, 0.45);
+}
+html[data-wheel='won'] .hl-pickup {
+  animation: hl-pickup 6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* leituras que trocam em cada fase (o estado sem animação é o normal) */
-.hl-ph-alarm,
-.hl-ph-dark,
-.hl-ph-storm {
+/* leituras da roleta por cima das fitas do ciclo */
+.hl-v-spin,
+.hl-v-won {
   opacity: 0;
 }
-.hl-ph-normal {
-  animation: hl-ph-normal var(--hl-cycle) linear var(--hl-t0) infinite;
+.hl-cyc,
+.hl-v-spin,
+.hl-v-won,
+.hl-v-cruise {
+  transition: opacity 0.4s ease;
 }
-.hl-ph-alarm {
-  animation: hl-ph-alarm var(--hl-cycle) linear var(--hl-t0) infinite;
+html[data-wheel='spinning'] .hl-v-spin,
+html[data-wheel='won'] .hl-v-won {
+  opacity: 1;
 }
-.hl-ph-dark {
-  animation: hl-ph-dark var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-.hl-ph-storm {
-  animation: hl-ph-storm var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-.hl-ph-calm {
-  animation: hl-ph-calm var(--hl-cycle) linear var(--hl-t0) infinite;
-}
-
-/* telas menores: a interface cobre quase tudo, a cena fica mais discreta */
-@media (max-width: 1023px) {
-  html[data-theme='half-life'] :is(.hl-hud, .hl-arcs) {
-    display: none;
-  }
-  html[data-theme='half-life'] .hl-side {
-    opacity: 0.55;
-  }
+html[data-wheel='spinning'] .hl-v-cruise,
+html[data-wheel='spinning'] .hl-cyc,
+html[data-wheel='won'] .hl-cyc {
+  opacity: 0;
 }
 
-/* ---------- Ciclo do complexo ---------- */
+/* ---------- Ciclo do complexo (180 s) ---------- */
 
-@keyframes hl-power {
-  0%, 47.8% { opacity: 1; }
-  48.2% { opacity: 0.25; }
-  48.6% { opacity: 0.9; }
-  49% { opacity: 0; }
-  49.4% { opacity: 0.5; }
-  49.8%, 63.8% { opacity: 0; }
-  64.2% { opacity: 0.8; }
-  64.6% { opacity: 0.1; }
-  65.2% { opacity: 1; }
-  65.6% { opacity: 0.3; }
-  66.2%, 100% { opacity: 1; }
+@keyframes hl-cyc-dark {
+  0%, 36% { opacity: 0; }
+  36.3% { opacity: 0.75; }
+  36.6% { opacity: 0.15; }
+  37.1% { opacity: 0.85; }
+  37.4% { opacity: 0.35; }
+  38%, 51.5% { opacity: 1; }
+  53%, 69% { opacity: 0.62; }
+  70% { opacity: 0.95; }
+  70.5% { opacity: 0.25; }
+  71.1% { opacity: 0.8; }
+  72%, 100% { opacity: 0; }
 }
-@keyframes hl-dark-win {
-  0%, 48.8% { opacity: 0; }
-  50%, 63.6% { opacity: 1; }
-  65.6%, 100% { opacity: 0; }
+@keyframes hl-win-emerg {
+  0%, 37.6% { opacity: 0; }
+  38.4%, 69.4% { opacity: 1; }
+  71%, 100% { opacity: 0; }
 }
-@keyframes hl-alarm-win {
-  0%, 27.8% { opacity: 0; }
-  28.4%, 63.4% { opacity: 1; }
-  64.4%, 100% { opacity: 0; }
+@keyframes hl-win-stormfx {
+  0%, 51.6% { opacity: 0; }
+  53.2%, 69% { opacity: 1; }
+  71%, 100% { opacity: 0; }
 }
-@keyframes hl-red-win {
-  0%, 27.8% { opacity: 0; }
-  29%, 47% { opacity: 1; }
-  50%, 63.4% { opacity: 0.4; }
-  64.4%, 100% { opacity: 0; }
+@keyframes hl-cyc-far {
+  0%, 51% { opacity: 0.85; transform: scale(1); }
+  54.5%, 68% { opacity: 1; transform: scale(1.6); }
+  72%, 100% { opacity: 0.85; transform: scale(1); }
 }
-@keyframes hl-emerg-win {
-  0%, 48.6% { opacity: 0; }
-  49.6%, 63.6% { opacity: 1; }
-  65.6%, 100% { opacity: 0; }
+/* fitas: normal / apagão / tempestade (a volta passa rápido pela do meio) */
+@keyframes hl-flip3 {
+  0%, 35.9% { transform: translateY(0); }
+  36%, 51.9% { transform: translateY(-33.3333%); }
+  52%, 73.9% { transform: translateY(-66.6667%); }
+  74%, 100% { transform: translateY(0); }
 }
-@keyframes hl-storm-win {
-  0%, 63.8% { opacity: 0; }
-  64.6%, 81.4% { opacity: 1; }
-  82.6%, 100% { opacity: 0; }
+@keyframes hl-flip2 {
+  0%, 51.9% { transform: translateY(0); }
+  52%, 73.9% { transform: translateY(-50%); }
+  74%, 100% { transform: translateY(0); }
 }
-@keyframes hl-beam-cycle {
-  0%, 27.8% { opacity: 0.8; transform: scaleX(1); }
-  29%, 47.6% { opacity: 0.6; transform: scaleX(0.85); }
-  49%, 63.6% { opacity: 0.95; transform: scaleX(1.1); }
-  65%, 81% { opacity: 1; transform: scaleX(2); }
-  83%, 100% { opacity: 0.8; transform: scaleX(1); }
+/* criatura de ressonância: uma passagem rente à parede esquerda */
+@keyframes hl-critter {
+  0%, 56% { transform: translate3d(0, 0, -70vh); opacity: 0; }
+  57.5% { opacity: 1; }
+  62.4% { opacity: 1; }
+  63%, 100% { transform: translate3d(1vh, -3vh, 10vh); opacity: 0; }
 }
-@keyframes hl-chamber-cycle {
-  0%, 27.8% { opacity: 0.85; transform: scale(1); }
-  29%, 63.6% { opacity: 0.55; transform: scale(0.94); }
-  65.5%, 81% { opacity: 1; transform: scale(1.22); }
-  83%, 100% { opacity: 0.85; transform: scale(1); }
+@keyframes hl-critter-pulse {
+  from { transform: scale(1, 1); }
+  to { transform: translateY(-0.8vh) scale(1.07, 0.88); }
 }
-@keyframes hl-motes-cycle {
-  0%, 63.6% { opacity: 0.7; }
-  65%, 81% { opacity: 1; }
-  83%, 100% { opacity: 0.7; }
+
+/* ---------- Laços próprios ---------- */
+
+/* cambotas: do fundo enevoado até passar pela câmera */
+@keyframes hl-run {
+  0% { transform: translateZ(-190vh); opacity: 0; }
+  45% { opacity: 1; }
+  100% { transform: translateZ(18vh); opacity: 1; }
 }
-@keyframes hl-ph-normal {
-  0%, 27.9% { opacity: 1; }
-  28%, 81.9% { opacity: 0; }
-  82%, 100% { opacity: 1; }
+/* comporta: 20 s de percurso a cada 95 s (abre entre z -60 e -30vh) */
+@keyframes hl-door-z {
+  0% { transform: translateZ(-190vh); opacity: 0; }
+  6% { opacity: 1; }
+  21.05% { transform: translateZ(18vh); opacity: 1; }
+  21.1%, 100% { transform: translateZ(18vh); opacity: 0; }
 }
-@keyframes hl-ph-alarm {
-  0%, 27.9% { opacity: 0; }
-  28%, 47.9% { opacity: 1; }
-  48%, 100% { opacity: 0; }
+@keyframes hl-leaf-l {
+  0%, 13% { transform: translateX(0); animation-timing-function: ease-in-out; }
+  16.5%, 30% { transform: translateX(-100%); }
+  31%, 100% { transform: translateX(0); }
 }
-@keyframes hl-ph-dark {
-  0%, 47.9% { opacity: 0; }
-  48%, 63.9% { opacity: 1; }
+@keyframes hl-leaf-r {
+  0%, 13% { transform: translateX(0); animation-timing-function: ease-in-out; }
+  16.5%, 30% { transform: translateX(100%); }
+  31%, 100% { transform: translateX(0); }
+}
+@keyframes hl-mote {
+  0% { transform: translateZ(-170vh); opacity: 0; }
+  30% { opacity: 0.75; }
+  88% { opacity: 0.8; }
+  100% { transform: translateZ(50vh); opacity: 0; }
+}
+@keyframes hl-streak {
+  from { transform: translateZ(-170vh) rotateY(90deg); }
+  to { transform: translateZ(40vh) rotateY(90deg); }
+}
+@keyframes hl-fault {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  10% { opacity: 0; }
+  13% { opacity: 0.85; }
+  15% { opacity: 1; }
+  42% { opacity: 0; }
+  71% { opacity: 0.7; }
+  72%, 100% { opacity: 0; }
+}
+@keyframes hl-sway {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(0.25vh, 0.3vh) rotate(0.12deg); }
+  100% { transform: translate(-0.2vh, 0.12vh) rotate(-0.1deg); }
+}
+@keyframes hl-rumble {
+  from { transform: translate(0, 0); }
+  to { transform: translate(0.08vh, 0.18vh); }
+}
+@keyframes hl-far-pulse {
+  from { opacity: 0.72; }
+  to { opacity: 1; }
+}
+@keyframes hl-surge {
+  0% { opacity: 0; }
+  6% { opacity: 0.9; }
+  9% { opacity: 0.25; }
+  12% { opacity: 0.7; }
+  20%, 52% { opacity: 0; }
+  55% { opacity: 1; }
+  59% { opacity: 0.25; }
   64%, 100% { opacity: 0; }
 }
-@keyframes hl-ph-storm {
-  0%, 63.9% { opacity: 0; }
-  64%, 81.9% { opacity: 1; }
-  82%, 100% { opacity: 0; }
-}
-@keyframes hl-ph-calm {
-  0%, 63.9% { opacity: 1; }
-  64%, 81.9% { opacity: 0; }
-  82%, 100% { opacity: 1; }
-}
-
-/* ---------- Animações curtas ---------- */
-
-@keyframes hl-flicker {
-  0%, 60% { opacity: 1; }
-  61% { opacity: 0.15; }
-  62% { opacity: 1; }
-  63% { opacity: 0.35; }
-  64%, 88% { opacity: 1; }
-  88.6% { opacity: 0.55; }
-  89.2%, 100% { opacity: 1; }
-}
-@keyframes hl-spark {
-  0%, 94% { opacity: 0; transform: scale(0.4); }
-  95% { opacity: 1; transform: scale(1); }
-  96.5% { opacity: 0.6; transform: scale(1.3); }
-  97% { opacity: 1; transform: scale(0.9); }
-  98.5%, 100% { opacity: 0; transform: scale(1.5); }
-}
-@keyframes hl-rotate {
-  to { transform: rotate(1turn); }
+@keyframes hl-arc {
+  0% { opacity: 1; }
+  6% { opacity: 0.8; }
+  14%, 100% { opacity: 0; }
 }
 @keyframes hl-pulse {
-  from { opacity: 0.3; }
+  from { opacity: 0.35; }
   to { opacity: 1; }
 }
-@keyframes hl-beam-pulse {
-  from { opacity: 0.7; }
-  to { opacity: 1; }
+@keyframes hl-ring {
+  0% { transform: translateZ(-170vh); opacity: 0; }
+  8% { opacity: 1; }
+  55% { opacity: 0.95; }
+  100% { transform: translateZ(-3vh); opacity: 0; }
+}
+/* vapor: parado no túnel (anda com ele) enquanto cresce e se desfaz */
+@keyframes hl-steam-r {
+  0% { transform: translate3d(0, 0, -60vh) scale(0.35); opacity: 0; }
+  3% { opacity: 0.9; }
+  12% { opacity: 0.7; }
+  18%, 100% { transform: translate3d(-7vh, -4vh, 18vh) scale(2.4); opacity: 0; }
+}
+@keyframes hl-steam-l {
+  0% { transform: translate3d(0, 0, -60vh) scale(0.35); opacity: 0; }
+  3% { opacity: 0.9; }
+  12% { opacity: 0.7; }
+  18%, 100% { transform: translate3d(7vh, -3vh, 18vh) scale(2.4); opacity: 0; }
+}
+/* letreiro: aviso da comporta enquanto ela se aproxima (ciclo de 95 s) */
+@keyframes hl-led-route {
+  0%, 15.6% { opacity: 0; }
+  16%, 100% { opacity: 1; }
+}
+@keyframes hl-led-door {
+  0%, 15.6% { opacity: 1; }
+  16%, 100% { opacity: 0; }
+}
+@keyframes hl-flash {
+  0% { opacity: 0; }
+  10% { opacity: 0.24; }
+  28% { opacity: 0.06; }
+  40% { opacity: 0.16; }
+  100% { opacity: 0; }
+}
+@keyframes hl-pickup {
+  0% { transform: translate3d(130%, 0, 0); opacity: 0; }
+  9% { transform: translate3d(0, 0, 0); opacity: 1; }
+  78% { transform: translate3d(0, 0, 0); opacity: 1; }
+  100% { transform: translate3d(0, 0, 0); opacity: 0; }
+}
+@keyframes hl-turn {
+  to { transform: rotate(1turn); }
+}
+@keyframes hl-handle {
+  from { transform: rotate(-3deg); }
+  to { transform: rotate(3.5deg); }
+}
+@keyframes hl-handle-kick {
+  from { transform: rotate(-7deg); }
+  to { transform: rotate(8deg); }
+}
+@keyframes hl-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 @keyframes hl-blink {
   0% { opacity: 1; }
   50% { opacity: 0.15; }
 }
-@keyframes hl-needle {
-  from { transform: rotate(-55deg); }
-  to { transform: rotate(35deg); }
+@keyframes hl-roll {
+  from { transform: translateY(0); }
+  to { transform: translateY(-100%); }
 }
-@keyframes hl-surge {
-  0% { opacity: 0; }
-  6% { opacity: 0.9; }
-  8% { opacity: 0.15; }
-  11% { opacity: 0.75; }
-  18%, 52% { opacity: 0; }
-  55% { opacity: 1; }
-  58% { opacity: 0.25; }
-  63%, 100% { opacity: 0; }
+@keyframes hl-drone-drift {
+  0% { transform: translate(0, 0); }
+  40% { transform: translate(2.6vh, -1.6vh); }
+  70% { transform: translate(-0.8vh, 1vh); }
+  100% { transform: translate(1.6vh, -0.4vh); }
 }
-@keyframes hl-arc {
-  0% { opacity: 1; }
-  18% { opacity: 0; }
-  42% { opacity: 1; }
-  52%, 100% { opacity: 0; }
+@keyframes hl-drone-bob {
+  from { transform: translateY(-0.6vh) rotate(-1deg); }
+  to { transform: translateY(0.7vh) rotate(1.2deg); }
 }
-@keyframes hl-mote {
-  0% { opacity: 0; transform: translateY(0); }
-  15% { opacity: 0.9; }
-  80% { opacity: 0.5; }
-  100% { opacity: 0; transform: translateY(-38vh); }
+@keyframes hl-drone-eye {
+  0%, 30% { transform: translate(0, 0); }
+  36%, 55% { transform: translate(0.55vh, 0.1vh); }
+  62%, 80% { transform: translate(-0.45vh, 0.2vh); }
+  88%, 100% { transform: translate(0, 0); }
 }
-@keyframes hl-scan {
-  from { transform: translateY(-160px); }
-  to { transform: translateY(100vh); }
+@keyframes hl-drone-scan {
+  0%, 70% { transform: rotate(28deg); opacity: 0.6; }
+  74% { transform: rotate(-12deg); opacity: 0.95; }
+  80% { transform: rotate(52deg); opacity: 0.95; }
+  85% { transform: rotate(6deg); opacity: 0.9; }
+  90%, 100% { transform: rotate(28deg); opacity: 0.6; }
+}
+@keyframes hl-crate {
+  from { transform: rotate(-5deg); }
+  to { transform: rotate(5deg); }
+}
+@keyframes hl-drone-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(0.25vh, -0.15vh) rotate(-2deg); }
+  50% { transform: translate(-0.2vh, 0.1vh) rotate(0deg); }
+  75% { transform: translate(0.1vh, 0.2vh) rotate(2deg); }
+}
+@keyframes hl-drone-hop {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-2.6vh) rotate(-8deg); }
+  55% { transform: translateY(0.4vh) rotate(4deg); }
+  75% { transform: translateY(-0.6vh) rotate(0deg); }
+}
+@keyframes hl-say {
+  0% { opacity: 0; transform: scale(0.6) translateZ(0); }
+  12%, 70% { opacity: 1; transform: translate3d(0, -0.6vh, 0); }
+  100% { opacity: 0; transform: translate3d(0, -1.6vh, 0); }
+}
+@keyframes hl-beam-pulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
 }
 
 /* ---------- Componentes (HUD) ---------- */
@@ -989,9 +1865,6 @@ html[data-theme='half-life'] .ui-hub::before {
   filter: drop-shadow(0 0 5px rgba(255, 155, 0, 0.8));
   animation: hl-beam-pulse 1.4s ease-in-out infinite alternate;
 }
-html[data-theme='half-life'] .ui-hub:disabled::before {
-  display: none;
-}
 
 /* rodapé no piso */
 html[data-theme='half-life'] footer {
@@ -1003,7 +1876,45 @@ html[data-theme='half-life'] footer {
   text-shadow: 0 1px 2px #000;
 }
 
-/* ---------- Movimento reduzido: cena parada no turno normal ---------- */
+/* em alarme os cantos dos painéis ficam vermelhos */
+html[data-theme='half-life'][data-wheel='spinning'] :is(.ui-card, .ui-chip) {
+  --hl-br: rgba(255, 90, 42, 0.95);
+}
+
+/* ---------- Telas menores ---------- */
+
+/* sem margem lateral: tira o que ficaria escondido atrás dos cards */
+@media (max-width: 1699px) {
+  html[data-theme='half-life'] :is(.hl-handle, .hl-hud-r) {
+    display: none;
+  }
+  /* faixa livre estreita sob os temas: HUD e drone menores */
+  html[data-theme='half-life'] .hl-hud-l {
+    zoom: 0.78;
+  }
+  html[data-theme='half-life'] .hl-drone {
+    font-size: 0.8vh;
+  }
+}
+@media (max-width: 1023px) {
+  html[data-theme='half-life'] :is(.hl-hud, .hl-drone, .hl-led, .hl-arcs) {
+    display: none;
+  }
+}
+/* celular: metade das cambotas (uma a cada 5 s) e sem o túnel rápido */
+@media (max-width: 640px) {
+  html[data-theme='half-life']
+    :is(.hl-set-slow .hl-rib:nth-child(even), .hl-set-streaks, .hl-mote) {
+    display: none;
+  }
+  html[data-theme='half-life'] .hl-beacon-beam {
+    width: 120vh;
+    height: 120vh;
+    margin: -60vh 0 0 -60vh;
+  }
+}
+
+/* ---------- Movimento reduzido: cena parada na viagem normal ---------- */
 
 @media (prefers-reduced-motion: reduce) {
   html[data-theme='half-life'] .scene-half-life *,
@@ -1011,23 +1922,11 @@ html[data-theme='half-life'] footer {
   html[data-theme='half-life'] .ui-hub::before {
     animation: none !important;
   }
-  html[data-theme='half-life'] :is(.hl-sweep, .hl-spark, .hl-motes) {
-    display: none;
-  }
   html[data-theme='half-life'] .ui-cta::after {
     display: none;
   }
+  html[data-wheel='won'] .hl-pickup {
+    opacity: 1;
+    transform: none;
+  }
 }
-
-/* ---------- Arte opcional (ver PROMPTS.md) ----------
-   Para usar uma imagem gerada como fundo, salve em
-   public/themes/half-life/bg.webp e descomente:
-
-html[data-theme='half-life'] .theme-backdrop {
-  background-image:
-    url('/themes/half-life/bg.webp'),
-    linear-gradient(to bottom, #1b201f 0%, #131716 55%, #0a0c0c 100%);
-  background-size: cover;
-  background-position: center;
-}
-*/

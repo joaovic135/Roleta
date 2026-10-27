@@ -1,0 +1,2762 @@
+/* ---------- CINE PULP ----------
+   Palácio de cinema art déco em noite de sessão dupla: estamos na
+   plateia, de costas para a cabine. A interface é a tela; em volta dela
+   a sala vive o filme.
+
+   Camadas (de trás para a frente): sala vinho, raios dourados do
+   proscênio, paredes verde-petróleo com cartazes pulp em vitrines de
+   lâmpadas, arandelas déco e a cortina de veludo presa na abraçadeira
+   (balança em perspectiva), bambinela de ponta a ponta, luz da tela
+   (muda de cor com as cenas), letreiro de lâmpadas no alto com o tambor
+   3D de títulos e os rolos de filme, a plateia em silhueta embaixo, o
+   facho do projetor com poeira, fumaça e uma mariposa, e por cima de tudo
+   granulação, riscos e marcas de troca de rolo.
+
+   Ciclo da sessão (--cn-cycle = 180 s, começa na montagem):
+     0–3%      ponta do filme no letreiro (8, 7, 6, 5, 4, 3), luzes da
+               sala baixando
+     3–3,6%    a lâmpada do projetor acende piscando; começa o filme
+     3,6–20%   cena noturna (luz azulada na sala)
+     20–38%    cena do brejo (verde); 27%: SUSTO — clarão quente, a
+               plateia pula, o menino joga a pipoca para o alto
+     38–58%    cena do incêndio (laranja); 44% e 48,4%: marcas de troca
+               de rolo piscando no canto (4 quadros cada)
+     58–82%    cena prateada; 66%: explosão (dois clarões suaves)
+     82–100%   INTERVALO: projetor apaga, luzes da sala acendem, o
+               letreiro anuncia a bombonière com a pipoca e o
+               refrigerante sapateando; no fim volta a ponta
+   Fora do ciclo (períodos primos entre si, nunca em sincronia):
+     tambor de títulos troca a cada 20 s (4 filmes inventados, 80 s);
+     lanterninha 47 s; casal 53 s; cartazes viram a cada 61 s e 73 s;
+     disco voador de filme B pendurado num fio a cada 223 s; o filme
+     queima no projetor a cada 263 s (a primeira aos ~94 s); criatura do
+     brejo espiando atrás da cortina a cada 271 s; mariposa, poeira e
+     fumaça sempre.
+   Roleta: girando = luzes da sala baixam, o facho fica mais forte, o
+   letreiro mostra a contagem da ponta do filme, lâmpadas correm rápido,
+   os rolos disparam e a plateia se ajeita na poltrona. Vencedor =
+   estreia: canhões seguidores pousam no letreiro, halo e SUCESSO! na cor
+   do vencedor, flashes de fotógrafo, rajada de confete e chuva de
+   ingressos pelas margens, a plateia pula e o pai joga o chapéu para o
+   alto (tudo uma vez); depois fica só o brilho quente.
+   Telas largas (≥ 2200 px): segunda vitrine, segunda arandela e a grade
+   do órgão no alto das paredes.
+   Só transform/opacity são animados. Os estilos-base (sem animação) são
+   o quadro do prefers-reduced-motion: filme rodando, letreiro aceso. */
+
+html[data-theme='cine-pulp'] .scene-cine-pulp {
+  display: block;
+  container-type: size;
+  /* 1 unidade da cena = 1/1080 da altura da tela */
+  --cn-u: calc(100cqh / 1080);
+  --cn-cycle: 180s;
+  /* ponta do facho (cabine atrás e acima, à direita) */
+  --cn-apex: calc(100% + 10px) 14px;
+}
+html[data-theme='cine-pulp'] .theme-backdrop {
+  background: #0a0204;
+}
+
+.scene-cine-pulp > *,
+.scene-cine-pulp .cn-side > *,
+.scene-cine-pulp .cn-group > *,
+.scene-cine-pulp .cn-premiere > * {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* ---------- sala ---------- */
+
+.scene-cine-pulp .cn-room {
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 62% 48% at 50% 54%,
+      rgba(150, 52, 64, 0.3),
+      transparent 72%
+    ),
+    linear-gradient(
+      to bottom,
+      #12040a 0%,
+      #1e0710 32%,
+      #180509 70%,
+      #0b0205 100%
+    );
+}
+
+/* raios dourados do proscênio, saindo de trás do letreiro */
+.scene-cine-pulp .cn-rays {
+  left: 50%;
+  top: 48px;
+  width: 0;
+  height: 0;
+}
+.scene-cine-pulp .cn-rays > i {
+  position: absolute;
+  left: -900px;
+  top: -900px;
+  width: 1800px;
+  height: 1800px;
+  border-radius: 50%;
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent 0 70px,
+    #000 130px,
+    rgba(0, 0, 0, 0.35) 330px,
+    transparent 620px
+  );
+  mask-image: radial-gradient(
+    circle,
+    transparent 0 70px,
+    #000 130px,
+    rgba(0, 0, 0, 0.35) 330px,
+    transparent 620px
+  );
+}
+.scene-cine-pulp .cn-rays-back {
+  background: repeating-conic-gradient(
+    rgba(196, 140, 60, 0.2) 0deg 2.4deg,
+    transparent 2.4deg 7.5deg
+  );
+}
+.scene-cine-pulp .cn-rays-front {
+  background: repeating-conic-gradient(
+    from 3deg,
+    rgba(255, 220, 150, 0.16) 0deg 0.7deg,
+    transparent 0.7deg 15deg
+  );
+  animation: cn-turn 240s linear infinite;
+}
+
+/* ---------- laterais: parede, cartazes, arandelas, cortina ---------- */
+
+.scene-cine-pulp .cn-side {
+  top: 0;
+  height: 100%;
+  width: calc(var(--cn-u) * 420);
+}
+.scene-cine-pulp .cn-side-l {
+  left: 0;
+}
+.scene-cine-pulp .cn-side-r {
+  right: 0;
+}
+.scene-cine-pulp .cn-flip {
+  inset: 0;
+}
+.scene-cine-pulp .cn-side-r .cn-flip {
+  transform: scaleX(-1);
+}
+.scene-cine-pulp :is(.cn-wall-art, .cn-drape-art) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-cine-pulp .cn-drape {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+  animation: cn-sway 13s ease-in-out infinite alternate;
+}
+.scene-cine-pulp .cn-side-r .cn-drape {
+  animation-duration: 15.5s;
+  animation-delay: -6s;
+}
+.scene-cine-pulp .cn-tassel {
+  position: absolute;
+  left: calc(var(--cn-u) * 48);
+  top: calc(var(--cn-u) * 592);
+  width: calc(var(--cn-u) * 20);
+  height: calc(var(--cn-u) * 46);
+  transform-origin: 50% 0;
+  animation: cn-tassel 4.6s ease-in-out infinite alternate;
+}
+.scene-cine-pulp .cn-side-r .cn-tassel {
+  animation-duration: 5.3s;
+  animation-delay: -2s;
+}
+.scene-cine-pulp .cn-tassel svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* arandelas: leque de vidro + poça de luz na parede (pisca de leve) */
+.scene-cine-pulp .cn-sconce {
+  top: calc(var(--cn-u) * 522);
+  width: calc(var(--cn-u) * 60);
+  height: calc(var(--cn-u) * 44);
+}
+.scene-cine-pulp .cn-side-l .cn-sconce-a {
+  left: calc(var(--cn-u) * 90);
+}
+.scene-cine-pulp .cn-side-r .cn-sconce-a {
+  right: calc(var(--cn-u) * 90);
+}
+.scene-cine-pulp .cn-side-l .cn-sconce-b {
+  left: calc(var(--cn-u) * 240);
+}
+.scene-cine-pulp .cn-side-r .cn-sconce-b {
+  right: calc(var(--cn-u) * 240);
+}
+.scene-cine-pulp .cn-sconce-b,
+.scene-cine-pulp .cn-case-2,
+.scene-cine-pulp .cn-grille {
+  display: none;
+}
+.scene-cine-pulp .cn-sconce-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-cine-pulp .cn-sconce-pool {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: calc(var(--cn-u) * 240);
+  height: calc(var(--cn-u) * 460);
+  margin: calc(var(--cn-u) * -230) 0 0 calc(var(--cn-u) * -120);
+  background:
+    radial-gradient(
+      ellipse 15% 10% at 50% 50%,
+      rgba(255, 236, 190, 0.75),
+      rgba(255, 200, 120, 0) 100%
+    ),
+    radial-gradient(
+      ellipse 44% 50% at 50% 47%,
+      rgba(255, 190, 110, 0.22),
+      rgba(255, 170, 90, 0) 70%
+    );
+  animation: cn-sconce 7.3s steps(1, end) infinite;
+}
+.scene-cine-pulp .cn-side-r .cn-sconce-pool {
+  animation-duration: 9.1s;
+  animation-delay: -3s;
+}
+
+/* vitrines de cartaz: moldura dourada com lâmpadas que se alternam */
+.scene-cine-pulp .cn-case {
+  top: calc(var(--cn-u) * 594);
+  width: calc(var(--cn-u) * 114);
+  height: calc(var(--cn-u) * 170);
+  border-radius: calc(var(--cn-u) * 3);
+  background: linear-gradient(160deg, #f3cf7a, #a8742a 45%, #5a3a10);
+  box-shadow:
+    0 0 0 calc(var(--cn-u) * 1.5) #2a1404,
+    0 calc(var(--cn-u) * 8) calc(var(--cn-u) * 18) rgba(0, 0, 0, 0.6);
+}
+.scene-cine-pulp .cn-side-l .cn-case-1 {
+  left: calc(var(--cn-u) * 63);
+}
+.scene-cine-pulp .cn-side-r .cn-case-1 {
+  right: calc(var(--cn-u) * 63);
+}
+.scene-cine-pulp .cn-side-l .cn-case-2 {
+  left: calc(var(--cn-u) * 213);
+}
+.scene-cine-pulp .cn-side-r .cn-case-2 {
+  right: calc(var(--cn-u) * 213);
+}
+.scene-cine-pulp .cn-case > * {
+  position: absolute;
+}
+.scene-cine-pulp .cn-case-glow {
+  inset: calc(var(--cn-u) * -40);
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(255, 196, 110, 0.2),
+    transparent 70%
+  );
+}
+.scene-cine-pulp .cn-case-frame {
+  inset: calc(var(--cn-u) * 9);
+  background: #0c0406;
+  box-shadow:
+    0 0 0 calc(var(--cn-u) * 1.5) #3a2006,
+    inset 0 0 0 calc(var(--cn-u) * 1) #000;
+  perspective: calc(var(--cn-u) * 500);
+}
+.scene-cine-pulp .cn-card {
+  position: absolute;
+  inset: calc(var(--cn-u) * 2);
+  transform-style: preserve-3d;
+}
+.scene-cine-pulp .cn-card-flip {
+  animation: cn-flip 61s ease-in-out infinite;
+  animation-delay: -21s;
+}
+.scene-cine-pulp .cn-side-r .cn-card-flip {
+  animation-duration: 73s;
+  animation-delay: -55s;
+}
+.scene-cine-pulp .cn-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.scene-cine-pulp .cn-card-back {
+  transform: rotateY(180deg);
+}
+.scene-cine-pulp .cn-poster-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.scene-cine-pulp .cn-case-glass {
+  inset: 0;
+  background: linear-gradient(
+    118deg,
+    rgba(255, 255, 255, 0.16) 0 20%,
+    transparent 21% 62%,
+    rgba(255, 255, 255, 0.06) 63% 71%,
+    transparent 72%
+  );
+}
+.scene-cine-pulp .cn-case-bulbs {
+  --cn-cb: radial-gradient(
+    circle at calc(var(--cn-u) * 7) calc(var(--cn-u) * 4.5),
+    #fffdf2 0 calc(var(--cn-u) * 1.2),
+    #ffe6a3 calc(var(--cn-u) * 1.9),
+    rgba(255, 190, 90, 0.5) calc(var(--cn-u) * 2.8),
+    rgba(255, 170, 60, 0) calc(var(--cn-u) * 4.5)
+  );
+  --cn-cbv: radial-gradient(
+    circle at calc(var(--cn-u) * 4.5) calc(var(--cn-u) * 7),
+    #fffdf2 0 calc(var(--cn-u) * 1.2),
+    #ffe6a3 calc(var(--cn-u) * 1.9),
+    rgba(255, 190, 90, 0.5) calc(var(--cn-u) * 2.8),
+    rgba(255, 170, 60, 0) calc(var(--cn-u) * 4.5)
+  );
+  inset: 0;
+  background-image: var(--cn-cb), var(--cn-cb), var(--cn-cbv), var(--cn-cbv);
+  background-size:
+    calc(var(--cn-u) * 28) calc(var(--cn-u) * 9),
+    calc(var(--cn-u) * 28) calc(var(--cn-u) * 9),
+    calc(var(--cn-u) * 9) calc(var(--cn-u) * 28),
+    calc(var(--cn-u) * 9) calc(var(--cn-u) * 28);
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  animation: cn-alt 0.9s steps(1, end) infinite;
+}
+.scene-cine-pulp .cn-case-b0 {
+  background-position:
+    0 0,
+    calc(var(--cn-u) * 14) 100%,
+    0 calc(var(--cn-u) * 14),
+    100% 0;
+}
+.scene-cine-pulp .cn-case-b1 {
+  background-position:
+    calc(var(--cn-u) * 14) 0,
+    0 100%,
+    0 0,
+    100% calc(var(--cn-u) * 14);
+  animation-delay: -0.45s;
+}
+
+/* placa de SAÍDA zumbindo */
+.scene-cine-pulp .cn-exit {
+  left: calc(var(--cn-u) * 92);
+  top: calc(var(--cn-u) * 798);
+  padding: calc(var(--cn-u) * 2) calc(var(--cn-u) * 9) 0;
+  border-radius: calc(var(--cn-u) * 2);
+  border: calc(var(--cn-u) * 1.5) solid #4a1212;
+  background: #190405;
+  font-family: var(--font-bebas-neue);
+  font-size: calc(var(--cn-u) * 17);
+  line-height: 1.1;
+  letter-spacing: 0.12em;
+  color: #ff5a4a;
+  text-shadow:
+    0 0 calc(var(--cn-u) * 4) #ff2a1a,
+    0 0 calc(var(--cn-u) * 12) rgba(255, 40, 20, 0.7);
+  box-shadow: 0 0 calc(var(--cn-u) * 26) rgba(255, 40, 20, 0.28);
+  animation: cn-buzz 5.7s steps(1, end) infinite;
+}
+
+/* criatura do brejo atrás da cortina (aparece a cada 271 s) */
+.scene-cine-pulp .cn-creature {
+  right: calc(var(--cn-u) * 52);
+  top: calc(var(--cn-u) * 752);
+  width: calc(var(--cn-u) * 80);
+  height: calc(var(--cn-u) * 120);
+  transform: translateX(calc(var(--cn-u) * 46));
+  animation: cn-creature 271s ease-in-out infinite;
+  animation-delay: -118s;
+}
+.scene-cine-pulp .cn-creature-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- bambinela ---------- */
+
+.scene-cine-pulp .cn-valance {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 46px;
+}
+.scene-cine-pulp .cn-valance-art {
+  display: block;
+  width: 100%;
+  height: 46px;
+}
+
+/* ---------- luz da tela, luzes da sala ---------- */
+
+/* a tela acende a sala em volta da interface (centro vazio, sob os cards) */
+.scene-cine-pulp .cn-moods {
+  inset: 0;
+  animation: cn-flick 1.3s steps(1, end) infinite;
+}
+.scene-cine-pulp .cn-mood {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation-duration: var(--cn-cycle);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  background: radial-gradient(
+    ellipse 74% 66% at 50% 50%,
+    transparent 36%,
+    var(--cn-mood) 64%,
+    transparent 96%
+  );
+}
+.scene-cine-pulp .cn-mood-a {
+  --cn-mood: rgba(110, 160, 255, 0.17);
+  opacity: 1;
+  animation-name: cn-c-mood-a;
+}
+.scene-cine-pulp .cn-mood-b {
+  --cn-mood: rgba(90, 255, 140, 0.13);
+  animation-name: cn-c-mood-b;
+}
+.scene-cine-pulp .cn-mood-c {
+  --cn-mood: rgba(255, 130, 50, 0.17);
+  animation-name: cn-c-mood-c;
+}
+.scene-cine-pulp .cn-mood-d {
+  --cn-mood: rgba(225, 230, 255, 0.15);
+  animation-name: cn-c-mood-d;
+}
+
+/* luzes da sala no intervalo (arandelas fortes + lustre do teto) */
+.scene-cine-pulp .cn-house {
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(
+      ellipse 50% 22% at 50% 0%,
+      rgba(255, 210, 140, 0.22),
+      transparent 80%
+    ),
+    radial-gradient(
+      circle at calc(var(--cn-u) * 120) calc(var(--cn-u) * 540),
+      rgba(255, 200, 120, 0.3),
+      transparent calc(var(--cn-u) * 260)
+    ),
+    radial-gradient(
+      circle at calc(100% - var(--cn-u) * 120) calc(var(--cn-u) * 540),
+      rgba(255, 200, 120, 0.3),
+      transparent calc(var(--cn-u) * 260)
+    ),
+    linear-gradient(rgba(255, 190, 130, 0.07), rgba(255, 190, 130, 0.07));
+  animation: cn-c-house var(--cn-cycle) linear infinite;
+}
+
+/* sala escurecendo quando a roleta gira */
+.scene-cine-pulp .cn-dim {
+  inset: 0;
+  opacity: 0;
+  background: rgba(4, 0, 2, 0.52);
+  transition: opacity 0.9s ease;
+}
+
+/* ---------- letreiro ---------- */
+
+.scene-cine-pulp .cn-mq {
+  --cn-bw: round(down, min(720px, 100vw - 880px), 48px);
+  left: 50%;
+  top: 8px;
+  width: var(--cn-bw);
+  height: 80px;
+  margin-left: calc(var(--cn-bw) / -2);
+}
+.scene-cine-pulp .cn-mq > *,
+.scene-cine-pulp .cn-mq-board > *,
+.scene-cine-pulp .cn-mq-panel > * {
+  position: absolute;
+}
+/* halo na cor do vencedor (acende na estreia e fica) */
+.scene-cine-pulp .cn-mq-halo {
+  inset: -46px -150px;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    var(--win-color, #ffcf6b),
+    transparent 70%
+  );
+  transition: opacity 1.4s ease;
+}
+.scene-cine-pulp .cn-mq-bloom {
+  inset: -38px -110px;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(255, 196, 100, 0.28),
+    rgba(255, 170, 80, 0.08) 55%,
+    transparent 72%
+  );
+}
+.scene-cine-pulp .cn-mq-board {
+  inset: 0;
+  border-radius: 5px;
+  background: linear-gradient(#2c0a11, #13040a);
+  box-shadow:
+    0 0 0 2px #5a3a10,
+    0 0 0 4px #e3b55a,
+    0 0 0 5.5px #3a2006,
+    0 0 0 7px #b8862e,
+    0 12px 26px rgba(0, 0, 0, 0.65);
+}
+
+/* painel de leitura (vidro leitoso iluminado por trás) */
+.scene-cine-pulp .cn-mq-panel {
+  left: 22px;
+  right: 22px;
+  top: 17px;
+  bottom: 17px;
+  border-radius: 2px;
+  overflow: hidden;
+  perspective: 420px;
+  /* vidro leitoso aceso: da mesma cor das placas, para as emendas entre
+     os segmentos do tambor não aparecerem como riscos escuros */
+  background: radial-gradient(ellipse 70% 120% at 50% 50%, #fff6dc, #eed39a);
+  box-shadow: 0 0 0 1.5px #6b4513;
+}
+.scene-cine-pulp .cn-drum {
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.scene-cine-pulp .cn-seg {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  left: calc(var(--cn-s) * 20%);
+  width: 20%;
+  transform-style: preserve-3d;
+  transform: translateZ(-23px) rotateX(0deg);
+  animation: cn-drum 80s cubic-bezier(0.5, -0.25, 0.3, 1.3) infinite;
+  animation-delay: calc(var(--cn-s) * 0.13s - 4s);
+}
+.scene-cine-pulp .cn-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  backface-visibility: hidden;
+  transform: rotateX(calc(var(--cn-f) * -90deg)) translateZ(23px);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0) 0 31%,
+      rgba(120, 80, 40, 0.16) 31% 33%,
+      rgba(255, 255, 255, 0) 33% 97%,
+      rgba(120, 80, 40, 0.2) 97%
+    ),
+    radial-gradient(ellipse 70% 120% at 50% 50%, #fffaea, #f0d8a0);
+}
+.scene-cine-pulp .cn-face-text {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--cn-s) * -100%);
+  width: 500%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap;
+  color: #1e0a08;
+}
+.scene-cine-pulp :is(.cn-face-text, .cn-interval, .cn-win) small {
+  font-family: var(--font-limelight);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: #9b1426;
+}
+.scene-cine-pulp :is(.cn-face-text, .cn-interval, .cn-win) b {
+  margin-top: 2px;
+  font-family: var(--font-bebas-neue);
+  font-weight: 400;
+  font-size: 27px;
+  letter-spacing: 0.06em;
+}
+/* reflexo no vidro do painel */
+.scene-cine-pulp .cn-panel-glass {
+  inset: 0;
+  background: linear-gradient(
+    172deg,
+    rgba(255, 255, 255, 0.26) 0 17%,
+    rgba(255, 255, 255, 0) 18% 100%
+  );
+}
+
+/* ponta do filme: contagem regressiva (uma cópia do ciclo, outra da roleta) */
+.scene-cine-pulp .cn-leader {
+  inset: 0;
+  opacity: 0;
+  background:
+    linear-gradient(
+      to right,
+      transparent calc(50% - 0.7px),
+      #2b241c calc(50% - 0.7px) calc(50% + 0.7px),
+      transparent calc(50% + 0.7px)
+    ),
+    linear-gradient(
+      to bottom,
+      transparent calc(50% - 0.7px),
+      #2b241c calc(50% - 0.7px) calc(50% + 0.7px),
+      transparent calc(50% + 0.7px)
+    ),
+    radial-gradient(ellipse 60% 140% at 50% 50%, #ebe3cf, #a59a86);
+}
+.scene-cine-pulp .cn-leader-cyc {
+  opacity: 1;
+  animation: cn-c-leader var(--cn-cycle) linear infinite;
+}
+.scene-cine-pulp .cn-leader-weave {
+  position: absolute;
+  inset: 0;
+}
+.scene-cine-pulp .cn-leader-cyc .cn-leader-weave {
+  animation: cn-weave 0.7s steps(1, end) infinite;
+}
+.scene-cine-pulp .cn-leader-weave > * {
+  position: absolute;
+}
+.scene-cine-pulp :is(.cn-leader-ring, .cn-leader-sweep, .cn-leader-win) {
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+}
+.scene-cine-pulp .cn-leader-ring {
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border: 1.6px solid #2b241c;
+  box-shadow:
+    0 0 0 3px #e2d9c3,
+    0 0 0 4.4px #2b241c;
+}
+.scene-cine-pulp .cn-leader-sweep {
+  width: 37px;
+  height: 37px;
+  margin: -18.5px 0 0 -18.5px;
+  background: conic-gradient(
+    rgba(43, 36, 28, 0) 0deg,
+    rgba(43, 36, 28, 0.12) 180deg,
+    rgba(43, 36, 28, 0.62) 358deg,
+    rgba(43, 36, 28, 0) 360deg
+  );
+}
+.scene-cine-pulp .cn-leader-cyc .cn-leader-sweep {
+  animation: cn-turn 1s linear infinite;
+}
+.scene-cine-pulp .cn-leader-win {
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  overflow: hidden;
+}
+.scene-cine-pulp .cn-leader-col {
+  display: flex;
+  flex-direction: column;
+}
+/* o 8 aparece 0,6 s antes do ciclo: o 3 sai junto com a ponta (5,4 s) */
+.scene-cine-pulp .cn-leader-cyc .cn-leader-col {
+  animation: cn-count 6s steps(6, jump-none) -0.6s infinite;
+}
+.scene-cine-pulp .cn-leader-col span {
+  height: 30px;
+  font-family: var(--font-bebas-neue);
+  font-size: 30px;
+  line-height: 32px;
+  text-align: center;
+  color: #1f1a14;
+}
+.scene-cine-pulp .cn-leader-tag {
+  top: 3px;
+  font-family: var(--font-special-elite);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: #3a3226;
+}
+.scene-cine-pulp .cn-leader-tag-l {
+  left: 8px;
+}
+.scene-cine-pulp .cn-leader-tag-r {
+  right: 8px;
+}
+
+/* intervalo e vencedor */
+.scene-cine-pulp :is(.cn-interval, .cn-win) {
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  opacity: 0;
+}
+.scene-cine-pulp .cn-interval {
+  background: radial-gradient(ellipse 70% 120% at 50% 50%, #7e0e21, #3f0510);
+  color: #ffe2a0;
+  animation: cn-c-interval var(--cn-cycle) linear infinite;
+}
+.scene-cine-pulp .cn-interval b {
+  font-family: var(--font-limelight);
+  font-size: 24px;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 10px rgba(255, 200, 100, 0.6);
+}
+.scene-cine-pulp :is(.cn-interval, .cn-win) small {
+  color: #f3cf7a;
+}
+/* mascotes do intervalo sapateando (passos marcados, fora de fase) */
+.scene-cine-pulp .cn-snack {
+  position: absolute;
+  top: 50%;
+  width: 30px;
+  height: 40px;
+  margin-top: -21px;
+  animation: cn-tap 0.84s steps(1, end) infinite;
+}
+.scene-cine-pulp .cn-snack-a {
+  left: 7%;
+}
+.scene-cine-pulp .cn-snack-b {
+  right: 7%;
+  animation-delay: -0.42s;
+}
+.scene-cine-pulp .cn-snack-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.scene-cine-pulp .cn-win {
+  background: radial-gradient(ellipse 70% 120% at 50% 50%, #2a1218, #0c0306);
+  color: var(--win-color, #ffcf6b);
+  transition: opacity 0.35s ease;
+}
+.scene-cine-pulp .cn-win b {
+  font-family: var(--font-limelight);
+  font-size: 28px;
+  letter-spacing: 0.12em;
+  text-shadow:
+    0 0 1px #fff,
+    0 0 12px var(--win-color, #ffcf6b);
+}
+
+/* lâmpadas: fileiras de cima e de baixo (passo de 16 px, ciclo de 48 px)
+   e uma coluna de 5 em cada ponta. Cada fase acende 1 de cada 3. */
+.scene-cine-pulp :is(.cn-bulbs-slow, .cn-bulbs-fast) {
+  inset: 0;
+  transition: opacity 0.5s ease;
+}
+.scene-cine-pulp .cn-bulbs-fast {
+  opacity: 0;
+}
+.scene-cine-pulp .cn-bulbs {
+  position: absolute;
+  inset: 0;
+  padding: 0 16px;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-clip: content-box, content-box, border-box, border-box;
+}
+.scene-cine-pulp .cn-bulbs-dim {
+  --cn-b: radial-gradient(
+    circle at 8px 8px,
+    #f1d39a 0 1.3px,
+    #7a5428 1.9px,
+    #3a230d 2.8px,
+    rgba(0, 0, 0, 0) 3.4px
+  );
+  background-image: var(--cn-b), var(--cn-b), var(--cn-b), var(--cn-b);
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 100%,
+    1px 0,
+    calc(100% - 1px) 0;
+}
+.scene-cine-pulp :is(.cn-bulbs-p, .cn-bulbs-f, .cn-bulbs-all) {
+  --cn-lit: radial-gradient(
+    circle at 8px 8px,
+    #fffdf2 0 1.7px,
+    #ffe6a3 2.6px,
+    rgba(255, 196, 92, 0.78) 3.8px,
+    rgba(255, 170, 60, 0.3) 5.6px,
+    rgba(255, 150, 50, 0) 8px
+  );
+  background-image: var(--cn-lit), var(--cn-lit), var(--cn-lit), var(--cn-lit);
+}
+.scene-cine-pulp :is(.cn-bulbs-p, .cn-bulbs-f) {
+  background-size:
+    48px 16px,
+    48px 16px,
+    16px 48px,
+    16px 48px;
+}
+/* fase p: em cima anda para a direita, embaixo para a esquerda, a coluna
+   da direita desce e a da esquerda sobe (giro no sentido horário) */
+.scene-cine-pulp :is(.cn-bulbs-p0, .cn-bulbs-f0) {
+  background-position:
+    16px 0,
+    16px 100%,
+    1px 0,
+    calc(100% - 1px) 0;
+}
+.scene-cine-pulp :is(.cn-bulbs-p1, .cn-bulbs-f1) {
+  background-position:
+    32px 0,
+    0 100%,
+    1px 32px,
+    calc(100% - 1px) 16px;
+}
+.scene-cine-pulp :is(.cn-bulbs-p2, .cn-bulbs-f2) {
+  background-position:
+    0 0,
+    32px 100%,
+    1px 16px,
+    calc(100% - 1px) 32px;
+}
+.scene-cine-pulp .cn-bulbs-p {
+  animation: cn-chase 1.2s steps(1, end) infinite;
+}
+.scene-cine-pulp .cn-bulbs-p1 {
+  animation-delay: -0.8s;
+}
+.scene-cine-pulp .cn-bulbs-p2 {
+  animation-delay: -0.4s;
+}
+.scene-cine-pulp .cn-bulbs-all {
+  opacity: 0;
+  background-size: 16px 16px;
+  background-position:
+    0 0,
+    0 100%,
+    1px 0,
+    calc(100% - 1px) 0;
+}
+
+/* rolos de filme nas pontas, inclinados em perspectiva */
+.scene-cine-pulp .cn-reel {
+  top: 50%;
+  width: 78px;
+  height: 78px;
+  margin-top: -39px;
+}
+.scene-cine-pulp .cn-reel-l {
+  left: -70px;
+  transform: perspective(320px) rotateY(32deg);
+}
+.scene-cine-pulp .cn-reel-r {
+  right: -70px;
+  transform: perspective(320px) rotateY(-32deg);
+}
+.scene-cine-pulp :is(.cn-reel-spin, .cn-reel-fast) {
+  width: 100%;
+  height: 100%;
+}
+.scene-cine-pulp .cn-reel-spin {
+  animation: cn-turn 9s linear infinite;
+}
+.scene-cine-pulp .cn-reel-r .cn-reel-spin {
+  animation-duration: 7.4s;
+  animation-direction: reverse;
+}
+.scene-cine-pulp .cn-reel-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- plateia ---------- */
+
+.scene-cine-pulp .cn-crowd {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 266px;
+}
+.scene-cine-pulp .cn-crowd > * {
+  position: absolute;
+}
+.scene-cine-pulp .cn-row {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 150px;
+  animation: cn-c-jump var(--cn-cycle) linear infinite;
+}
+/* metades intercaladas da fileira (pulam fora de fase no vencedor) */
+.scene-cine-pulp .cn-row-h {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.8s ease;
+}
+.scene-cine-pulp .cn-row-h0 {
+  --cn-jump: -7px;
+  --cn-cd: 0.12s;
+}
+.scene-cine-pulp .cn-row-h1 {
+  --cn-jump: -9px;
+  --cn-cd: 0.38s;
+}
+/* os ombros continuam abaixo da borda: ao pular não abre vão no chão */
+.scene-cine-pulp .cn-row svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+/* chapéu do pai (por cima da cabeça, no mesmo lugar do desenho) */
+.scene-cine-pulp .cn-hat {
+  left: 12px;
+  top: 112px;
+  width: 80px;
+  height: 30px;
+}
+.scene-cine-pulp .cn-hat-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.scene-cine-pulp .cn-kid-cheer {
+  position: absolute;
+  inset: 0;
+  --cn-jump: -16px;
+  --cn-cd: 0.04s;
+}
+.scene-cine-pulp .cn-fans {
+  --cn-jump: -8px;
+  --cn-cd: 0.26s;
+}
+/* contorno aceso pela tela: acompanha o filme, some no intervalo */
+.scene-cine-pulp .cn-row-rim {
+  animation: cn-c-rim var(--cn-cycle) linear infinite;
+}
+.scene-cine-pulp .cn-group {
+  bottom: 0;
+  width: 340px;
+  height: 266px;
+}
+.scene-cine-pulp .cn-group-l {
+  left: 0;
+}
+.scene-cine-pulp .cn-group-r {
+  right: 0;
+}
+.scene-cine-pulp .cn-group-art {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-cine-pulp .cn-kid {
+  left: 118px;
+  bottom: 22px;
+  width: 70px;
+  height: 120px;
+  animation: cn-c-kid var(--cn-cycle) linear infinite;
+}
+.scene-cine-pulp .cn-kid-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* hélice do boné (gira = achata no eixo X) */
+.scene-cine-pulp .cn-prop {
+  position: absolute;
+  left: 20px;
+  top: 15px;
+  width: 21px;
+  height: 5px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    #c81d2e 0 44%,
+    #f3cf7a 44% 56%,
+    #1d6fd1 56%
+  );
+  animation: cn-prop 0.22s linear infinite alternate;
+}
+.scene-cine-pulp .cn-prop::after {
+  content: '';
+  position: absolute;
+  left: 9.5px;
+  top: 4px;
+  width: 2px;
+  height: 6px;
+  background: #060102;
+}
+.scene-cine-pulp .cn-lover {
+  transform-origin: 50% 100%;
+  animation: cn-lean-a 53s ease-in-out infinite;
+  animation-delay: -9s;
+}
+.scene-cine-pulp .cn-lover-a {
+  left: 198px;
+  bottom: 30px;
+  width: 64px;
+  height: 110px;
+}
+.scene-cine-pulp .cn-lover-b {
+  left: 242px;
+  bottom: 36px;
+  width: 68px;
+  height: 110px;
+  animation-name: cn-lean-b;
+}
+.scene-cine-pulp .cn-lover-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.scene-cine-pulp .cn-pops {
+  left: 118px;
+  bottom: 22px;
+  width: 70px;
+  height: 120px;
+}
+.scene-cine-pulp .cn-pop {
+  --cn-px: calc((var(--cn-i) - 3) * 15px);
+  --cn-pu: calc(-46px - var(--cn-i) * 7px);
+  position: absolute;
+  left: 55px;
+  top: 16px;
+  width: 6px;
+  height: 5px;
+  border-radius: 45% 55% 50% 50%;
+  background: radial-gradient(circle at 40% 35%, #fffbe8, #f3d98a);
+  opacity: 0;
+  animation: cn-c-pop var(--cn-cycle) linear infinite;
+}
+
+/* lanterninha */
+.scene-cine-pulp .cn-usher {
+  right: 0;
+  bottom: 0;
+  width: 92px;
+  height: 266px;
+  animation: cn-usher 47s linear infinite;
+  animation-delay: -38s;
+}
+.scene-cine-pulp .cn-usher > * {
+  position: absolute;
+}
+.scene-cine-pulp .cn-usher-art {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-cine-pulp .cn-torch {
+  right: 92px;
+  top: 48px;
+  width: 470px;
+  height: 160px;
+  transform-origin: 100% 50%;
+  transform: rotate(-16deg);
+  background:
+    radial-gradient(
+      ellipse 16% 40% at 4% 50%,
+      rgba(255, 238, 180, 0.3),
+      transparent 100%
+    ),
+    linear-gradient(
+      to left,
+      rgba(255, 240, 190, 0.6),
+      rgba(255, 236, 180, 0.16) 55%,
+      rgba(255, 236, 180, 0.04)
+    );
+  clip-path: polygon(100% 47%, 100% 53%, 0 0, 0 100%);
+  animation: cn-torch 47s ease-in-out infinite;
+  animation-delay: -38s;
+}
+
+/* ---------- facho do projetor ---------- */
+
+.scene-cine-pulp .cn-beam,
+.scene-cine-pulp .cn-beam-cyc {
+  inset: 0;
+}
+.scene-cine-pulp .cn-beam-cyc {
+  position: absolute;
+  animation: cn-c-beam var(--cn-cycle) linear infinite;
+}
+.scene-cine-pulp .cn-beam-cyc > * {
+  position: absolute;
+}
+.scene-cine-pulp :is(.cn-beam-haze, .cn-beam-hot) {
+  inset: 0;
+  background: conic-gradient(
+    from 226deg at var(--cn-apex),
+    transparent 0deg,
+    rgba(255, 232, 190, 0.04) 4deg,
+    rgba(255, 238, 205, 0.12) 12deg,
+    rgba(255, 242, 215, 0.16) 17deg,
+    rgba(255, 238, 205, 0.1) 23deg,
+    rgba(255, 232, 190, 0.03) 30deg,
+    transparent 34deg
+  );
+  -webkit-mask-image: radial-gradient(
+    circle at var(--cn-apex),
+    #000 0,
+    rgba(0, 0, 0, 0.7) 50vmax,
+    transparent 110vmax
+  );
+  mask-image: radial-gradient(
+    circle at var(--cn-apex),
+    #000 0,
+    rgba(0, 0, 0, 0.7) 50vmax,
+    transparent 110vmax
+  );
+}
+.scene-cine-pulp .cn-beam-haze {
+  animation: cn-flick 2.3s steps(1, end) infinite;
+}
+.scene-cine-pulp .cn-beam-hot {
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.scene-cine-pulp .cn-beam-rays {
+  inset: 0;
+  background: repeating-conic-gradient(
+    from 226deg at var(--cn-apex),
+    rgba(255, 248, 230, 0.08) 0deg 0.3deg,
+    transparent 0.3deg 1.9deg
+  );
+  -webkit-mask-image:
+    conic-gradient(
+      from 226deg at var(--cn-apex),
+      transparent 0deg,
+      #000 8deg,
+      #000 26deg,
+      transparent 34deg
+    ),
+    radial-gradient(circle at var(--cn-apex), #000 0, transparent 85vmax);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    conic-gradient(
+      from 226deg at var(--cn-apex),
+      transparent 0deg,
+      #000 8deg,
+      #000 26deg,
+      transparent 34deg
+    ),
+    radial-gradient(circle at var(--cn-apex), #000 0, transparent 85vmax);
+  mask-composite: intersect;
+  animation: cn-flick-b 1.7s steps(1, end) infinite;
+}
+/* poeira e fumaça só dentro do cone (recorte pela mesma geometria) */
+.scene-cine-pulp .cn-dust {
+  right: 0;
+  top: 0;
+  width: 54vw;
+  height: 70vh;
+  overflow: hidden;
+  -webkit-mask-image:
+    conic-gradient(
+      from 226deg at var(--cn-apex),
+      transparent 0deg,
+      #000 7deg,
+      #000 27deg,
+      transparent 34deg
+    ),
+    radial-gradient(circle at var(--cn-apex), #000 0, transparent 62vmax);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    conic-gradient(
+      from 226deg at var(--cn-apex),
+      transparent 0deg,
+      #000 7deg,
+      #000 27deg,
+      transparent 34deg
+    ),
+    radial-gradient(circle at var(--cn-apex), #000 0, transparent 62vmax);
+  mask-composite: intersect;
+}
+.scene-cine-pulp .cn-dust > * {
+  position: absolute;
+}
+.scene-cine-pulp .cn-mote {
+  background-repeat: repeat;
+}
+.scene-cine-pulp .cn-mote-a {
+  inset: -170px -180px;
+  background-image:
+    radial-gradient(circle at 20px 30px, rgba(255, 246, 225, 0.9) 0 0.9px, transparent 1.7px),
+    radial-gradient(circle at 95px 12px, rgba(255, 246, 225, 0.8) 0 0.7px, transparent 1.4px),
+    radial-gradient(circle at 140px 80px, rgba(255, 246, 225, 0.95) 0 1.1px, transparent 2px),
+    radial-gradient(circle at 60px 122px, rgba(255, 246, 225, 0.7) 0 0.8px, transparent 1.5px),
+    radial-gradient(circle at 160px 150px, rgba(255, 246, 225, 0.85) 0 0.7px, transparent 1.4px),
+    radial-gradient(circle at 112px 140px, rgba(255, 246, 225, 0.75) 0 1px, transparent 1.8px);
+  background-size: 180px 170px;
+  animation: cn-drift-a 70s linear infinite;
+}
+.scene-cine-pulp .cn-mote-b {
+  inset: -240px -260px;
+  background-image:
+    radial-gradient(circle at 40px 60px, rgba(255, 240, 215, 0.45) 0 1.4px, transparent 3.4px),
+    radial-gradient(circle at 190px 30px, rgba(255, 240, 215, 0.38) 0 1.8px, transparent 4px),
+    radial-gradient(circle at 130px 170px, rgba(255, 240, 215, 0.42) 0 1.2px, transparent 3px),
+    radial-gradient(circle at 230px 210px, rgba(255, 240, 215, 0.34) 0 2px, transparent 4.4px);
+  background-size: 260px 240px;
+  animation: cn-drift-b 110s linear infinite;
+}
+.scene-cine-pulp .cn-mote-c {
+  inset: -110px -120px;
+  background-image:
+    radial-gradient(circle at 10px 20px, rgba(255, 250, 235, 0.8) 0 0.5px, transparent 1.1px),
+    radial-gradient(circle at 70px 8px, rgba(255, 250, 235, 0.7) 0 0.5px, transparent 1.1px),
+    radial-gradient(circle at 100px 64px, rgba(255, 250, 235, 0.9) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 44px 90px, rgba(255, 250, 235, 0.7) 0 0.5px, transparent 1.1px),
+    radial-gradient(circle at 88px 100px, rgba(255, 250, 235, 0.8) 0 0.5px, transparent 1px);
+  background-size: 120px 110px;
+  animation: cn-drift-c 45s linear infinite;
+}
+.scene-cine-pulp .cn-smoke {
+  width: 520px;
+  height: 300px;
+  background:
+    radial-gradient(
+      ellipse 34% 26% at 30% 60%,
+      rgba(235, 225, 215, 0.12),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 26% 20% at 58% 42%,
+      rgba(235, 225, 215, 0.1),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 20% 30% at 78% 66%,
+      rgba(235, 225, 215, 0.08),
+      transparent 72%
+    );
+}
+.scene-cine-pulp .cn-smoke-a {
+  right: 4%;
+  top: 10%;
+  animation: cn-smoke-a 38s ease-in-out infinite alternate;
+}
+.scene-cine-pulp .cn-smoke-b {
+  right: 22%;
+  top: 34%;
+  animation: cn-smoke-b 46s ease-in-out -20s infinite alternate;
+}
+.scene-cine-pulp .cn-moth {
+  right: 12%;
+  top: 16%;
+  width: 9px;
+  height: 7px;
+  animation: cn-moth 9s linear infinite;
+}
+.scene-cine-pulp .cn-moth i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    #fff8e4 0 30%,
+    rgba(255, 240, 205, 0.6) 55%,
+    transparent 72%
+  );
+  animation: cn-flap 0.11s ease-in-out infinite alternate;
+}
+/* clarão da lente da cabine, no canto */
+.scene-cine-pulp .cn-lens {
+  right: -590px;
+  top: -136px;
+  width: 1200px;
+  height: 300px;
+  background:
+    radial-gradient(
+      ellipse 3.5% 13% at 50% 50%,
+      rgba(255, 252, 240, 0.95),
+      rgba(255, 236, 190, 0.3) 45%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 16% 52% at 50% 50%,
+      rgba(255, 226, 170, 0.22),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 46% 2.2% at 50% 50%,
+      rgba(255, 240, 215, 0.4),
+      transparent 100%
+    );
+}
+
+/* ---------- disco voador de filme B ---------- */
+
+.scene-cine-pulp .cn-saucer {
+  left: 0;
+  top: 0;
+  width: 76px;
+  height: 40px;
+  opacity: 0;
+  animation: cn-saucer 223s linear infinite;
+  animation-delay: -150s;
+}
+.scene-cine-pulp .cn-saucer-bob {
+  position: absolute;
+  inset: 0;
+  animation: cn-bob 2.2s ease-in-out infinite alternate;
+}
+.scene-cine-pulp .cn-saucer-bob > * {
+  position: absolute;
+}
+.scene-cine-pulp .cn-saucer-art {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* o fio de pescar segurando o disco (efeito especial de orçamento baixo) */
+.scene-cine-pulp .cn-saucer-wire {
+  left: 37px;
+  bottom: 33px;
+  width: 1px;
+  height: 160px;
+  background: linear-gradient(
+    rgba(230, 230, 230, 0),
+    rgba(230, 230, 230, 0.55)
+  );
+}
+.scene-cine-pulp .cn-sparks {
+  left: 66px;
+  top: 22px;
+  width: 30px;
+  height: 14px;
+  background:
+    radial-gradient(circle at 4px 7px, #fff6c0 0 1.4px, transparent 2.4px),
+    radial-gradient(circle at 12px 3px, #ffd23f 0 1.1px, transparent 2px),
+    radial-gradient(circle at 18px 10px, #ff8a3a 0 1.2px, transparent 2.2px),
+    radial-gradient(circle at 26px 5px, #ffd23f 0 0.9px, transparent 1.8px);
+  animation: cn-sparks 0.16s steps(1, end) infinite;
+}
+
+/* ---------- clarões do filme e estreia ---------- */
+
+.scene-cine-pulp .cn-scare {
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 72% 62% at 50% 50%,
+    rgba(255, 220, 170, 0.9),
+    rgba(255, 170, 90, 0.4) 55%,
+    transparent 85%
+  );
+  animation: cn-c-scare var(--cn-cycle) linear infinite;
+}
+.scene-cine-pulp .cn-premiere {
+  inset: 0;
+}
+.scene-cine-pulp .cn-winglow {
+  inset: 0;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 46% 34% at 50% 0%,
+    var(--win-color, #ffcf6b),
+    transparent 78%
+  );
+  transition: opacity 1.2s ease;
+}
+.scene-cine-pulp .cn-spot {
+  left: -170px;
+  top: -170px;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(
+    circle,
+    rgba(255, 250, 235, 0.42) 0 36%,
+    rgba(255, 240, 210, 0.16) 50%,
+    transparent 66%
+  );
+}
+.scene-cine-pulp .cn-flash {
+  width: 180px;
+  height: 180px;
+  margin: -90px 0 0 -90px;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse 50% 1.4% at 50% 50%, #fff, transparent),
+    radial-gradient(ellipse 1.4% 50% at 50% 50%, #fff, transparent),
+    radial-gradient(
+      circle,
+      #fff 0 4%,
+      rgba(255, 255, 255, 0.8) 9%,
+      rgba(255, 250, 235, 0.3) 24%,
+      transparent 60%
+    );
+}
+.scene-cine-pulp .cn-confetti {
+  inset: 0;
+}
+.scene-cine-pulp .cn-conf {
+  position: absolute;
+  left: 50%;
+  top: 48px;
+  width: 8px;
+  height: 11px;
+  margin-left: -4px;
+  opacity: 0;
+  border-radius: 1px;
+}
+/* chuva das margens: começa acima da tela e desce até o chão */
+.scene-cine-pulp .cn-rain {
+  top: 0;
+  height: 100%;
+  width: clamp(150px, 11vw, 320px);
+}
+.scene-cine-pulp .cn-rain-l {
+  left: 0;
+}
+.scene-cine-pulp .cn-rain-r {
+  right: 0;
+}
+.scene-cine-pulp .cn-drop {
+  position: absolute;
+  top: -26px;
+  width: 9px;
+  height: 12px;
+  opacity: 0;
+  border-radius: 1px;
+}
+/* pedaços: ouro, cor do vencedor, lantejoula, ingresso */
+.scene-cine-pulp .cn-bit-0 {
+  background: linear-gradient(135deg, #fff0bf, #e3b55a 45%, #a8742a);
+}
+.scene-cine-pulp .cn-bit-1 {
+  background: var(--win-color, #ff2e88);
+}
+.scene-cine-pulp .cn-bit-2 {
+  background: radial-gradient(circle at 35% 35%, #fff, #fff3dc 40%, #d9b77a);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+/* ingresso: papel creme com faixa vermelha e picote */
+.scene-cine-pulp .cn-bit-t {
+  width: 24px;
+  height: 12px;
+  margin-left: -12px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      #7a0d12 0 1px,
+      transparent 1px 2.4px
+    ) 16px 0 / 1px 100% no-repeat,
+    linear-gradient(#c81d2e, #c81d2e) 0 0 / 100% 3px no-repeat,
+    linear-gradient(#c81d2e, #c81d2e) 0 100% / 100% 1.5px no-repeat,
+    #f6ecd2;
+}
+
+/* ---------- acabamento de filme ---------- */
+
+.scene-cine-pulp .cn-vignette {
+  inset: 0;
+  background: radial-gradient(
+    ellipse 78% 72% at 50% 50%,
+    transparent 52%,
+    rgba(0, 0, 0, 0.5) 100%
+  );
+}
+.scene-cine-pulp .cn-scratches {
+  inset: 0;
+  opacity: 0;
+  animation: cn-scratch 3.7s steps(1, end) infinite;
+}
+.scene-cine-pulp .cn-scratch {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    rgba(255, 245, 225, 0),
+    rgba(255, 245, 225, 0.32) 18%,
+    rgba(255, 245, 225, 0.16) 70%,
+    rgba(255, 245, 225, 0)
+  );
+}
+.scene-cine-pulp .cn-scratch-dark {
+  width: 1.5px;
+  background: linear-gradient(
+    rgba(0, 0, 0, 0),
+    rgba(0, 0, 0, 0.45) 30%,
+    rgba(0, 0, 0, 0.3) 85%,
+    rgba(0, 0, 0, 0)
+  );
+}
+.scene-cine-pulp .cn-hair {
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 20px;
+  border: 1.4px solid rgba(12, 4, 4, 0.6);
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 60% 40% 70% 30% / 50% 70% 30% 50%;
+  opacity: 0;
+  animation: cn-hair 11s steps(1, end) infinite;
+}
+/* marca de troca de rolo ("queimadura de cigarro") no canto */
+.scene-cine-pulp .cn-cue {
+  right: 3vw;
+  top: 10vh;
+  width: 2.8vh;
+  height: 2.8vh;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(
+    circle,
+    rgba(255, 250, 235, 0.92) 0 44%,
+    rgba(30, 14, 10, 0.85) 50% 60%,
+    rgba(255, 250, 235, 0) 68%
+  );
+  animation: cn-c-cue var(--cn-cycle) linear infinite;
+}
+/* filme queimando: três bolhas; os miolos brancos (luz do projetor
+   passando pelo buraco) vêm por cima dos anéis de brasa, para as bolhas
+   se fundirem sem emenda escura */
+.scene-cine-pulp .cn-burn {
+  left: 77%;
+  top: 46px;
+  width: 280px;
+  height: 230px;
+  margin: -115px 0 0 -140px;
+  opacity: 0;
+  transform: scale(0.05);
+  background:
+    radial-gradient(
+      ellipse 30% 34% at 44% 54%,
+      #fffdf2 0 55%,
+      rgba(255, 244, 205, 0) 66%
+    ),
+    radial-gradient(
+      ellipse 24% 17% at 63% 63%,
+      #fffdf2 0 50%,
+      rgba(255, 244, 205, 0) 64%
+    ),
+    radial-gradient(
+      ellipse 13% 15% at 33% 37%,
+      #fffdf2 0 46%,
+      rgba(255, 244, 205, 0) 62%
+    ),
+    radial-gradient(
+      ellipse 30% 34% at 44% 54%,
+      transparent 0 52%,
+      #ffe39a 60%,
+      #ff8f24 69%,
+      #8a3008 80%,
+      rgba(36, 10, 2, 0.85) 89%,
+      transparent 97%
+    ),
+    radial-gradient(
+      ellipse 24% 17% at 63% 63%,
+      transparent 0 48%,
+      #ffd77a 58%,
+      #f07818 69%,
+      #7a2a06 82%,
+      rgba(36, 10, 2, 0.8) 90%,
+      transparent 98%
+    ),
+    radial-gradient(
+      ellipse 13% 15% at 33% 37%,
+      transparent 0 44%,
+      #ffcf6a 56%,
+      #e8761a 68%,
+      #6a2204 82%,
+      rgba(36, 10, 2, 0.8) 90%,
+      transparent 98%
+    );
+  animation: cn-burn 263s linear infinite;
+  animation-delay: -166s;
+}
+.scene-cine-pulp .cn-burn-flash {
+  inset: 0;
+  opacity: 0;
+  background: #fff6e0;
+  animation: cn-burn-flash 263s linear infinite;
+  animation-delay: -166s;
+}
+.scene-cine-pulp .cn-grain {
+  inset: -160px;
+  opacity: 0.075;
+  background-repeat: repeat;
+  animation: cn-grain 0.42s steps(1, end) infinite;
+}
+
+/* ---------- reações à roleta ---------- */
+
+html[data-wheel='spinning'] .scene-cine-pulp .cn-dim,
+html[data-wheel='spinning'] .scene-cine-pulp .cn-beam-hot,
+html[data-wheel='spinning'] .scene-cine-pulp .cn-bulbs-fast,
+html[data-wheel='spinning'] .scene-cine-pulp .cn-leader-spin {
+  opacity: 1;
+}
+html[data-wheel='spinning'] .scene-cine-pulp .cn-bulbs-slow {
+  opacity: 0;
+}
+.scene-cine-pulp .cn-leader-spin {
+  transition: opacity 0.3s ease;
+}
+html[data-wheel='spinning'] .scene-cine-pulp .cn-bulbs-f {
+  animation: cn-chase 0.36s steps(1, end) infinite;
+}
+html[data-wheel='spinning'] .scene-cine-pulp .cn-bulbs-f1 {
+  animation-delay: -0.24s;
+}
+html[data-wheel='spinning'] .scene-cine-pulp .cn-bulbs-f2 {
+  animation-delay: -0.12s;
+}
+html[data-wheel='spinning'] .scene-cine-pulp .cn-reel-fast {
+  animation: cn-turn 0.7s linear infinite;
+}
+html[data-wheel='spinning'] .scene-cine-pulp .cn-reel-r .cn-reel-fast {
+  animation-direction: reverse;
+}
+/* a contagem recomeça do 8 a cada giro (keyframes com outro nome) */
+html[data-wheel='spinning'] .scene-cine-pulp .cn-leader-spin .cn-leader-col {
+  animation: cn-count-spin 6s steps(6, jump-none) infinite;
+}
+html[data-wheel='spinning'] .scene-cine-pulp .cn-leader-spin .cn-leader-sweep {
+  animation: cn-turn 1s linear infinite;
+}
+html[data-wheel='spinning'] .scene-cine-pulp .cn-leader-spin .cn-leader-weave {
+  animation: cn-weave 0.7s steps(1, end) infinite;
+}
+
+/* estreia: toca uma vez e assenta */
+html[data-wheel='won'] .scene-cine-pulp .cn-win {
+  opacity: 1;
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-win b {
+  animation: cn-pop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-bulbs-all {
+  opacity: 1;
+  animation: cn-blink 0.5s steps(1, end) 3;
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-winglow {
+  opacity: 0.26;
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-spot-l {
+  animation: cn-spot-l 2.8s cubic-bezier(0.35, 0.1, 0.25, 1) both;
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-spot-r {
+  animation: cn-spot-r 2.8s cubic-bezier(0.35, 0.1, 0.25, 1) 0.2s both;
+}
+/* flashes, confete e chuva terminam invisíveis, como o estilo base: com
+   backwards (e não both) cada pedaço solta a camada ao acabar, em vez de
+   ficar parado em rotateX segurando ~50 camadas enquanto o resultado
+   estiver aberto */
+html[data-wheel='won'] .scene-cine-pulp .cn-flash {
+  animation: cn-flashbulb 0.7s ease-out var(--cn-d) backwards;
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-conf {
+  animation: cn-conf 3.4s cubic-bezier(0.2, 0.55, 0.4, 1) var(--cn-d) backwards;
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-drop {
+  animation: cn-rain var(--cn-t) linear var(--cn-d) backwards;
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-mq-halo {
+  opacity: 0.5;
+}
+/* plateia: girando todo mundo se ajeita na poltrona; no vencedor comemora */
+html[data-wheel='spinning'] .scene-cine-pulp .cn-row-h {
+  transform: translateY(-4px);
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-cheer {
+  animation: cn-cheer 1.6s ease-in-out var(--cn-cd) both;
+}
+html[data-wheel='won'] .scene-cine-pulp .cn-hat {
+  animation: cn-hat 1.9s 0.3s both;
+}
+
+/* ---------- telas menores ---------- */
+
+@media (max-width: 1179px) {
+  .scene-cine-pulp .cn-mq,
+  .scene-cine-pulp .cn-saucer {
+    display: none;
+  }
+}
+@media (min-width: 2200px) {
+  .scene-cine-pulp .cn-sconce-b,
+  .scene-cine-pulp .cn-case-2 {
+    display: block;
+  }
+  .scene-cine-pulp .cn-grille {
+    display: inline;
+  }
+}
+/* celular: a página rola por cima; ficam cortina, bambinela, facho e
+   plateia simples (sem cartazes, sem poeira em camadas) */
+@media (max-width: 640px) {
+  .scene-cine-pulp :is(.cn-case, .cn-exit, .cn-creature, .cn-sconce),
+  .scene-cine-pulp :is(.cn-mote-b, .cn-mote-c, .cn-smoke, .cn-moth),
+  .scene-cine-pulp :is(.cn-group, .cn-scratches, .cn-hair) {
+    display: none;
+  }
+  .scene-cine-pulp .cn-side {
+    width: calc(var(--cn-u) * 300);
+  }
+}
+
+/* ---------- animações ---------- */
+
+@keyframes cn-turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes cn-sway {
+  from {
+    transform: perspective(900px) rotateY(0deg);
+  }
+  to {
+    transform: perspective(900px) rotateY(-7deg) rotateZ(0.25deg);
+  }
+}
+@keyframes cn-tassel {
+  from {
+    transform: rotate(-5deg);
+  }
+  to {
+    transform: rotate(6deg);
+  }
+}
+@keyframes cn-sconce {
+  0% { opacity: 1; }
+  61% { opacity: 0.82; }
+  62% { opacity: 1; }
+  63% { opacity: 0.7; }
+  64% { opacity: 1; }
+}
+@keyframes cn-alt {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.12;
+  }
+}
+@keyframes cn-flip {
+  0%,
+  46% {
+    transform: rotateY(0deg);
+  }
+  50%,
+  96% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+@keyframes cn-buzz {
+  0% { opacity: 1; }
+  71% { opacity: 0.45; }
+  72% { opacity: 1; }
+  74% { opacity: 0.6; }
+  75% { opacity: 1; }
+}
+@keyframes cn-creature {
+  0%,
+  93% {
+    transform: translateX(calc(var(--cn-u) * 46));
+  }
+  94.5%,
+  97.6% {
+    transform: translateX(0);
+  }
+  98.6%,
+  100% {
+    transform: translateX(calc(var(--cn-u) * 46));
+  }
+}
+@keyframes cn-flick {
+  0% { opacity: 1; }
+  23% { opacity: 0.9; }
+  31% { opacity: 1; }
+  57% { opacity: 0.86; }
+  63% { opacity: 0.97; }
+  82% { opacity: 0.92; }
+}
+@keyframes cn-flick-b {
+  0% { opacity: 0.8; }
+  17% { opacity: 1; }
+  40% { opacity: 0.65; }
+  52% { opacity: 0.95; }
+  77% { opacity: 0.75; }
+}
+@keyframes cn-chase {
+  0% {
+    opacity: 1;
+  }
+  33.333% {
+    opacity: 0.06;
+  }
+  100% {
+    opacity: 0.06;
+  }
+}
+@keyframes cn-drum {
+  0%,
+  22.5% {
+    transform: translateZ(-23px) rotateX(0deg);
+  }
+  25%,
+  47.5% {
+    transform: translateZ(-23px) rotateX(90deg);
+  }
+  50%,
+  72.5% {
+    transform: translateZ(-23px) rotateX(180deg);
+  }
+  75%,
+  97.5% {
+    transform: translateZ(-23px) rotateX(270deg);
+  }
+  100% {
+    transform: translateZ(-23px) rotateX(360deg);
+  }
+}
+@keyframes cn-tap {
+  0% {
+    transform: translateY(0) rotate(-8deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(0) rotate(8deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(0deg);
+  }
+}
+@keyframes cn-count {
+  to {
+    transform: translateY(-150px);
+  }
+}
+@keyframes cn-count-spin {
+  to {
+    transform: translateY(-150px);
+  }
+}
+@keyframes cn-weave {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(0.6px, -0.4px); }
+  45% { transform: translate(-0.4px, 0.5px); }
+  70% { transform: translate(0.3px, 0.8px); }
+}
+@keyframes cn-prop {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0.12);
+  }
+}
+@keyframes cn-lean-a {
+  0%,
+  40% {
+    transform: rotate(0deg);
+  }
+  45%,
+  56% {
+    transform: rotate(9deg);
+  }
+  61%,
+  100% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes cn-lean-b {
+  0%,
+  41% {
+    transform: rotate(0deg);
+  }
+  46%,
+  55% {
+    transform: rotate(-8deg);
+  }
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+}
+/* lanterninha: entra (0–5%), varre a fileira, sai (28–33%) */
+@keyframes cn-usher {
+  0% {
+    transform: translateX(120px);
+  }
+  5%,
+  28% {
+    transform: translateX(0);
+  }
+  33%,
+  100% {
+    transform: translateX(120px);
+  }
+}
+@keyframes cn-torch {
+  0%,
+  4% {
+    opacity: 0;
+    transform: rotate(-16deg);
+  }
+  6% {
+    opacity: 1;
+    transform: rotate(-16deg);
+  }
+  12% {
+    transform: rotate(-9deg);
+  }
+  18% {
+    transform: rotate(-24deg);
+  }
+  24% {
+    opacity: 1;
+    transform: rotate(-12deg);
+  }
+  27%,
+  100% {
+    opacity: 0;
+    transform: rotate(-16deg);
+  }
+}
+@keyframes cn-drift-a {
+  to {
+    transform: translate(-180px, -170px);
+  }
+}
+@keyframes cn-drift-b {
+  to {
+    transform: translate(-260px, 240px);
+  }
+}
+@keyframes cn-drift-c {
+  to {
+    transform: translate(120px, -110px);
+  }
+}
+@keyframes cn-smoke-a {
+  from {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  to {
+    transform: translate(-90px, -40px) rotate(-14deg) scale(1.25);
+  }
+}
+@keyframes cn-smoke-b {
+  from {
+    transform: translate(0, 0) rotate(8deg) scale(1.1);
+  }
+  to {
+    transform: translate(70px, -60px) rotate(-6deg) scale(0.9);
+  }
+}
+@keyframes cn-moth {
+  0% { transform: translate(0, 0); }
+  12% { transform: translate(-34px, 18px); }
+  25% { transform: translate(-12px, 46px); }
+  37% { transform: translate(-58px, 30px); }
+  50% { transform: translate(-40px, -6px); }
+  62% { transform: translate(-80px, 14px); }
+  75% { transform: translate(-46px, 52px); }
+  87% { transform: translate(-16px, 20px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes cn-flap {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(0.25);
+  }
+}
+@keyframes cn-saucer {
+  0% {
+    opacity: 1;
+    transform: translate(calc(100vw + 40px), 70px);
+  }
+  3% {
+    transform: translate(calc(70vw), 58px);
+  }
+  6% {
+    transform: translate(calc(40vw), 74px);
+  }
+  9% {
+    opacity: 1;
+    transform: translate(calc(10vw), 56px);
+  }
+  10.5%,
+  100% {
+    opacity: 0;
+    transform: translate(-140px, 66px);
+  }
+}
+@keyframes cn-bob {
+  from {
+    transform: translateY(-5px) rotate(-5deg);
+  }
+  to {
+    transform: translateY(4px) rotate(4deg);
+  }
+}
+@keyframes cn-sparks {
+  0% { opacity: 1; transform: translateX(0); }
+  33% { opacity: 0.4; transform: translateX(3px); }
+  66% { opacity: 0.8; transform: translateX(-2px) scaleY(-1); }
+}
+@keyframes cn-pop {
+  from {
+    transform: scale(0.4);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes cn-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.1;
+  }
+}
+@keyframes cn-spot-l {
+  0% {
+    opacity: 0;
+    transform: translate(70px, 640px);
+  }
+  12% {
+    opacity: 1;
+  }
+  45% {
+    transform: translate(150px, 260px);
+  }
+  100% {
+    opacity: 0.6;
+    transform: translate(calc(50vw - 400px), 48px);
+  }
+}
+@keyframes cn-spot-r {
+  0% {
+    opacity: 0;
+    transform: translate(calc(100vw - 70px), 700px);
+  }
+  12% {
+    opacity: 1;
+  }
+  45% {
+    transform: translate(calc(100vw - 160px), 300px);
+  }
+  100% {
+    opacity: 0.6;
+    transform: translate(calc(50vw + 400px), 48px);
+  }
+}
+@keyframes cn-flashbulb {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  7% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+@keyframes cn-conf {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  20% {
+    transform: translate(calc(var(--cn-dx) * 0.45), var(--cn-up))
+      rotate(calc(var(--cn-r) * 0.25));
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--cn-dx), var(--cn-dy)) rotate(var(--cn-r));
+  }
+}
+/* queima do filme (fim do ciclo de 263 s; 1% = 2,63 s): uma faísca,
+   o buraco se alastra derretendo e, ao cortar, um clarão suave */
+@keyframes cn-burn {
+  0%,
+  98.9% {
+    opacity: 0;
+    transform: scale(0.05) rotate(0deg);
+  }
+  99% {
+    opacity: 1;
+    transform: scale(0.07) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+  }
+  99.62% {
+    transform: scale(0.6) rotate(7deg);
+    animation-timing-function: linear;
+  }
+  99.86% {
+    opacity: 1;
+    transform: scale(1.05) rotate(10deg);
+  }
+  99.87%,
+  100% {
+    opacity: 0;
+    transform: scale(1.05) rotate(10deg);
+  }
+}
+@keyframes cn-burn-flash {
+  0%,
+  99.85% {
+    opacity: 0;
+  }
+  99.87% {
+    opacity: 0.2;
+  }
+  99.96%,
+  100% {
+    opacity: 0;
+  }
+}
+/* papel caindo: balança de um lado para o outro e capota (rotateX) */
+@keyframes cn-rain {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0deg) rotateX(0deg);
+  }
+  5% {
+    opacity: 1;
+  }
+  25% {
+    transform: translate(var(--cn-sw), 27vh) rotate(calc(var(--cn-r) * 0.25))
+      rotateX(190deg);
+  }
+  50% {
+    transform: translate(calc(var(--cn-sw) * -0.7), 54vh)
+      rotate(calc(var(--cn-r) * 0.5)) rotateX(360deg);
+  }
+  75% {
+    transform: translate(calc(var(--cn-sw) * 0.8), 81vh)
+      rotate(calc(var(--cn-r) * 0.75)) rotateX(550deg);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, calc(100vh + 30px)) rotate(var(--cn-r))
+      rotateX(720deg);
+  }
+}
+/* três pulinhos cada vez menores */
+@keyframes cn-cheer {
+  0%,
+  28%,
+  58%,
+  88%,
+  100% {
+    transform: translateY(0);
+  }
+  14% {
+    transform: translateY(var(--cn-jump));
+  }
+  43% {
+    transform: translateY(calc(var(--cn-jump) * 0.75));
+  }
+  73% {
+    transform: translateY(calc(var(--cn-jump) * 0.5));
+  }
+}
+/* o chapéu sobe girando, cai e o pai pega de volta (afunda um pouco) */
+@keyframes cn-hat {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    animation-timing-function: ease-in;
+  }
+  9% {
+    transform: translate(-2px, 6px) rotate(6deg);
+    animation-timing-function: cubic-bezier(0.15, 0.75, 0.35, 1);
+  }
+  47% {
+    transform: translate(9px, -150px) rotate(-250deg);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.35);
+  }
+  90% {
+    transform: translate(0, 4px) rotate(-360deg);
+    animation-timing-function: ease-out;
+  }
+  100% {
+    transform: translate(0, 0) rotate(-360deg);
+  }
+}
+@keyframes cn-scratch {
+  0% { opacity: 0; transform: translateX(0); }
+  11% { opacity: 0.85; transform: translateX(0); }
+  13% { opacity: 0; }
+  40% { opacity: 0.6; transform: translateX(-23vw); }
+  42% { opacity: 0; }
+  65% { opacity: 0.9; transform: translateX(14vw); }
+  66.5% { opacity: 0; }
+  87% { opacity: 0.5; transform: translateX(31vw); }
+  89% { opacity: 0; }
+}
+@keyframes cn-hair {
+  0% { opacity: 0; transform: translate(12vw, 70vh) rotate(0deg); }
+  31% { opacity: 1; transform: translate(12vw, 70vh) rotate(0deg); }
+  32% { opacity: 0; }
+  67% { opacity: 1; transform: translate(88vw, 22vh) rotate(140deg); }
+  68.2% { opacity: 0; }
+}
+@keyframes cn-grain {
+  0% { transform: translate(0, 0); }
+  14% { transform: translate(-37px, 22px); }
+  28% { transform: translate(51px, -60px); }
+  42% { transform: translate(-80px, 90px); }
+  57% { transform: translate(23px, 140px); }
+  71% { transform: translate(110px, -13px); }
+  85% { transform: translate(-120px, -70px); }
+}
+
+/* ciclo da sessão (180 s) */
+@keyframes cn-c-leader {
+  0%,
+  2.85% {
+    opacity: 1;
+  }
+  3% {
+    opacity: 0;
+  }
+  99.6% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes cn-c-interval {
+  0%,
+  82% {
+    opacity: 0;
+  }
+  83%,
+  99.6% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cn-c-beam {
+  0%,
+  2.95% {
+    opacity: 0;
+  }
+  3.05% {
+    opacity: 0.7;
+  }
+  3.15% {
+    opacity: 0.1;
+  }
+  3.35% {
+    opacity: 0.85;
+  }
+  3.45% {
+    opacity: 0.3;
+  }
+  3.7%,
+  81.5% {
+    opacity: 1;
+  }
+  83%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cn-c-house {
+  0% {
+    opacity: 1;
+  }
+  3.4%,
+  81.5% {
+    opacity: 0;
+  }
+  84%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes cn-c-mood-a {
+  0%,
+  3.4% {
+    opacity: 0;
+  }
+  5.5%,
+  19% {
+    opacity: 1;
+  }
+  21%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cn-c-mood-b {
+  0%,
+  19% {
+    opacity: 0;
+  }
+  21%,
+  37% {
+    opacity: 1;
+  }
+  39%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cn-c-mood-c {
+  0%,
+  37% {
+    opacity: 0;
+  }
+  39%,
+  57% {
+    opacity: 1;
+  }
+  59%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cn-c-mood-d {
+  0%,
+  57% {
+    opacity: 0;
+  }
+  59%,
+  80.5% {
+    opacity: 1;
+  }
+  82.5%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cn-c-scare {
+  0%,
+  26.95% {
+    opacity: 0;
+  }
+  27% {
+    opacity: 0.22;
+  }
+  27.4%,
+  65.9% {
+    opacity: 0;
+  }
+  66% {
+    opacity: 0.16;
+  }
+  66.12% {
+    opacity: 0.04;
+  }
+  66.3% {
+    opacity: 0.12;
+  }
+  66.7%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cn-c-jump {
+  0%,
+  26.98% {
+    transform: translateY(0);
+  }
+  27.1% {
+    transform: translateY(-5px);
+  }
+  27.35%,
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes cn-c-rim {
+  0% {
+    opacity: 0.35;
+  }
+  3.4%,
+  81.5% {
+    opacity: 1;
+  }
+  84%,
+  100% {
+    opacity: 0.35;
+  }
+}
+@keyframes cn-c-kid {
+  0%,
+  26.98% {
+    transform: translateY(0);
+  }
+  27.1% {
+    transform: translateY(-18px);
+    animation-timing-function: ease-in;
+  }
+  27.45%,
+  59.9% {
+    transform: translateY(0);
+  }
+  60.05% {
+    transform: translateY(-7px);
+  }
+  60.25%,
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes cn-c-pop {
+  0%,
+  27% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  27.04% {
+    opacity: 1;
+    transform: translate(0, 0);
+    animation-timing-function: ease-out;
+  }
+  27.4% {
+    transform: translate(calc(var(--cn-px) * 0.6), var(--cn-pu));
+    animation-timing-function: ease-in;
+  }
+  27.95% {
+    opacity: 1;
+    transform: translate(var(--cn-px), 110px);
+  }
+  28%,
+  100% {
+    opacity: 0;
+    transform: translate(var(--cn-px), 110px);
+  }
+}
+@keyframes cn-c-cue {
+  0%,
+  43.99% {
+    opacity: 0;
+  }
+  44%,
+  44.09% {
+    opacity: 1;
+  }
+  44.1%,
+  48.39% {
+    opacity: 0;
+  }
+  48.4%,
+  48.49% {
+    opacity: 1;
+  }
+  48.5%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- movimento reduzido ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-cine-pulp * {
+    animation: none !important;
+  }
+  /* quadro parado: filme em cartaz no letreiro (sem a ponta do filme) */
+  .scene-cine-pulp .cn-leader-cyc {
+    opacity: 0;
+  }
+}
+
+/* ---------- interface ---------- */
+
+html[data-theme='cine-pulp'] body {
+  --wheel-font: var(--font-bebas-neue);
+  --wheel-font-scale: 1.12;
+}
+/* título em letras de lâmpada incandescente */
+html[data-theme='cine-pulp'] .ui-title {
+  font-family: var(--font-limelight);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  background: none;
+  color: #fff0c8;
+  text-shadow:
+    0 0 1px #fffaf0,
+    0 0 6px rgba(255, 206, 110, 0.95),
+    0 0 16px rgba(255, 166, 60, 0.7),
+    0 0 34px rgba(230, 60, 50, 0.5),
+    0 2px 0 #4a0d06;
+  animation: cn-ui-glow 9s steps(1, end) infinite;
+}
+html[data-theme='cine-pulp'] .ui-subtitle {
+  font-family: var(--font-special-elite);
+  font-size: 0.78rem;
+  color: #dcc4a6;
+  text-shadow: 0 1px 2px #000;
+}
+html[data-theme='cine-pulp'] .ui-card {
+  border-radius: 10px;
+  border-color: rgb(227 181 90 / 0.5);
+  background-color: rgb(28 9 14 / 0.9);
+  /* leques déco (arcos concêntricos) nos cantos */
+  background-image:
+    radial-gradient(
+      circle at 0 0,
+      transparent 0 8px,
+      rgb(227 181 90 / 0.6) 8.5px 9.5px,
+      transparent 10px 13px,
+      rgb(227 181 90 / 0.42) 13.5px 14.5px,
+      transparent 15px 18px,
+      rgb(227 181 90 / 0.26) 18.5px 19.5px,
+      transparent 20px
+    ),
+    radial-gradient(
+      circle at 100% 0,
+      transparent 0 8px,
+      rgb(227 181 90 / 0.6) 8.5px 9.5px,
+      transparent 10px 13px,
+      rgb(227 181 90 / 0.42) 13.5px 14.5px,
+      transparent 15px 18px,
+      rgb(227 181 90 / 0.26) 18.5px 19.5px,
+      transparent 20px
+    ),
+    radial-gradient(
+      circle at 0 100%,
+      transparent 0 8px,
+      rgb(227 181 90 / 0.45) 8.5px 9.5px,
+      transparent 10px 13px,
+      rgb(227 181 90 / 0.28) 13.5px 14.5px,
+      transparent 15px
+    ),
+    radial-gradient(
+      circle at 100% 100%,
+      transparent 0 8px,
+      rgb(227 181 90 / 0.45) 8.5px 9.5px,
+      transparent 10px 13px,
+      rgb(227 181 90 / 0.28) 13.5px 14.5px,
+      transparent 15px
+    ),
+    linear-gradient(to bottom, rgb(255 220 160 / 0.05), transparent 40%);
+  background-size:
+    22px 22px,
+    22px 22px,
+    16px 16px,
+    16px 16px,
+    100% 100%;
+  background-position:
+    0 0,
+    100% 0,
+    0 100%,
+    100% 100%,
+    0 0;
+  background-repeat: no-repeat;
+  box-shadow:
+    inset 0 0 0 3px rgb(18 5 9 / 0.9),
+    inset 0 0 0 4px rgb(227 181 90 / 0.24),
+    0 24px 50px -12px rgb(0 0 0 / 0.75),
+    0 0 0 1px rgb(0 0 0 / 0.5);
+}
+html[data-theme='cine-pulp'] .ui-card-title {
+  font-family: var(--font-limelight);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: #f3cf7a;
+  text-shadow: 0 0 12px rgb(255 190 90 / 0.35);
+}
+html[data-theme='cine-pulp'] .ui-chip {
+  border-color: rgb(227 181 90 / 0.45);
+  background-color: rgb(28 9 14 / 0.88);
+}
+html[data-theme='cine-pulp'] .ui-panel {
+  border-color: rgb(227 181 90 / 0.22);
+  background-color: rgb(255 220 160 / 0.03);
+}
+html[data-theme='cine-pulp'] .ui-input {
+  border-color: rgb(227 181 90 / 0.25);
+  background-color: rgb(10 3 5 / 0.6);
+  border-radius: 6px;
+}
+html[data-theme='cine-pulp'] .ui-btn {
+  border-radius: 5px;
+  background: linear-gradient(#f6d98c, #c9953e);
+  color: #2a0a0a;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    0 2px 0 #6b4513;
+}
+/* botão de girar = ingresso de cinema (picotes nas pontas) */
+html[data-theme='cine-pulp'] .ui-cta {
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(
+        to bottom,
+        rgb(255 236 210 / 0.75) 0 4px,
+        transparent 4px 8px
+      )
+      54px 0 / 2px 100% no-repeat,
+    repeating-linear-gradient(
+        to bottom,
+        rgb(255 236 210 / 0.75) 0 4px,
+        transparent 4px 8px
+      )
+      calc(100% - 54px) 0 / 2px 100% no-repeat,
+    linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.18),
+      transparent 45%,
+      rgb(0 0 0 / 0.18)
+    ),
+    linear-gradient(90deg, #a3122a, #d0243c 50%, #a3122a);
+  color: #fff1d6;
+  font-family: var(--font-bebas-neue);
+  font-weight: 400;
+  font-size: 1.7rem;
+  line-height: 1.6rem;
+  letter-spacing: 0.16em;
+  text-shadow: 0 2px 0 rgb(80 0 10 / 0.6);
+  box-shadow:
+    0 0 0 1px rgb(255 214 140 / 0.35),
+    0 10px 24px -8px rgb(179 18 46 / 0.6);
+  -webkit-mask:
+    radial-gradient(circle 11px at 0 50%, #0000 96%, #000) 0 0 / 51% 100%
+      no-repeat,
+    radial-gradient(circle 11px at 100% 50%, #0000 96%, #000) 100% 0 / 51%
+      100% no-repeat;
+  mask:
+    radial-gradient(circle 11px at 0 50%, #0000 96%, #000) 0 0 / 51% 100%
+      no-repeat,
+    radial-gradient(circle 11px at 100% 50%, #0000 96%, #000) 100% 0 / 51%
+      100% no-repeat;
+}
+html[data-theme='cine-pulp'] .ui-cta::before,
+html[data-theme='cine-pulp'] .ui-cta::after {
+  position: absolute;
+  top: 50%;
+  font-family: var(--font-special-elite);
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  color: rgb(255 236 210 / 0.85);
+  text-shadow: none;
+  white-space: nowrap;
+}
+html[data-theme='cine-pulp'] .ui-cta::before {
+  content: 'ADMITE 1';
+  left: 28px;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+html[data-theme='cine-pulp'] .ui-cta::after {
+  content: 'Nº 0042';
+  right: 28px;
+  transform: translate(50%, -50%) rotate(90deg);
+}
+html[data-theme='cine-pulp'] .ui-cta:disabled {
+  filter: grayscale(0.7) brightness(0.75);
+}
+html[data-theme='cine-pulp'] .ui-cta kbd {
+  font-family: var(--font-special-elite);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  background: rgb(60 0 10 / 0.35);
+}
+/* aro: anel dourado canelado com friso carmim, lâmpadas incandescentes */
+html[data-theme='cine-pulp'] .ui-rim {
+  background:
+    linear-gradient(
+      160deg,
+      rgb(255 250 220 / 0.5),
+      rgb(255 255 255 / 0) 40%,
+      rgb(60 20 0 / 0.5) 88%
+    ),
+    repeating-conic-gradient(
+      #d9a64a 0deg 3deg,
+      #7a4d12 3deg 3.6deg,
+      #f3cf7a 3.6deg 6deg,
+      #7a4d12 6deg 6.6deg
+    );
+  box-shadow:
+    0 0 0 2px #3a2006,
+    0 0 0 6px #9c1428,
+    0 0 0 8px #e3b55a,
+    0 0 0 9.5px #3a2006,
+    0 30px 80px -20px rgb(0 0 0 / 0.9),
+    0 0 70px -10px rgb(255 180 80 / 0.4);
+}
+html[data-theme='cine-pulp'] .bulb {
+  background: #fffaf0;
+  box-shadow:
+    0 0 5px 2px rgb(255 220 150 / 0.95),
+    0 0 14px 4px rgb(255 160 60 / 0.55);
+}
+/* miolo = rolo de filme (5 furos em volta do botão) */
+html[data-theme='cine-pulp'] .ui-hub {
+  font-family: var(--font-bebas-neue);
+  font-weight: 400;
+  font-size: clamp(0.9rem, 2.6vw, 1.3rem);
+  letter-spacing: 0.14em;
+  color: #fbe7b9;
+  text-shadow: 0 1px 0 #000;
+  background:
+    radial-gradient(circle at 50% 50%, #1a0807 0 27%, #6b4513 28%, transparent 29.5%),
+    radial-gradient(circle at 50% 17%, #140506 0 9.5%, transparent 10.5%),
+    radial-gradient(circle at 81% 40%, #140506 0 9.5%, transparent 10.5%),
+    radial-gradient(circle at 69% 76%, #140506 0 9.5%, transparent 10.5%),
+    radial-gradient(circle at 31% 76%, #140506 0 9.5%, transparent 10.5%),
+    radial-gradient(circle at 19% 40%, #140506 0 9.5%, transparent 10.5%),
+    linear-gradient(145deg, #fff0c4, #c9953e 45%, #6b4513);
+}
+html[data-theme='cine-pulp'] footer {
+  color: rgb(var(--slate-400));
+  text-shadow:
+    0 1px 3px #000,
+    0 0 8px #000;
+}
+
+@keyframes cn-ui-glow {
+  0% { opacity: 1; }
+  83% { opacity: 0.84; }
+  84% { opacity: 1; }
+  86% { opacity: 0.9; }
+  87% { opacity: 1; }
+}

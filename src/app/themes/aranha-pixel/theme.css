@@ -1,20 +1,27 @@
 /* ---------- HOMEM-ARANHA PIXEL (32-bit, cidade viva) ----------
-   Ciclo do dia em --cycle (madrugada 0-6%, dia 18-42%, pôr do sol 50-56%,
-   noite 64-100%) e clima em --weather (chuva 33-54%, sol forte fora dela).
-   Todas as animações de hora do dia usam --cycle e --t0, então ficam em
+   Um jogo de plataforma rodando atrás da roleta. Cenário em SVG + CSS
+   (este arquivo) e atores num canvas 2D em pixels da cena (game.ts, que
+   lê o mesmo relógio: as constantes de lá precisam bater com as daqui).
+   Ciclo do dia em --ap-cycle (madrugada 0-6%, dia 18-42%, pôr do sol 50-56%,
+   noite 64-100%) e clima em --ap-weather (chuva 33-54%, sol forte fora dela).
+   Todas as animações de hora do dia usam --ap-cycle e --ap-t0, então ficam em
    sincronia; o clima tem laço próprio, mais longo, e cai em horas
    diferentes a cada volta. Só transform e opacity são animados: para
    mudar de cor, cópias da mesma camada fazem cross-fade. Sem animação
-   (prefers-reduced-motion), o estado parado é o pôr do sol. */
+   (prefers-reduced-motion), o estado parado é o pôr do sol (o canvas
+   desenha um quadro só, no mesmo pôr do sol).
+   Roleta: girando, holofotes sobem de trás dos prédios varrendo o céu;
+   na vitória eles ficam fracos e na cor da fatia (brilho calmo). O
+   resto da reação (herói, combo, faixa, fogos) fica no canvas. */
 
 .scene-aranha-pixel {
-  --cycle: 240s;
+  --ap-cycle: 240s;
   /* começa à tarde, com sol forte: o pôr do sol chega em ~30 s */
-  --t0: calc(var(--cycle) * -0.3);
-  --weather: 420s;
-  --w0: -64s;
+  --ap-t0: calc(var(--ap-cycle) * -0.3);
+  --ap-weather: 420s;
+  --ap-w0: -64s;
   /* tamanho de um "pixel" da cena (a cidade tem 760 de largura) */
-  --u: calc(max(100vw, 209vh) / 760);
+  --ap-u: calc(max(100vw, 209vh) / 760);
 }
 .scene-aranha-pixel svg {
   display: block;
@@ -30,40 +37,40 @@
 /* ---- hora do dia (camadas em cross-fade, estado parado = pôr do sol) ---- */
 .ap-ph-dawn {
   opacity: 0;
-  animation: ap-dawn var(--cycle) linear var(--t0) infinite;
+  animation: ap-dawn var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 .ap-ph-sunset {
   opacity: 1;
-  animation: ap-sunset var(--cycle) linear var(--t0) infinite;
+  animation: ap-sunset var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 .ap-ph-day {
   opacity: 0;
-  animation: ap-day var(--cycle) linear var(--t0) infinite;
+  animation: ap-day var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 .ap-ph-warm {
   opacity: 1;
-  animation: ap-warm var(--cycle) linear var(--t0) infinite;
+  animation: ap-warm var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 .ap-ph-night {
   opacity: 0.35;
-  animation: ap-night var(--cycle) linear var(--t0) infinite;
+  animation: ap-night var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 .ap-ph-fog {
   opacity: 0;
-  animation: ap-fog var(--cycle) linear var(--t0) infinite;
+  animation: ap-fog var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 .ap-ph-dew {
   opacity: 0;
-  animation: ap-dew var(--cycle) linear var(--t0) infinite;
+  animation: ap-dew var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 .ap-flarewin {
   opacity: 0;
-  animation: ap-flarewin var(--cycle) linear var(--t0) infinite;
+  animation: ap-flarewin var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 /* sol listrado (madrugada e fim de tarde) some no meio do dia */
 .ap-sunsun {
   opacity: 1;
-  animation: ap-sunsun var(--cycle) linear var(--t0) infinite;
+  animation: ap-sunsun var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 @keyframes ap-sunsun {
   0%, 12% { opacity: 1; }
@@ -116,15 +123,15 @@
 /* ---- clima (laço próprio) ---- */
 .ap-w-rain {
   opacity: 0;
-  animation: ap-rain var(--weather) linear var(--w0) infinite;
+  animation: ap-rain var(--ap-weather) linear var(--ap-w0) infinite;
 }
 .ap-w-storm {
   opacity: 0;
-  animation: ap-storm var(--weather) linear var(--w0) infinite;
+  animation: ap-storm var(--ap-weather) linear var(--ap-w0) infinite;
 }
 .ap-w-clear {
   opacity: 1;
-  animation: ap-clear var(--weather) linear var(--w0) infinite;
+  animation: ap-clear var(--ap-weather) linear var(--ap-w0) infinite;
 }
 @keyframes ap-storm {
   0%, 24% { opacity: 0; }
@@ -239,10 +246,10 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   position: absolute;
   left: 0;
   top: 0;
-  width: calc(20 * var(--u));
-  height: calc(8 * var(--u));
+  width: calc(20 * var(--ap-u));
+  height: calc(8 * var(--ap-u));
   opacity: 0;
-  animation: ap-shoot var(--cycle) linear var(--t0) infinite;
+  animation: ap-shoot var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 @keyframes ap-shoot {
   0%, 70% { opacity: 0; transform: translate(70vw, 1vh); }
@@ -261,18 +268,18 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   top: 0;
 }
 .ap-sun {
-  width: calc(72 * var(--u));
-  height: calc(72 * var(--u));
-  margin: calc(-36 * var(--u)) 0 0 calc(-36 * var(--u));
+  width: calc(72 * var(--ap-u));
+  height: calc(72 * var(--ap-u));
+  margin: calc(-36 * var(--ap-u)) 0 0 calc(-36 * var(--ap-u));
   transform: translate(92vw, 44vh);
-  animation: ap-sun var(--cycle) linear var(--t0) infinite;
+  animation: ap-sun var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 .ap-moon {
-  width: calc(40 * var(--u));
-  height: calc(40 * var(--u));
-  margin: calc(-20 * var(--u)) 0 0 calc(-20 * var(--u));
+  width: calc(40 * var(--ap-u));
+  height: calc(40 * var(--ap-u));
+  margin: calc(-20 * var(--ap-u)) 0 0 calc(-20 * var(--ap-u));
   transform: translate(3vw, 112vh);
-  animation: ap-moon var(--cycle) linear var(--t0) infinite;
+  animation: ap-moon var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 @keyframes ap-sun {
   0% { transform: translate(3vw, 112vh); }
@@ -303,13 +310,33 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   95% { transform: translate(82vw, 15vh); }
   100% { transform: translate(93vw, 40vh); }
 }
+/* brilho em volta do sol (gradiente parado; anda junto com o sol) */
+.ap-sunglow {
+  position: absolute;
+  inset: -70%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 196, 120, 0.46) 0,
+    rgba(255, 150, 90, 0.2) 26%,
+    rgba(255, 120, 90, 0.06) 44%,
+    transparent 64%
+  );
+}
+.ap-sunglow-day {
+  background: radial-gradient(
+    circle,
+    rgba(255, 253, 236, 0.4) 0,
+    rgba(255, 246, 200, 0.14) 24%,
+    transparent 56%
+  );
+}
 .ap-glint-win {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(150 * var(--u));
-  height: calc(150 * var(--u));
-  margin: calc(-75 * var(--u)) 0 0 calc(-75 * var(--u));
+  width: calc(150 * var(--ap-u));
+  height: calc(150 * var(--ap-u));
+  margin: calc(-75 * var(--ap-u)) 0 0 calc(-75 * var(--ap-u));
 }
 .ap-glint {
   position: absolute;
@@ -345,14 +372,14 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   top: 0;
   width: 0;
   height: 0;
-  animation: ap-flare var(--cycle) linear var(--t0) infinite;
+  animation: ap-flare var(--ap-cycle) linear var(--ap-t0) infinite;
 }
 .ap-fl-c {
   position: absolute;
   left: 0;
   top: 0;
-  width: calc(var(--n) * var(--u));
-  height: calc(var(--n) * var(--u));
+  width: calc(var(--ap-n) * var(--ap-u));
+  height: calc(var(--ap-n) * var(--ap-u));
   transform-origin: 0 0;
 }
 @keyframes ap-flare {
@@ -377,7 +404,7 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   position: absolute;
   left: 0;
   width: calc(2 * max(100%, 209vh));
-  aspect-ratio: 1520 / var(--rows);
+  aspect-ratio: 1520 / var(--ap-rows);
   animation: ap-drift 200s linear infinite;
 }
 .ap-clouds-far {
@@ -411,6 +438,71 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   animation: ap-drift 80s linear infinite;
 }
 
+/* holofotes atrás dos prédios: invisíveis parados; acendem no giro e,
+   na vitória, ficam fracos e na cor da fatia (brilho calmo) */
+.ap-beams {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+}
+html[data-wheel='spinning'] .ap-beams {
+  opacity: 1;
+  transition-duration: 0.5s;
+}
+html[data-wheel='won'] .ap-beams {
+  opacity: 0.55;
+  transition-duration: 3s;
+}
+.ap-beam {
+  position: absolute;
+  bottom: 8vh;
+  width: 0;
+  height: 0;
+  animation: ap-sweep-l 6.5s ease-in-out infinite alternate;
+}
+.ap-beam-l {
+  left: 6vw;
+}
+.ap-beam-r {
+  right: 6vw;
+  animation-name: ap-sweep-r;
+  animation-duration: 7.7s;
+  animation-delay: -2.4s;
+}
+.ap-beam > div {
+  position: absolute;
+  left: -13vh;
+  bottom: 0;
+  width: 26vh;
+  height: 105vh;
+  background: linear-gradient(
+    to top,
+    rgba(255, 244, 214, 0.6),
+    rgba(255, 244, 214, 0.32) 50%,
+    rgba(255, 244, 214, 0.1) 80%,
+    transparent
+  );
+  clip-path: polygon(47% 100%, 53% 100%, 100% 0, 0 0);
+}
+html[data-wheel='won'] .ap-beam > div {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--win-color, #fcd25d) 70%, transparent),
+    color-mix(in srgb, var(--win-color, #fcd25d) 34%, transparent) 50%,
+    color-mix(in srgb, var(--win-color, #fcd25d) 10%, transparent) 80%,
+    transparent
+  );
+}
+@keyframes ap-sweep-l {
+  from { transform: rotate(-26deg); }
+  to { transform: rotate(16deg); }
+}
+@keyframes ap-sweep-r {
+  from { transform: rotate(26deg); }
+  to { transform: rotate(-16deg); }
+}
+
 /* raios: aparecem só no instante do clarão */
 .ap-bolt {
   position: absolute;
@@ -422,11 +514,11 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
 }
 .ap-bolt-a {
   left: 1.5vw;
-  animation: ap-bolt-a var(--weather) linear var(--w0) infinite;
+  animation: ap-bolt-a var(--ap-weather) linear var(--ap-w0) infinite;
 }
 .ap-bolt-b {
   right: 1vw;
-  animation: ap-bolt-b var(--weather) linear var(--w0) infinite;
+  animation: ap-bolt-b var(--ap-weather) linear var(--ap-w0) infinite;
 }
 @keyframes ap-bolt-a {
   0%, 38% { opacity: 0; }
@@ -447,7 +539,7 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   inset: 0;
   background: #ece6ff;
   opacity: 0;
-  animation: ap-flash var(--weather) linear var(--w0) infinite;
+  animation: ap-flash var(--ap-weather) linear var(--ap-w0) infinite;
 }
 @keyframes ap-flash {
   0%, 38% { opacity: 0; }
@@ -467,7 +559,7 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   inset: 0;
   background: #1d2238;
   opacity: 0;
-  animation: ap-gloom var(--weather) linear var(--w0) infinite;
+  animation: ap-gloom var(--ap-weather) linear var(--ap-w0) infinite;
 }
 
 /* pássaros de dia, morcegos à noite */
@@ -483,7 +575,7 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   left: 0;
   top: 3vh;
   width: 100%;
-  height: calc(14 * var(--u));
+  height: calc(14 * var(--ap-u));
   transform: translateX(14%);
   animation: ap-birds 64s linear infinite;
   animation-delay: -6s;
@@ -497,7 +589,7 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   position: absolute;
   left: 0;
   top: 0;
-  width: calc(48 * var(--u));
+  width: calc(48 * var(--ap-u));
   height: 100%;
 }
 .ap-flap {
@@ -514,7 +606,7 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
 }
 .ap-bat {
   position: absolute;
-  width: calc(13 * var(--u));
+  width: calc(13 * var(--ap-u));
   aspect-ratio: 9 / 4;
   animation: ap-bat-a 13s ease-in-out infinite;
 }
@@ -584,12 +676,12 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
 }
 
 /* janelas: cada grupo acende ao anoitecer e apaga de manhã no seu horário
-   (--o desloca o grupo no ciclo); os "late" apagam de madrugada */
+   (--ap-o desloca o grupo no ciclo); os "late" apagam de madrugada */
 .ap-wg {
   position: absolute;
   top: 0;
   height: 100%;
-  animation: ap-win var(--cycle) linear calc(var(--t0) + var(--cycle) * var(--o, 0)) infinite;
+  animation: ap-win var(--ap-cycle) linear calc(var(--ap-t0) + var(--ap-cycle) * var(--ap-o, 0)) infinite;
 }
 .ap-wg-late {
   animation-name: ap-win-late;
@@ -680,60 +772,28 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   100% { opacity: 0; transform: translate(160%, -620%); }
 }
 
-/* carros na rua (os faróis só aparecem à noite) */
-.ap-car {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: calc(6 / 160 * 100%);
-  animation: ap-drive-r 30s linear infinite;
-}
-.ap-car-l {
-  animation-name: ap-drive-l;
-}
-.ap-car-body,
-.ap-car-beam {
-  position: absolute;
-  top: 0;
-  height: 100%;
-}
-.ap-car-body {
-  width: calc(20 / 760 * 100%);
-}
-.ap-car-beam {
-  width: calc(16 / 760 * 100%);
-}
-@keyframes ap-drive-r {
-  from { transform: translateX(-6%); }
-  to { transform: translateX(101%); }
-}
-@keyframes ap-drive-l {
-  from { transform: translateX(101%); }
-  to { transform: translateX(-6%); }
-}
-
 /* chuva: ladrilhos de pixel descendo na diagonal + respingos */
 .ap-rain-far,
 .ap-rain-near {
   position: absolute;
   left: 0;
-  top: calc(-1 * var(--th));
-  width: calc(100% + var(--tw));
-  height: calc(100% + var(--th));
-  background-size: var(--tw) var(--th);
+  top: calc(-1 * var(--ap-th));
+  width: calc(100% + var(--ap-tw));
+  height: calc(100% + var(--ap-th));
+  background-size: var(--ap-tw) var(--ap-th);
   animation: ap-rain-fall 0.8s linear infinite;
 }
 .ap-rain-far {
-  --tw: calc(32 * var(--u));
-  --th: calc(64 * var(--u));
+  --ap-tw: calc(32 * var(--ap-u));
+  --ap-th: calc(64 * var(--ap-u));
 }
 .ap-rain-near {
-  --tw: calc(48 * var(--u));
-  --th: calc(96 * var(--u));
+  --ap-tw: calc(48 * var(--ap-u));
+  --ap-th: calc(96 * var(--ap-u));
   animation-duration: 0.55s;
 }
 @keyframes ap-rain-fall {
-  to { transform: translate(calc(-1 * var(--tw)), var(--th)); }
+  to { transform: translate(calc(-1 * var(--ap-tw)), var(--ap-th)); }
 }
 .ap-splash {
   opacity: 0;
@@ -776,100 +836,21 @@ html[data-theme='aranha-pixel'] .theme-backdrop::before {
   height: 0;
 }
 
-/* ---- herói da teia: a cada 47 s cruza a tela em 4 balanços (1,4 s
-   cada); um laço de 94 s espelha a cena inteira, então uma passagem vai
-   para a direita e a seguinte volta para a esquerda. A âncora fica 20vh
-   acima do topo, a teia tem 40vh e o arco vai de +50° a -50°: os pontos
-   de soltura ficam na faixa do cabeçalho e o fundo do arco passa pelas
-   margens. Âncoras a 2 * 40vh * sen(50°) = 61,28vh uma da outra, assim o
-   fim de um balanço coincide com o início do próximo. O sprite gira ao
-   contrário da teia (fica sempre em pé, com pixels nítidos). ---- */
-.ap-swing {
-  --sw: 47s;
-  --sw0: -37s;
+/* ---- atores (canvas em pixels da cena): mesma caixa da cidade, então
+   cada pixel do canvas cai sobre um pixel do SVG ---- */
+.ap-actors {
   position: absolute;
-  inset: 0;
-  animation: ap-swing-dir calc(2 * var(--sw)) steps(1) calc(var(--sw0) + 23.5s) infinite;
-}
-.ap-swing-anchor,
-.ap-swing-rotor,
-.ap-swing-hero {
-  position: absolute;
-  width: 0;
-  height: 0;
-}
-.ap-swing-anchor {
+  bottom: 0;
   left: 50%;
-  top: -20vh;
-  opacity: 0;
-  animation: ap-swing-anchor var(--sw) linear var(--sw0) infinite;
-}
-.ap-swing-rotor {
-  left: 0;
-  top: 0;
-  animation: ap-swing-rot var(--sw) ease-in-out var(--sw0) infinite;
-}
-.ap-swing-line {
-  position: absolute;
-  left: calc(-0.5 * var(--u));
-  top: 0;
-  width: var(--u);
-  height: 40vh;
-  background: rgba(236, 236, 255, 0.85);
-}
-.ap-swing-hero {
-  left: 0;
-  top: 40vh;
-  animation: ap-swing-counter var(--sw) ease-in-out var(--sw0) infinite;
-}
-.ap-hero {
-  position: absolute;
-  left: calc(-9.5 * var(--u));
-  top: calc(-0.5 * var(--u));
-  width: calc(12 * var(--u));
-  height: calc(19 * var(--u));
-}
-@keyframes ap-swing-dir {
-  50% { transform: scaleX(-1); }
-}
-@keyframes ap-swing-anchor {
-  0% { opacity: 1; transform: translateX(-91.92vh); }
-  2.98% { transform: translateX(-91.92vh); }
-  2.981% { transform: translateX(-30.64vh); }
-  5.96% { transform: translateX(-30.64vh); }
-  5.961% { transform: translateX(30.64vh); }
-  8.94% { transform: translateX(30.64vh); }
-  8.941% { transform: translateX(91.92vh); }
-  11.92% { opacity: 1; }
-  11.93%, 100% { opacity: 0; transform: translateX(91.92vh); }
-}
-@keyframes ap-swing-rot {
-  0% { transform: rotate(50deg); }
-  2.98% { transform: rotate(-50deg); }
-  2.981% { transform: rotate(50deg); }
-  5.96% { transform: rotate(-50deg); }
-  5.961% { transform: rotate(50deg); }
-  8.94% { transform: rotate(-50deg); }
-  8.941% { transform: rotate(50deg); }
-  11.92%, 100% { transform: rotate(-50deg); }
-}
-@keyframes ap-swing-counter {
-  0% { transform: rotate(-50deg); }
-  2.98% { transform: rotate(50deg); }
-  2.981% { transform: rotate(-50deg); }
-  5.96% { transform: rotate(50deg); }
-  5.961% { transform: rotate(-50deg); }
-  8.94% { transform: rotate(50deg); }
-  8.941% { transform: rotate(-50deg); }
-  11.92%, 100% { transform: rotate(50deg); }
+  width: max(100%, 209vh);
+  height: 100%;
+  transform: translateX(-50%);
+  image-rendering: pixelated;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .scene-aranha-pixel * {
     animation: none !important;
-  }
-  .ap-swing {
-    display: none;
   }
 }
 
@@ -879,16 +860,14 @@ html[data-theme='aranha-pixel'] body {
   --wheel-font-scale: 0.85;
   --wheel-web: rgba(0, 0, 0, 0.5);
 }
-html[data-theme='aranha-pixel'] :is(.scene-aranha-pixel, .bd-web, .bd-spider) {
+/* a aranha vetorial do fundo comum dá lugar à aranha em pixel do canvas */
+html[data-theme='aranha-pixel'] :is(.scene-aranha-pixel, .bd-web) {
   display: block;
 }
 html[data-theme='aranha-pixel'] .bd-web {
   shape-rendering: crispEdges;
   stroke: rgba(255, 241, 168, 0.35);
   stroke-width: 1.5;
-}
-html[data-theme='aranha-pixel'] .bd-spider svg {
-  shape-rendering: crispEdges;
 }
 html[data-theme='aranha-pixel'] .ui-title {
   font-family: var(--font-pixelify);
