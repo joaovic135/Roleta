@@ -1,7 +1,9 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Permite builds de verificação numa pasta separada
+  // (NEXT_DIST_DIR=.next-verify) sem quebrar um `npm run dev` rodando
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   images: {
     remotePatterns: [
       {

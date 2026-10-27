@@ -9,18 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@types/js-cookie": "^3.0.6",
-    "axios": "^1.7.9",
-    "js-cookie": "^3.0.5",
+    "@tanstack/react-query": "^5.105.0",
+    "canvas-confetti": "^1.9.4",
     "next": "15.1.7",
     "react": "^19.0.0",
-    "react-confetti": "^6.2.3",
-    "react-dom": "^19.0.0",
-    "react-rewards": "^2.1.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@stylistic/eslint-plugin-js": "^4.0.1",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

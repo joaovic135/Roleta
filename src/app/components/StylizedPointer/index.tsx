@@ -1,72 +1,50 @@
 import React from 'react'
 
 interface StylizedPointerProps {
-  color?: string
-  size?: 'sm' | 'md' | 'lg'
+  pointerRef: React.RefObject<HTMLDivElement | null>
 }
 
-const StylizedPointer: React.FC<StylizedPointerProps> = ({
-  color = '#e11d48',
-  size = 'md',
-}) => {
-  // Configurações de tamanho baseadas na prop size
-  const sizeConfig = {
-    sm: {
-      width: 'w-6',
-      height: 'h-16',
-      arrowWidth: 'w-10',
-      arrowHeight: 'h-6',
-      ringSize: 'w-5 h-5',
-      ringBorder: 'border-2',
-      shadowSize: 'shadow-md',
-      offset: '-right-3',
-    },
-    md: {
-      width: 'w-8',
-      height: 'h-24',
-      arrowWidth: 'w-14',
-      arrowHeight: 'h-8',
-      ringSize: 'w-8 h-8',
-      ringBorder: 'border-3',
-      shadowSize: 'shadow-lg',
-      offset: '-right-4',
-    },
-    lg: {
-      width: 'w-10',
-      height: 'h-32',
-      arrowWidth: 'w-20',
-      arrowHeight: 'h-10',
-      ringSize: 'w-9 h-9',
-      ringBorder: 'border-4',
-      shadowSize: 'shadow-xl',
-      offset: '-right-5',
-    },
-  }
-
-  const config = sizeConfig[size]
-
+// Ponteiro no topo da roda. O elemento referenciado é animado (balança)
+// a cada fatia que passa por ele.
+const StylizedPointer: React.FC<StylizedPointerProps> = ({ pointerRef }) => {
   return (
-    <div className="absolute right-0 top-1/2 z-20 -translate-y-1/2 transform">
-      <div className={`relative ${config.offset}`}>
-        {/* Ponta triangular do ponteiro */}
-        <div
-          className={`${config.arrowWidth} ${config.arrowHeight} relative`}
-          style={{
-            clipPath: 'polygon(0% 50%, 100% 0%, 100% 100%)',
-            backgroundColor: color,
-            filter: 'drop-shadow(0px 3px 3px rgba(0, 0, 0, 0.25))',
-          }}
-        ></div>
-
-        {/* Anel decorativo */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 transform">
-          <div
-            className={`${config.ringSize} rounded-full border-white ${config.ringBorder} ${config.shadowSize} flex items-center justify-center`}
-            style={{ backgroundColor: color }}
-          >
-            <div className="h-2/3 w-2/3 rounded-full bg-white opacity-40"></div>
-          </div>
-        </div>
+    <div className="pointer-events-none absolute left-1/2 top-0 z-20 w-[10%] -translate-x-1/2 -translate-y-[30%]">
+      <div ref={pointerRef} style={{ transformOrigin: '50% 30%' }}>
+        <svg
+          viewBox="0 0 60 80"
+          className="w-full drop-shadow-[0_6px_6px_rgba(0,0,0,0.5)]"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="pointer-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style={{ stopColor: 'rgb(var(--amber-100))' }} />
+              <stop
+                offset="0.5"
+                style={{ stopColor: 'rgb(var(--amber-400))' }}
+              />
+              <stop offset="1" style={{ stopColor: 'rgb(var(--amber-600))' }} />
+            </linearGradient>
+          </defs>
+          <path
+            d="M30 77 L7 30 A25 25 0 1 1 53 30 Z"
+            fill="url(#pointer-fill)"
+            style={{ stroke: 'rgb(var(--amber-900))' }}
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
+          <circle
+            cx="30"
+            cy="24"
+            r="9"
+            style={{ fill: 'rgb(var(--amber-900))' }}
+          />
+          <circle
+            cx="30"
+            cy="24"
+            r="4"
+            style={{ fill: 'rgb(var(--amber-200))' }}
+          />
+        </svg>
       </div>
     </div>
   )

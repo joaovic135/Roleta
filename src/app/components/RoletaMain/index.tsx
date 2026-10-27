@@ -1,372 +1,542 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import Head from 'next/head'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import RouletteWheel from '../RouletteWheel'
-import SpinControl from '../SpinControl'
+import SpinSettings, { SpinButton } from '../SpinControl'
+import SpinRail from '../SpinRail'
+import ThemePicker from '../ThemePicker'
+import { DEFAULT_THEME_ID, applyTheme, getTheme } from '@/app/utils/themes'
 import OptionsEditor from '../OptionsEditor'
-import SegmentsControl from '../SegmentsControl'
-import WinnerDialog from '../WinnerDialog'
-import Cookies from 'js-cookie'
-import { RouletteOption, WatchProvider } from '@/app/types'
-import { generateRandomColor } from '@/app/utils/colors'
+import HistoryPanel from '../HistoryPanel'
+import { HistoryEntry, RouletteOption, RouletteSettings } from '@/app/types'
 import { Movie } from '@/app/utils/tmdbApi'
+import { PALETTE, isLegacyColor, pickColor } from '@/app/utils/colors'
+import { usePersistentState } from '@/app/hooks/usePersistentState'
+import { MAX_SPIN_SECONDS, useWheelSound } from '@/app/hooks/useWheelSound'
+import {
+  buildSegments,
+  createOption,
+  easeOutQuart,
+  parseOptionsText,
+  random,
+  autoSegmentsPerOption,
+  segmentIndexAt,
+  uid,
+} from '@/app/utils/wheel'
 
-interface RoletaMainProps {
-  selectedMovie: Movie | null
-  setSelectedMovie: (movie: Movie | null) => void
-  options: RouletteOption[]
-  setOptions: React.Dispatch<React.SetStateAction<RouletteOption[]>>
-  textInput: string
-  setTextInput: React.Dispatch<React.SetStateAction<string>>
-  selectedMovies: Movie[]
-  handleRemoveMovie: (movie: Movie) => void
-  watchProviders: WatchProvider[]
+const DEFAULT_SETTINGS: RouletteSettings = {
+  spinTime: 10,
+  segmentsPerOption: 3,
+  volume: 0.4,
+  muted: false,
+  eliminationMode: false,
+  autoSegments: true,
+  theme: DEFAULT_THEME_ID,
 }
 
-export function RoletaMain({
-  selectedMovie,
-  setSelectedMovie,
-  options,
-  setOptions,
-  textInput,
-  setTextInput,
-  selectedMovies,
-  handleRemoveMovie,
-  watchProviders,
-}: RoletaMainProps) {
-  const [isSpinning, setIsSpinning] = useState<boolean>(false)
-  const [spinTime, setSpinTime] = useState<number>(10)
-  const [spinDegrees, setSpinDegrees] = useState<number>(0)
-  const [segmentsPerOption, setSegmentsPerOption] = useState<number>(3)
+const DEFAULT_OPTIONS: RouletteOption[] = [
+  { id: 'default-1', text: 'Opção 1', color: PALETTE[0], quantity: 1 },
+  { id: 'default-2', text: 'Opção 2', color: PALETTE[1], quantity: 1 },
+  { id: 'default-3', text: 'Opção 3', color: PALETTE[2], quantity: 1 },
+]
+
+const MAX_HISTORY = 50
+
+// O modal (e a lib de confete) só é baixado quando a roleta gira
+const loadWinnerDialog = () => import('../WinnerDialog')
+const WinnerDialog = dynamic(loadWinnerDialog, { ssr: false })
+
+// Migra as opções salvas no cookie pela versão anterior
+const loadLegacyOptions = (): RouletteOption[] | undefined => {
+  const saved = document.cookie
+    .split('; ')
+    .find((c) => c.startsWith('rouletteOptions='))
+  if (!saved) return undefined
+  try {
+    const parsed: Omit<RouletteOption, 'id'>[] = JSON.parse(
+      decodeURIComponent(saved.slice('rouletteOptions='.length)),
+    )
+    document.cookie = 'rouletteOptions=; path=/; max-age=0'
+    return parsed.map((o) => ({
+      id: uid(),
+      text: o.text,
+      color: o.color,
+      quantity: Math.max(1, o.quantity || 1),
+    }))
+  } catch {
+    return undefined
+  }
+}
+
+const optionsToText = (options: RouletteOption[]) =>
+  options.map((o) => o.text).join('\n')
+
+export function RoletaMain() {
+  const [options, setOptions, optionsLoaded] = usePersistentState<
+    RouletteOption[]
+  >('roleta.options', DEFAULT_OPTIONS, loadLegacyOptions)
+  const [movies, setMovies, moviesLoaded] = usePersistentState<Movie[]>(
+    'roleta.movies',
+    [],
+  )
+  const [history, setHistory] = usePersistentState<HistoryEntry[]>(
+    'roleta.history',
+    [],
+  )
+  const [storedSettings, setStoredSettings] = usePersistentState<
+    Partial<RouletteSettings>
+  >('roleta.settings', {})
+  const settings = { ...DEFAULT_SETTINGS, ...storedSettings }
+  const updateSettings = (patch: Partial<RouletteSettings>) =>
+    setStoredSettings((prev) => ({ ...prev, ...patch }))
+
+  const [textInput, setTextInput] = useState(optionsToText(DEFAULT_OPTIONS))
+  const [isSpinning, setIsSpinning] = useState(false)
   const [winner, setWinner] = useState<RouletteOption | null>(null)
-  const [showWinnerDialog, setShowWinnerDialog] = useState<boolean>(false)
+  const [winnerIndex, setWinnerIndex] = useState<number | null>(null)
+  // Destaque do vencedor na roda (escurece as outras fatias) só enquanto o
+  // resultado é revelado; some ao fechar o modal
+  const [celebrating, setCelebrating] = useState(false)
+  const [showWinner, setShowWinner] = useState(false)
+  const [spinRequest, setSpinRequest] = useState(0)
 
-  const [isMuted, setIsMuted] = useState(false)
-  const [volume, setVolume] = useState(0.2)
+  const rotorRef = useRef<HTMLDivElement>(null)
+  const pointerRef = useRef<HTMLDivElement>(null)
+  const rotationRef = useRef(0)
+  const rafRef = useRef<number | null>(null)
+  const revealTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  const sound = useWheelSound(settings.volume, settings.muted)
+
+  const segmentsPerOption = settings.autoSegments
+    ? autoSegmentsPerOption(options)
+    : settings.segmentsPerOption
+  // Cores vêm do tema (pares complementares lado a lado), exceto as
+  // escolhidas à mão
+  const theme = getTheme(settings.theme)
+  // O tema também pinta o site inteiro (variáveis CSS por data-theme)
   useEffect(() => {
-    try {
-      console.log('Saving options to cookie:', options) // Debug log
-      Cookies.set('rouletteOptions', JSON.stringify(options), {
-        expires: 365,
-        path: '/',
-        sameSite: 'strict',
-      })
-    } catch (e) {
-      console.error('Error saving options to cookie:', e)
-    }
-  }, [options])
+    document.documentElement.dataset.theme = theme.id
+  }, [theme.id])
 
+  const coloredOptions = useMemo(
+    () => applyTheme(options, theme),
+    [options, theme],
+  )
+  const segments = useMemo(
+    () => buildSegments(coloredOptions, segmentsPerOption),
+    [coloredOptions, segmentsPerOption],
+  )
+  const movieById = useMemo(
+    () => new Map(movies.map((m) => [m.id, m])),
+    [movies],
+  )
+  const addedMovieIds = useMemo(
+    () => new Set(options.flatMap((o) => (o.movieId ? [o.movieId] : []))),
+    [options],
+  )
+
+  // Sincroniza o texto do editor depois de carregar as opções salvas
   useEffect(() => {
-    if (selectedMovie) {
-      let displayTitle = selectedMovie.title
-
-      // Create abbreviation if title is longer than 15 characters
-      if (selectedMovie.title.length > 15) {
-        displayTitle = selectedMovie.title
-          .split(' ')
-          .map((word) => word.charAt(0))
-          .join('')
-          .toUpperCase()
-      }
-
-      const movieOption: RouletteOption = {
-        text: displayTitle,
-        color: generateRandomColor(),
-        quantity: 1,
-      }
-
-      // Check if movie already exists in options
-      const movieExists = options.some(
-        (option) =>
-          option.text === displayTitle || option.text === selectedMovie.title,
+    if (!optionsLoaded) return
+    setTextInput(optionsToText(options))
+    if (options.some((o) => isLegacyColor(o.color))) {
+      const recolored: RouletteOption[] = []
+      options.forEach((o) =>
+        recolored.push(
+          isLegacyColor(o.color)
+            ? { ...o, color: pickColor(recolored.map((r) => r.color)) }
+            : o,
+        ),
       )
-
-      if (!movieExists) {
-        setOptions((prev) => [...prev, movieOption])
-        setTextInput((prev) => prev + displayTitle + '\n')
-      }
-    }
-  }, [selectedMovie])
-
-  // Processa o texto de entrada para criar as opções da roleta
-
-  const spinningAudio = useRef<HTMLAudioElement | null>(null)
-  const winnerAudio = useRef<HTMLAudioElement | null>(null)
-
-  useEffect(() => {
-    // Create audio elements when component mounts
-    spinningAudio.current = new Audio('/spinning-sound.mp3')
-    winnerAudio.current = new Audio('/winner.mp3')
-
-    spinningAudio.current.loop = true
-    // Set initial volume for both audio elements
-    spinningAudio.current.volume = volume
-    winnerAudio.current.volume = volume
-    spinningAudio.current.muted = isMuted
-    winnerAudio.current.muted = isMuted
-
-    // Cleanup on unmount
-    return () => {
-      if (spinningAudio.current) {
-        spinningAudio.current.pause()
-        spinningAudio.current = null
-      }
-      if (winnerAudio.current) {
-        winnerAudio.current.pause()
-        winnerAudio.current = null
-      }
+      setOptions(recolored)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [optionsLoaded])
 
+  // Remove dados de filmes que não estão mais na roleta
   useEffect(() => {
-    if (spinningAudio.current) {
-      spinningAudio.current.volume = volume
+    if (!optionsLoaded || !moviesLoaded) return
+    if (movies.some((m) => !addedMovieIds.has(m.id))) {
+      setMovies((prev) => prev.filter((m) => addedMovieIds.has(m.id)))
     }
-    if (winnerAudio.current) {
-      winnerAudio.current.volume = volume
-    }
-  }, [volume])
+  }, [addedMovieIds, movies, optionsLoaded, moviesLoaded, setMovies])
 
+  // Qualquer mudança na roda apaga o destaque do último vencedor
   useEffect(() => {
-    if (spinningAudio.current) {
-      spinningAudio.current.muted = isMuted
-    }
-    if (winnerAudio.current) {
-      winnerAudio.current.muted = isMuted
-    }
-  }, [isMuted])
+    setWinnerIndex(null)
+  }, [segments])
 
-  const processTextInput = (text: string) => {
-    const lines = text.split('\n').filter((line) => line.trim() !== '')
+  useEffect(
+    () => () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current)
+    },
+    [],
+  )
 
-    const newOptions: RouletteOption[] = lines.map((line) => {
-      // Procura por uma opção existente com o mesmo texto
-      const existingOption = options.find((opt) => opt.text === line)
-      return {
-        text: line,
-        color: existingOption?.color || generateRandomColor(),
-        quantity: existingOption?.quantity || 1,
-      }
-    })
-
-    setOptions(newOptions)
+  const commitOptions = (next: RouletteOption[]) => {
+    setOptions(next)
+    setTextInput(optionsToText(next))
   }
 
-  // Atualiza a quantidade de aparições de uma opção
-  const updateQuantity = (index: number, newQuantity: number) => {
-    const newOptions = [...options]
-    newOptions[index].quantity = Math.max(1, newQuantity)
-    setOptions(newOptions)
+  const handleTextChange = (text: string) => {
+    setTextInput(text)
+    setOptions((prev) => parseOptionsText(text, prev))
   }
 
-  const removeOption = (optionToRemove: RouletteOption) => {
-    const newOptions = options.filter(
-      (option) => option.text !== optionToRemove.text,
+  const updateOption = (id: string, patch: Partial<RouletteOption>) =>
+    commitOptions(options.map((o) => (o.id === id ? { ...o, ...patch } : o)))
+
+  const removeOption = (id: string) =>
+    commitOptions(options.filter((o) => o.id !== id))
+
+  // Trocar de tema repinta tudo, inclusive cores escolhidas à mão
+  const changeTheme = (id: string) => {
+    // Aplica já no clique: a roda redesenha (nos efeitos) lendo a fonte do
+    // tema novo, e os efeitos dela rodam antes dos deste componente
+    document.documentElement.dataset.theme = id
+    updateSettings({ theme: id })
+    if (options.some((o) => o.customColor))
+      setOptions(options.map((o) => ({ ...o, customColor: false })))
+  }
+
+  const shuffleOptions = () => {
+    const next = [...options]
+    for (let i = next.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1))
+      ;[next[i], next[j]] = [next[j], next[i]]
+    }
+    commitOptions(next)
+  }
+
+  const handleAddMovie = (movie: Movie) => {
+    if (addedMovieIds.has(movie.id)) return
+    setMovies((prev) => [...prev.filter((m) => m.id !== movie.id), movie])
+    commitOptions([
+      ...options,
+      createOption(movie.title, options, { movieId: movie.id }),
+    ])
+  }
+
+  const flickPointer = () => {
+    pointerRef.current?.animate(
+      [
+        { transform: 'rotate(0deg)' },
+        { transform: 'rotate(-24deg)', offset: 0.25 },
+        { transform: 'rotate(0deg)' },
+      ],
+      { duration: 160, easing: 'ease-out' },
     )
-    setOptions(newOptions)
-
-    // Atualiza também o texto de entrada
-    const newTextInput = newOptions.map((option) => option.text).join('\n')
-    setTextInput(newTextInput)
   }
 
-  // Gira a roleta
-  const spinRoulette = () => {
-    if (isSpinning) return
+  // Ponteiro balança e assenta quando a roda para
+  const settlePointer = () => {
+    pointerRef.current?.animate(
+      [
+        { transform: 'rotate(0deg)' },
+        { transform: 'rotate(-18deg)' },
+        { transform: 'rotate(10deg)' },
+        { transform: 'rotate(-5deg)' },
+        { transform: 'rotate(0deg)' },
+      ],
+      { duration: 600, easing: 'ease-out' },
+    )
+  }
+
+  const spin = () => {
+    const rotor = rotorRef.current
+    if (isSpinning || segments.length === 0 || !rotor) return
+
+    const spinSeconds = Math.min(settings.spinTime, MAX_SPIN_SECONDS)
+    sound.unlock()
+    // A roda só sai quando a música começa, para as duas acabarem juntas
+    const wheelStart = sound.startSpin(spinSeconds)
+    loadWinnerDialog()
+    setShowWinner(false)
+    setWinnerIndex(null)
+    setCelebrating(false)
     setIsSpinning(true)
-    setShowWinnerDialog(false)
 
-    if (spinningAudio.current) {
-      spinningAudio.current.currentTime = 0
-      spinningAudio.current.play()
-    }
+    const snapshot = segments
+    const count = snapshot.length
+    const start = rotationRef.current
+    const duration = spinSeconds * 1000
+    // Mais tempo = mais voltas; o ângulo final é uniforme, então a chance de
+    // cada opção é proporcional ao número de fatias dela
+    const turns = 2 + spinSeconds * 1.1 + random() * 2
+    const end = start + turns * 360 + random() * 360
+    let startedAt = 0
+    let lastIndex = segmentIndexAt(start, count)
+    let lastTickAt = 0
 
-    const expandedOptions: RouletteOption[] = []
-    options.forEach((option) => {
-      for (let i = 0; i < option.quantity; i++) {
-        expandedOptions.push(option)
-      }
-    })
+    const frame = (now: number) => {
+      const t = Math.min(1, Math.max(0, now - startedAt) / duration)
+      const rotation = start + (end - start) * easeOutQuart(t)
+      rotor.style.transform = `rotate(${rotation}deg)`
 
-    if (expandedOptions.length === 1) {
-      return Array(segmentsPerOption).fill(expandedOptions[0])
-    }
-
-    const segments: RouletteOption[] = []
-
-    for (let segmentSet = 0; segmentSet < segmentsPerOption; segmentSet++) {
-      for (let i = 0; i < expandedOptions.length; i++) {
-        segments.push(expandedOptions[i])
-      }
-    }
-
-    if (segments.length === 0) return
-
-    // Calcular a rotação final
-    const segmentSize = 360 / (options.length * segmentsPerOption)
-
-    // Variáveis de controle da animação
-    // Variáveis de controle da animação
-    let startTime: number | null = null
-    const initialSpeed = spinTime < 5 ? 10 : 20 // Velocidade inicial aleatória entre 20 e 30
-    let currentRotation = Math.random() * 360 // Rotação inicial aleatória
-
-    // Número aleatório de rotações completas (entre 5 e 10)
-    const minRotations = 5
-    const maxRotations = 10
-    const targetRotations =
-      minRotations + Math.floor(Math.random() * (maxRotations - minRotations))
-    const minTotalRotation = targetRotations * 360 + Math.random() * 360
-
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp
-      const elapsedTime = timestamp - startTime
-
-      // Fator de desaceleração exponencial com componente aleatório
-      // const spinTimeMs = spinTime * 1000
-      // const baseDeceleration = 3000 + Math.random() * 1000
-      // const baseDeceleration = spinTimeMs / 3 + Math.random() * (spinTimeMs / 2) - nao usar
-
-      // const decelerationFactor = Math.exp(-elapsedTime / baseDeceleration)
-
-      // Fator de desaceleração exponencial inversamente proporcional ao spinTime
-      const spinTimeMultiplier = spinTime * 150 // Diferença mais agressiva
-      const baseDeceleration = 1000 + spinTimeMultiplier
-
-      const decelerationFactor = Math.exp(-elapsedTime / baseDeceleration)
-
-      // Velocidade atual sem componente aleatório
-      const currentSpeed = initialSpeed * decelerationFactor
-      console.log('initialSpeed', initialSpeed * 0.01)
-      console.log('currentSpeed', currentSpeed)
-      // Atualiza a rotação
-      currentRotation += currentSpeed
-      setSpinDegrees(currentRotation)
-
-      // Condição de parada: quando a velocidade for menor que 0.1% da inicial
-      if (currentSpeed > 0.01) {
-        //escolhe quando vai parar a roleta
-        requestAnimationFrame(animate)
-      } else {
-        // Finaliza a animação
-        setIsSpinning(false)
-
-        // Calcular o ângulo final real
-        const finalAngle = currentRotation % 360 // Normaliza para um valor entre 0 e 360
-        const normalizedAngle = (360 - finalAngle) % 360 // Ajusta para a direção correta
-
-        // Calcular o segmento vencedor
-        const winningSegmentIndex = Math.floor(normalizedAngle / segmentSize)
-        const winningOption = options[winningSegmentIndex % options.length]
-
-        if (winningOption) {
-          setWinner(winningOption)
-          setTimeout(() => {
-            if (spinningAudio.current) {
-              spinningAudio.current.pause()
-            }
-
-            setShowWinnerDialog(true)
-            if (winnerAudio.current) {
-              winnerAudio.current.currentTime = 0
-              winnerAudio.current.play()
-            }
-          }, 1000)
+      const index = segmentIndexAt(rotation, count)
+      if (index !== lastIndex) {
+        lastIndex = index
+        if (now - lastTickAt > 35) {
+          lastTickAt = now
+          sound.tick()
+          flickPointer()
         }
       }
+
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(frame)
+        return
+      }
+
+      rafRef.current = null
+      rotationRef.current = rotation % 360
+      rotor.style.transform = `rotate(${rotationRef.current}deg)`
+      settlePointer()
+
+      const won = snapshot[index]
+      setIsSpinning(false)
+      setWinner(won)
+      setWinnerIndex(index)
+      setCelebrating(true)
+      setHistory((prev) =>
+        [
+          {
+            id: uid(),
+            text: won.text,
+            color: won.color,
+            movieId: won.movieId,
+            at: Date.now(),
+          },
+          ...prev,
+        ].slice(0, MAX_HISTORY),
+      )
+      revealTimeoutRef.current = setTimeout(() => {
+        setShowWinner(true)
+        sound.win()
+      }, 600)
     }
 
-    // Inicia a animação
-    requestAnimationFrame(animate)
+    wheelStart.then((t) => {
+      startedAt = t
+      rafRef.current = requestAnimationFrame(frame)
+    })
   }
-  // Processa o texto de entrada quando ele muda
+
+  // "Girar de novo" espera a roda ser atualizada (ex.: vencedor removido)
   useEffect(() => {
-    processTextInput(textInput)
+    if (spinRequest > 0) spin()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textInput])
+  }, [spinRequest])
+
+  const closeWinner = useCallback(
+    (remove = settings.eliminationMode) => {
+      setShowWinner(false)
+      setCelebrating(false)
+      if (remove && winner) {
+        const next = options.filter((o) => o.id !== winner.id)
+        setOptions(next)
+        setTextInput(optionsToText(next))
+      }
+    },
+    [settings.eliminationMode, winner, options, setOptions],
+  )
+
+  const handleClose = useCallback(() => closeWinner(), [closeWinner])
+
+  // Espaço gira a roleta (fora de campos de texto e botões)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat || showWinner) return
+      const target = e.target as HTMLElement
+      if (target.closest('input, textarea, select, button, [contenteditable]'))
+        return
+      e.preventDefault()
+      spin()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  const spinSettingsProps = {
+    spinTime: settings.spinTime,
+    setSpinTime: (spinTime: number) => updateSettings({ spinTime }),
+    segmentsPerOption,
+    setSegmentsPerOption: (segmentsPerOption: number) =>
+      updateSettings({ segmentsPerOption }),
+    autoSegments: settings.autoSegments,
+    setAutoSegments: (autoSegments: boolean) =>
+      updateSettings({ autoSegments }),
+    eliminationMode: settings.eliminationMode,
+    setEliminationMode: (eliminationMode: boolean) =>
+      updateSettings({ eliminationMode }),
+    isSpinning,
+  }
+
+  const lastResult = history[0]
+  const canSpin = !isSpinning && segments.length > 0
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <Head>
-        <title>Roleta Principal</title>
-        <meta name="description" content="Roleta interativa em React/Next.js" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main className="container mx-auto px-4">
-        <h1 className="mb-8 text-center text-3xl font-bold">
-          Roleta Principal
-        </h1>
-
-        <div className="mb-4 flex items-center gap-2">
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="rounded-full bg-gray-200 p-2"
+    <main className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:py-8 lg:min-h-0 lg:max-w-[1600px] lg:flex-1 lg:py-4">
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-4 lg:mb-4">
+        <div>
+          <h1
+            aria-label="Roleta"
+            className="ui-title bg-gradient-to-r from-amber-200 via-amber-400 to-cta-2 bg-clip-text text-4xl font-black tracking-tight text-transparent sm:text-5xl lg:text-4xl"
           >
-            {isMuted ? '🔇' : '🔊'}
+            <span className="ui-title-text">Roleta</span>
+            {/* Variante do Vaporwave (letras largas + japonês) */}
+            <span className="ui-title-vapor" aria-hidden="true">
+              ＲＯＬＥＴＡ<small>ルーレット</small>
+            </span>
+          </h1>
+          <p className="ui-subtitle mt-1 text-sm text-slate-400">
+            <span className="ui-subtitle-text">
+              Sorteie qualquer coisa — inclusive o filme da noite.
+            </span>
+            <span className="ui-subtitle-spider">
+              Com grandes poderes vêm grandes sorteios.
+            </span>
+          </p>
+        </div>
+
+        <div className="ui-chip flex items-center gap-3 rounded-full border border-white/10 bg-slate-900/60 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => updateSettings({ muted: !settings.muted })}
+            aria-label={settings.muted ? 'Ativar som' : 'Silenciar'}
+            className="text-lg leading-none"
+          >
+            {settings.muted || settings.volume === 0 ? '🔇' : '🔊'}
           </button>
           <input
             type="range"
             min="0"
             max="1"
-            step="0.1"
-            value={volume}
-            onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="h-2 w-24 cursor-pointer appearance-none rounded-lg bg-gray-200"
+            step="0.05"
+            value={settings.muted ? 0 : settings.volume}
+            onChange={(e) =>
+              updateSettings({
+                volume: parseFloat(e.target.value),
+                muted: false,
+              })
+            }
+            aria-label="Volume"
+            className="w-24 cursor-pointer accent-amber-400"
           />
         </div>
+      </header>
 
-        <div className="flex flex-col gap-8 md:flex-row">
-          {/* Seção da Roleta */}
-          <div className="flex flex-1 flex-col items-center rounded-lg bg-white p-6 shadow-lg">
-            <RouletteWheel
-              options={options}
-              spinDegrees={spinDegrees}
-              pointerColor="#e11d48"
-              pointerSize="md"
-              segmentsPerOption={segmentsPerOption}
-            />
+      <div className="grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[auto_minmax(0,1fr)_320px] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_440px]">
+        {/* Temas: card separado à esquerda, só com as cores */}
+        <ThemePicker
+          themeId={theme.id}
+          onChange={changeTheme}
+          disabled={isSpinning}
+        />
 
-            <div className="mb-2 mt-4 w-full">
-              <SegmentsControl
-                segmentsPerOption={segmentsPerOption}
-                setSegmentsPerOption={setSegmentsPerOption}
-              />
+        <section className="ui-card flex flex-col gap-4 rounded-3xl border border-white/10 bg-slate-900/70 p-5 shadow-2xl sm:p-6 lg:min-h-0 lg:flex-row lg:gap-5 lg:p-5">
+          {/* Configurações: barra à esquerda no desktop, abaixo da roda no celular */}
+          {/* Configurações: trilho de ícones no desktop, painel no celular */}
+          <aside className="order-last lg:order-first lg:shrink-0">
+            <div className="lg:hidden">
+              <SpinSettings {...spinSettingsProps} />
+            </div>
+            <div className="hidden lg:block">
+              <SpinRail {...spinSettingsProps} />
+            </div>
+          </aside>
+
+          <div className="flex flex-col gap-4 lg:min-h-0 lg:min-w-0 lg:flex-1 lg:gap-3">
+            {/* No desktop a roda ocupa o espaço que sobrar, limitada pela
+              largura e pela altura (container query), para tudo caber na tela */}
+            <div className="pt-4 lg:min-h-0 lg:flex-1">
+              <div className="flex items-center justify-center lg:h-full lg:[container-type:size]">
+                <RouletteWheel
+                  segments={segments}
+                  highlightIndex={celebrating ? winnerIndex : null}
+                  isSpinning={isSpinning}
+                  canSpin={canSpin}
+                  onSpin={spin}
+                  rotorRef={rotorRef}
+                  pointerRef={pointerRef}
+                  rotationRef={rotationRef}
+                  movieById={movieById}
+                />
+              </div>
             </div>
 
-            <SpinControl
-              spinTime={spinTime}
-              setSpinTime={setSpinTime}
-              spinRoulette={spinRoulette}
+            <div className="flex h-9 shrink-0 items-center justify-center text-center">
+              {isSpinning ? (
+                <p className="animate-pulse text-sm font-medium text-slate-400">
+                  Boa sorte…
+                </p>
+              ) : lastResult && winnerIndex !== null ? (
+                <p className="flex items-center justify-center gap-2 text-lg">
+                  <span className="text-slate-400">Resultado:</span>
+                  <span
+                    className="rounded-lg px-3 py-1 font-bold"
+                    style={{
+                      backgroundColor: `${lastResult.color}33`,
+                      boxShadow: `inset 0 0 0 1px ${lastResult.color}88`,
+                    }}
+                  >
+                    {lastResult.text}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+
+            <SpinButton
+              spinRoulette={spin}
               isSpinning={isSpinning}
-              hasOptions={options.length > 0}
+              hasOptions={segments.length > 0}
             />
           </div>
+        </section>
 
-          {/* Seção de Configuração */}
+        <div className="flex flex-col gap-6 lg:min-h-0">
           <OptionsEditor
+            options={coloredOptions}
+            onAddMovie={handleAddMovie}
+            addedMovieIds={addedMovieIds}
             textInput={textInput}
-            setTextInput={setTextInput}
-            options={options}
-            updateQuantity={updateQuantity}
-            selectedMovies={selectedMovies}
-            handleRemoveMovie={handleRemoveMovie}
-            watchProviders={watchProviders}
+            onTextChange={handleTextChange}
+            onAdd={(text) =>
+              commitOptions([...options, createOption(text, options)])
+            }
+            onRemove={removeOption}
+            onQuantityChange={(id, quantity) => updateOption(id, { quantity })}
+            onColorChange={(id, color) =>
+              updateOption(id, { color, customColor: true })
+            }
+            onShuffle={shuffleOptions}
+            onClear={() => commitOptions([])}
+            movies={movies}
+            segmentsPerOption={segmentsPerOption}
+            disabled={isSpinning}
           />
-
-          <WinnerDialog
-            isOpen={showWinnerDialog}
-            winner={winner}
-            onClose={() => setShowWinnerDialog(false)}
-            onRemoveOption={removeOption}
-          />
+          <HistoryPanel history={history} onClear={() => setHistory([])} />
         </div>
-      </main>
-    </div>
+      </div>
+
+      {winner && (
+        <WinnerDialog
+          isOpen={showWinner}
+          winner={winner}
+          movie={winner?.movieId ? movieById.get(winner.movieId) : undefined}
+          eliminationMode={settings.eliminationMode}
+          onClose={handleClose}
+          onRemove={() => closeWinner(true)}
+          onSpinAgain={() => {
+            closeWinner()
+            setSpinRequest((n) => n + 1)
+          }}
+        />
+      )}
+    </main>
   )
 }
 
