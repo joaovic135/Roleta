@@ -17,6 +17,13 @@ import {
 //   src/app/themes.css, ativados pelo atributo data-theme no <html>.
 
 export type { WheelTheme } from './themeKit'
+import { aranhaPixelTheme } from '../themes/aranha-pixel/theme'
+import { halfLifeTheme } from '../themes/half-life/theme'
+import { heartsOfIronTheme } from '../themes/hearts-of-iron/theme'
+import { umaMusumeTheme } from '../themes/uma-musume/theme'
+import { miraiFunkTheme } from '../themes/mirai-funk/theme'
+import { goodTimesTheme } from '../themes/good-times/theme'
+import { cityPopTheme } from '../themes/city-pop/theme'
 
 // Paletas originais do Tailwind (slate + amber) para o tema Cassino
 const TW_SLATE = [
@@ -142,6 +149,13 @@ export const THEMES: WheelTheme[] = [
     // vermelho ↔ azul alternados, como o uniforme
     palette: build([356, 222, 4, 230, 350, 214], 0.85, 0.1),
   },
+  aranhaPixelTheme,
+  halfLifeTheme,
+  heartsOfIronTheme,
+  umaMusumeTheme,
+  miraiFunkTheme,
+  goodTimesTheme,
+  cityPopTheme,
   {
     id: 'alto-contraste',
     name: 'Alto contraste',

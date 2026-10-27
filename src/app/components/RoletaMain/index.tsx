@@ -429,7 +429,7 @@ export function RoletaMain() {
         </div>
       </header>
 
-      <div className="grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[auto_minmax(0,1fr)_320px] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_440px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[auto_minmax(0,1fr)_320px] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[auto_minmax(0,1fr)_440px]">
         {/* Temas: card separado à esquerda, só com as cores */}
         <ThemePicker
           themeId={theme.id}

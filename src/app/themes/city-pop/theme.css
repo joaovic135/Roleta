@@ -1,0 +1,898 @@
+/* Tema City Pop: estilos ficam todos sob html[data-theme='city-pop'].
+   Rua de Tóquio à noite: prédios com pilhas de letreiros em katakana,
+   fios de poste, asfalto molhado refletindo o neon e trânsito ao fundo.
+
+   Ciclo da cena (--cp-cycle, 4 min; tudo em transform/opacity):
+     0–14%   hora azul do anoitecer; letreiros ligam um a um (7–16%)
+     14–50%  noite funda com lua; garoa rápida em 30–36%
+     50–78%  chuva de madrugada, nuvens e relâmpagos (58% e 66%)
+     76–96%  amanhecer molhado: céu pêssego, neblina, neon apagando (86–90%)
+   --cp-at escolhe o momento em que a página abre (fração negativa do ciclo).
+   Sem animação (prefers-reduced-motion) a cena fica parada na noite. */
+
+html[data-theme='city-pop'] .scene-city-pop {
+  display: block;
+  --cp-cycle: 240s;
+  --cp-at: -0.2;
+}
+
+html[data-theme='city-pop'] body {
+  --wheel-font: var(--font-righteous);
+  --wheel-font-scale: 0.95;
+}
+
+/* céu da noite (as outras horas cruzam por cima) */
+html[data-theme='city-pop'] .theme-backdrop {
+  background: linear-gradient(
+    to bottom,
+    #05031a 0%,
+    #0f0838 30%,
+    #26105a 47%,
+    #4d1670 55%,
+    #1a0b33 64%,
+    #08040f 100%
+  );
+}
+
+/* ---------- cena ---------- */
+
+html[data-theme='city-pop'] .scene-city-pop > * {
+  position: absolute;
+  pointer-events: none;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-defs {
+  width: 0;
+  height: 0;
+}
+
+html[data-theme='city-pop'] .scene-city-pop .cp-sky {
+  inset: 0 0 40% 0;
+  opacity: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-sky-dusk {
+  background: linear-gradient(
+    to bottom,
+    #17267a 0%,
+    #3b3fa6 45%,
+    #a256b8 78%,
+    #ff96c0 100%
+  );
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-sky-dawn {
+  background: linear-gradient(
+    to bottom,
+    #2a2468 0%,
+    #7b5bab 42%,
+    #ff9fbc 76%,
+    #ffd3a8 100%
+  );
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-sky-storm {
+  background: linear-gradient(to bottom, #07071a 0%, #181633 60%, #2a2046 100%);
+}
+
+/* lua crescente que atravessa a faixa de céu entre os prédios */
+html[data-theme='city-pop'] .scene-city-pop .cp-moon {
+  top: 5vh;
+  left: 56%;
+  width: 4.6vh;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow:
+    inset -1.1vh 0.5vh 0 0 #ffe4f1,
+    0 0 3vh rgba(255, 168, 214, 0.25);
+  transform: rotate(-18deg);
+}
+
+/* no celular o título ocupa o alto: a lua vai para baixo dele, à direita */
+@media (max-width: 640px) {
+  html[data-theme='city-pop'] .scene-city-pop .cp-moon {
+    top: 13vh;
+    left: 72%;
+  }
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-clouds {
+  inset: 0 0 50% 0;
+  overflow: hidden;
+  opacity: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-clouds span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse 14% 30% at 8% 20%, rgba(40, 30, 70, 0.95), transparent 70%),
+    radial-gradient(ellipse 18% 26% at 30% 8%, rgba(30, 24, 58, 0.95), transparent 70%),
+    radial-gradient(ellipse 16% 34% at 52% 18%, rgba(46, 34, 80, 0.9), transparent 70%),
+    radial-gradient(ellipse 20% 28% at 76% 6%, rgba(30, 24, 58, 0.95), transparent 70%),
+    radial-gradient(ellipse 14% 30% at 96% 20%, rgba(40, 30, 70, 0.95), transparent 70%);
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-clouds span + span {
+  top: 12%;
+  opacity: 0.7;
+}
+
+/* silhueta distante no ponto de fuga */
+html[data-theme='city-pop'] .scene-city-pop .cp-far {
+  left: 50%;
+  bottom: 47vh;
+  width: 46vw;
+  height: 20vh;
+  transform: translateX(-50%);
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-far-city {
+  fill: #1b0d38;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-far-lights {
+  fill: #ff9ccf;
+  opacity: 0.55;
+}
+
+/* rua */
+html[data-theme='city-pop'] .scene-city-pop .cp-street {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 49vh;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-street-sky {
+  opacity: 0.8;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-road-edge {
+  fill: none;
+  stroke: rgba(255, 61, 154, 0.4);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-dash {
+  fill: rgba(232, 222, 255, 0.32);
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-zebra {
+  fill: rgba(232, 222, 255, 0.16);
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-trail {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.55;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-trail-in {
+  stroke: #ffe8b8;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-trail-out {
+  stroke: #ff2a44;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-car {
+  opacity: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-headlights {
+  fill: #fffbe8;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-taillights {
+  fill: #ff3a52;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-splashes {
+  opacity: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-splashes ellipse {
+  fill: none;
+  stroke: rgba(210, 225, 255, 0.7);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+
+/* laterais: prédios, janelas e letreiros */
+html[data-theme='city-pop'] .scene-city-pop .cp-side {
+  top: 0;
+  height: 100%;
+  width: max(34vw, 150px);
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-side-l {
+  left: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-side-r {
+  right: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-front {
+  fill: #1d1140;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-wall-a {
+  fill: #110a2a;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-wall-b {
+  fill: #170d34;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-edge {
+  fill: none;
+  stroke: rgba(255, 110, 190, 0.38);
+  stroke-width: 1.5;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-win-dark {
+  fill: #23173f;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-win-warm {
+  fill: #ffd8b0;
+  opacity: 0.42;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-win-blink {
+  fill: #b4f1ff;
+  opacity: 0.4;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-win-tv {
+  fill: #ff8fd0;
+  opacity: 0.5;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-sidewalk {
+  fill: #150b2c;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-curb {
+  fill: none;
+  stroke: rgba(45, 226, 230, 0.55);
+  stroke-width: 2.5;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-wet {
+  opacity: 0.6;
+}
+
+html[data-theme='city-pop'] .scene-city-pop .cp-sign-off {
+  fill: #160b2b;
+  stroke: #2e1c4c;
+  stroke-width: 1.5;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-sign-text {
+  font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', 'Noto Sans JP', system-ui, sans-serif;
+  font-weight: 700;
+  text-anchor: start;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-sign-lit {
+  filter: drop-shadow(0 0 3px var(--neon)) drop-shadow(0 0 12px var(--neon));
+}
+/* letras de neon sobre placa escura */
+html[data-theme='city-pop'] .scene-city-pop .cp-sign-face {
+  fill: #1a0a2c;
+  stroke: var(--neon);
+  stroke-width: 2.5;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-sign-text {
+  fill: #fff4fa;
+  stroke: var(--neon);
+  stroke-width: 0.6;
+}
+/* placa iluminada inteira, letras escuras */
+html[data-theme='city-pop'] .scene-city-pop .cp-panel .cp-sign-face {
+  fill: var(--neon);
+  stroke: #fff4fa;
+  stroke-width: 2;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-panel .cp-sign-text {
+  fill: #160622;
+  stroke: none;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-sign-alt {
+  opacity: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-spill {
+  mix-blend-mode: screen;
+}
+
+html[data-theme='city-pop'] .scene-city-pop .cp-lamp {
+  top: 1vh;
+  right: 27vw;
+  height: 72vh;
+  aspect-ratio: 240 / 700;
+  overflow: visible;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-lamp-pole {
+  fill: none;
+  stroke: #0b0619;
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-lamp-hood {
+  fill: #140b2a;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-lamp-head {
+  fill: #fff6df;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-lamp-bloom {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-wires {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 26vh;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-wires path {
+  fill: none;
+  stroke: #04020c;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.9;
+}
+
+/* chuva: duas camadas em velocidades diferentes, fora do centro da tela */
+html[data-theme='city-pop'] .scene-city-pop .cp-rain {
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 0 22%, transparent 36% 64%, #000 78%);
+  mask-image: linear-gradient(to right, #000 0 22%, transparent 36% 64%, #000 78%);
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-rain span {
+  position: absolute;
+  inset: -30% -10% 0 -10%;
+  transform: rotate(8deg);
+  background-image: repeating-linear-gradient(
+    to right,
+    rgba(196, 214, 255, 0.5) 0 1px,
+    transparent 1px 37px
+  );
+  -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 30px, transparent 30px 96px);
+  mask-image: repeating-linear-gradient(to bottom, #000 0 30px, transparent 30px 96px);
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-rain .cp-rain-near {
+  background-image: repeating-linear-gradient(
+    to right,
+    rgba(255, 200, 234, 0.62) 0 1.5px,
+    transparent 1.5px 71px
+  );
+  -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 54px, transparent 54px 160px);
+  mask-image: repeating-linear-gradient(to bottom, #000 0 54px, transparent 54px 160px);
+}
+
+html[data-theme='city-pop'] .scene-city-pop .cp-fog {
+  left: 0;
+  right: 0;
+  top: 32vh;
+  height: 46vh;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 196, 214, 0.22) 45%,
+    rgba(196, 170, 255, 0.12) 70%,
+    transparent
+  );
+  opacity: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-tint {
+  inset: 0;
+  opacity: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-tint-dusk {
+  background: rgba(70, 90, 220, 0.16);
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-tint-dawn {
+  background: linear-gradient(to bottom, rgba(255, 170, 196, 0.16), rgba(120, 90, 210, 0.08));
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-flash {
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 55% 0%, rgba(226, 218, 255, 0.85), rgba(170, 160, 255, 0.25) 45%, transparent 75%);
+  opacity: 0;
+}
+html[data-theme='city-pop'] .scene-city-pop .cp-vignette {
+  inset: 0;
+  background: radial-gradient(ellipse 75% 70% at 50% 45%, transparent 55%, rgba(4, 2, 12, 0.55));
+}
+
+/* ---------- animações (só com movimento permitido) ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* tudo que segue o ciclo usa a mesma duração e o mesmo ponto de partida;
+     --d (fração do ciclo) escalona cada letreiro */
+  html[data-theme='city-pop'] .scene-city-pop
+    :is(.cp-sky, .cp-tint, .cp-fog, .cp-clouds, .cp-moon, .cp-rain, .cp-flash,
+      .cp-splashes, .cp-wet, .cp-sign-power, .cp-spill, .cp-win-warm,
+      .cp-far-lights) {
+    animation-duration: var(--cp-cycle);
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-delay: calc(var(--cp-cycle) * (var(--cp-at) - var(--d, 0)));
+  }
+  html[data-theme='city-pop'] .scene-city-pop :is(.cp-sky-dusk, .cp-tint-dusk) {
+    animation-name: cp-dusk;
+  }
+  html[data-theme='city-pop'] .scene-city-pop :is(.cp-sky-dawn, .cp-tint-dawn, .cp-fog) {
+    animation-name: cp-dawn;
+  }
+  html[data-theme='city-pop'] .scene-city-pop :is(.cp-sky-storm, .cp-clouds) {
+    animation-name: cp-storm;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-moon {
+    animation-name: cp-moon;
+  }
+  html[data-theme='city-pop'] .scene-city-pop :is(.cp-rain, .cp-splashes) {
+    animation-name: cp-rain;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-flash {
+    animation-name: cp-flash;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-wet {
+    animation-name: cp-wet;
+  }
+  html[data-theme='city-pop'] .scene-city-pop :is(.cp-sign-power, .cp-spill, .cp-far-lights) {
+    animation-name: cp-power;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-spill {
+    --d: 0.03;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-late .cp-sign-power {
+    animation-name: cp-power-late;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-win-warm {
+    animation-name: cp-windows;
+  }
+
+  /* pequenos movimentos */
+  html[data-theme='city-pop'] .scene-city-pop .cp-clouds span {
+    animation: cp-drift 140s linear infinite;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-clouds span + span {
+    animation-duration: 90s;
+    animation-delay: -40s;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-rain-far {
+    animation: cp-fall-far 0.6s linear infinite;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-rain .cp-rain-near {
+    animation: cp-fall-near 0.42s linear infinite;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-splashes ellipse {
+    animation: cp-splash 1s ease-out infinite;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-shimmer {
+    animation: cp-shimmer 3.2s ease-in-out infinite alternate;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-shimmer-b {
+    animation-duration: 2.3s;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-car {
+    animation: cp-drive 9s linear infinite;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-car-out {
+    animation-direction: reverse;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-trail {
+    animation: cp-trail 5s ease-in-out infinite alternate;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-trail-out {
+    animation-delay: -2.5s;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-lamp-bloom {
+    animation: cp-breathe 6s ease-in-out infinite alternate;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-win-blink {
+    animation: cp-blink 11s steps(1) infinite;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-side-r .cp-win-blink {
+    animation-duration: 7s;
+    animation-delay: -3s;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-win-tv {
+    animation: cp-tv 2.8s steps(1) infinite;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-buzz .cp-sign-lit {
+    animation: cp-buzz 6s steps(1) infinite;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-buzz:nth-of-type(3n) .cp-sign-lit {
+    animation-duration: 9s;
+    animation-delay: -4s;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-sign-lit.cp-sign-alt {
+    animation: cp-swap 12s ease-in-out infinite;
+  }
+  html[data-theme='city-pop'] .scene-city-pop .cp-r .cp-sign-lit.cp-sign-alt {
+    animation-delay: -6s;
+  }
+}
+
+@keyframes cp-dusk {
+  0%, 12% { opacity: 1; }
+  24%, 94% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes cp-dawn {
+  0%, 74% { opacity: 0; }
+  86%, 93% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes cp-storm {
+  0%, 44% { opacity: 0; }
+  52%, 74% { opacity: 1; }
+  82%, 100% { opacity: 0; }
+}
+@keyframes cp-moon {
+  0%, 9% { opacity: 0; transform: translate(-14vw, 3vh) rotate(-18deg); }
+  18% { opacity: 1; }
+  46% { opacity: 1; }
+  52%, 100% { opacity: 0; transform: translate(12vw, -1vh) rotate(-18deg); }
+}
+@keyframes cp-rain {
+  0%, 29% { opacity: 0; }
+  30.5%, 35% { opacity: 0.45; }
+  37%, 49% { opacity: 0; }
+  52%, 74% { opacity: 1; }
+  78% { opacity: 0.35; }
+  82%, 100% { opacity: 0; }
+}
+@keyframes cp-flash {
+  0%, 58% { opacity: 0; }
+  58.08% { opacity: 0.85; }
+  58.25% { opacity: 0.1; }
+  58.35% { opacity: 0.7; }
+  58.7%, 66.4% { opacity: 0; }
+  66.5% { opacity: 0.75; }
+  66.9%, 100% { opacity: 0; }
+}
+@keyframes cp-wet {
+  0% { opacity: 0.45; }
+  30% { opacity: 0.5; }
+  36% { opacity: 0.8; }
+  42% { opacity: 0.55; }
+  50% { opacity: 0.6; }
+  55%, 80% { opacity: 1; }
+  95% { opacity: 0.8; }
+  100% { opacity: 0.45; }
+}
+/* neon: liga piscando no anoitecer e apaga piscando no amanhecer */
+@keyframes cp-power {
+  0%, 6% { opacity: 0; }
+  6.4% { opacity: 0.8; }
+  6.8% { opacity: 0.1; }
+  7.4% { opacity: 1; }
+  7.8% { opacity: 0.35; }
+  9.4%, 85% { opacity: 1; }
+  85.5% { opacity: 0.25; }
+  86% { opacity: 1; }
+  87.5% { opacity: 0.2; }
+  88%, 100% { opacity: 0; }
+}
+/* letreiros 24h: ligam junto, mas só apagam com o dia claro */
+@keyframes cp-power-late {
+  0%, 6% { opacity: 0; }
+  6.4% { opacity: 0.8; }
+  6.8% { opacity: 0.1; }
+  7.4%, 95% { opacity: 1; }
+  95.6% { opacity: 0.3; }
+  96% { opacity: 1; }
+  97.5%, 100% { opacity: 0; }
+}
+@keyframes cp-windows {
+  0% { opacity: 0.2; }
+  6%, 82% { opacity: 0.6; }
+  92%, 100% { opacity: 0.2; }
+}
+@keyframes cp-drift {
+  to { transform: translateX(-50%); }
+}
+@keyframes cp-fall-far {
+  to { transform: rotate(8deg) translateY(96px); }
+}
+@keyframes cp-fall-near {
+  to { transform: rotate(8deg) translateY(160px); }
+}
+@keyframes cp-splash {
+  0% { opacity: 0.9; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+@keyframes cp-shimmer {
+  0% { opacity: 0.7; transform: translateX(0); }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; transform: translateX(3px); }
+}
+/* carro vindo do ponto de fuga (p = distância relativa na perspectiva) */
+@keyframes cp-drive {
+  0% { opacity: 0; transform: translate(calc(var(--lx) * 0.03), 13.5px) scale(0.09); }
+  12% { opacity: 1; transform: translate(calc(var(--lx) * 0.04), 18px) scale(0.12); }
+  40% { transform: translate(calc(var(--lx) * 0.08), 36px) scale(0.24); }
+  60% { transform: translate(calc(var(--lx) * 0.13), 58.5px) scale(0.39); }
+  75% { transform: translate(calc(var(--lx) * 0.21), 94.5px) scale(0.63); }
+  85% { transform: translate(calc(var(--lx) * 0.33), 148.5px) scale(0.99); }
+  92% { opacity: 1; transform: translate(calc(var(--lx) * 0.5), 225px) scale(1.5); }
+  97% { transform: translate(calc(var(--lx) * 0.75), 337.5px) scale(2.25); }
+  100% { opacity: 0; transform: translate(calc(var(--lx) * 1.05), 472px) scale(3.1); }
+}
+@keyframes cp-trail {
+  from { opacity: 0.3; }
+  to { opacity: 0.65; }
+}
+@keyframes cp-breathe {
+  from { opacity: 0.75; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1.04); }
+}
+@keyframes cp-blink {
+  0% { opacity: 0.55; }
+  18% { opacity: 0.1; }
+  31% { opacity: 0.55; }
+  62% { opacity: 0.15; }
+  64% { opacity: 0.55; }
+  83% { opacity: 0.05; }
+}
+@keyframes cp-tv {
+  0% { opacity: 0.6; }
+  20% { opacity: 0.35; }
+  45% { opacity: 0.7; }
+  70% { opacity: 0.4; }
+}
+@keyframes cp-buzz {
+  0%, 100% { opacity: 1; }
+  41% { opacity: 0.3; }
+  42% { opacity: 1; }
+  43% { opacity: 0.45; }
+  44% { opacity: 1; }
+  77% { opacity: 0.55; }
+  78% { opacity: 1; }
+}
+@keyframes cp-swap {
+  0%, 40% { opacity: 0; }
+  50%, 90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------- interface ---------- */
+
+/* título: fonte retrô arredondada rosa-pastel com faixa interna (inline) */
+html[data-theme='city-pop'] .ui-title {
+  font-family: var(--font-bungee-inline);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  background: none;
+  color: #f8c8dc;
+  text-shadow:
+    0 0 4px rgba(255, 61, 154, 0.9),
+    0 0 16px rgba(255, 61, 154, 0.65),
+    0 0 36px rgba(255, 61, 154, 0.35),
+    0.06em 0.06em 0 rgba(45, 226, 230, 0.55);
+}
+html[data-theme='city-pop'] .ui-title::after {
+  content: 'ルーレット';
+  margin-left: 0.6em;
+  vertical-align: 0.5em;
+  font: 700 0.3em/1 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', system-ui, sans-serif;
+  letter-spacing: 0.35em;
+  color: #b8fbfc;
+  text-shadow:
+    0 0 4px rgba(45, 226, 230, 0.9),
+    0 0 12px rgba(45, 226, 230, 0.5);
+}
+html[data-theme='city-pop'] .ui-subtitle {
+  font-family: var(--font-righteous);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  color: #c9b8f5;
+}
+html[data-theme='city-pop'] .ui-subtitle-text {
+  display: none;
+}
+html[data-theme='city-pop'] .ui-subtitle::after {
+  content: 'Neon, chuva e boa música ♪';
+}
+
+/* cards: vidro escuro com borda de tubo de neon (rosa ou ciano) */
+html[data-theme='city-pop'] :is(.ui-card, .ui-chip) {
+  --tube: 255 61 154;
+  --tube-hi: #ff8cc6;
+  background: linear-gradient(180deg, rgba(24, 11, 52, 0.88), rgba(11, 5, 28, 0.92));
+  border: 1.5px solid var(--tube-hi);
+  box-shadow:
+    0 0 0 1px rgb(var(--tube) / 0.3),
+    0 0 14px rgb(var(--tube) / 0.5),
+    0 0 40px rgb(var(--tube) / 0.16),
+    inset 0 0 16px rgb(var(--tube) / 0.18);
+}
+html[data-theme='city-pop'] :is(section, nav).ui-card:not(:has(.ui-rim)),
+html[data-theme='city-pop'] .ui-chip {
+  --tube: 45 226 230;
+  --tube-hi: #7ff3f5;
+}
+/* listas (Opções/Histórico) mais opacas para o texto não brigar com o neon */
+html[data-theme='city-pop'] section.ui-card:not(:has(.ui-rim)) {
+  background: linear-gradient(180deg, rgba(22, 10, 48, 0.94), rgba(10, 5, 26, 0.95));
+}
+/* pop-ups, dica da fatia e lista de sugestões: quase opacos */
+html[data-theme='city-pop'] :is(div, [role='dialog']).ui-card {
+  background: linear-gradient(180deg, rgba(28, 13, 60, 0.97), rgba(14, 7, 34, 0.98));
+}
+/* tremulação sutil do tubo (camada de brilho que pisca) */
+html[data-theme='city-pop'] :is(section, nav).ui-card {
+  position: relative;
+}
+html[data-theme='city-pop'] :is(section, nav, [role='dialog']).ui-card::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    0 0 22px 1px rgb(var(--tube) / 0.45),
+    inset 0 0 10px rgb(var(--tube) / 0.3);
+  opacity: 0.6;
+}
+
+/* títulos dos cards como plaquinhas de neon */
+html[data-theme='city-pop'] .ui-card-title {
+  display: inline-block;
+  font-family: var(--font-righteous);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  padding: 0.05em 0.6em 0.1em;
+  border: 1.5px solid var(--tube-hi, #ff8cc6);
+  border-radius: 0.45em;
+  color: #fff4fa;
+  text-shadow:
+    0 0 4px rgb(var(--tube, 255 61 154) / 0.95),
+    0 0 12px rgb(var(--tube, 255 61 154) / 0.6);
+  box-shadow:
+    0 0 8px rgb(var(--tube, 255 61 154) / 0.55),
+    inset 0 0 8px rgb(var(--tube, 255 61 154) / 0.35);
+}
+
+html[data-theme='city-pop'] .ui-panel {
+  background: rgba(45, 226, 230, 0.04);
+  border-color: rgba(45, 226, 230, 0.3);
+}
+
+/* botão de girar: letreiro de neon */
+html[data-theme='city-pop'] .ui-cta {
+  font-family: var(--font-bungee-inline);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: #ffe6f2;
+  background:
+    radial-gradient(ellipse 60% 120% at 50% 50%, rgba(255, 61, 154, 0.28), transparent 70%),
+    linear-gradient(180deg, #1d0a36, #0f0522);
+  border: 2px solid #ff6db6;
+  text-shadow:
+    0 0 4px #ff3d9a,
+    0 0 14px rgba(255, 61, 154, 0.8);
+  box-shadow:
+    0 0 0 1px rgba(255, 61, 154, 0.35),
+    0 0 18px rgba(255, 61, 154, 0.7),
+    0 0 50px rgba(255, 61, 154, 0.28),
+    inset 0 0 18px rgba(255, 61, 154, 0.45);
+}
+html[data-theme='city-pop'] .ui-cta:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+html[data-theme='city-pop'] .ui-cta:disabled {
+  color: #9b8cc0;
+  border-color: rgba(201, 184, 245, 0.25);
+  text-shadow: none;
+  box-shadow: none;
+  background: #140a28;
+}
+
+html[data-theme='city-pop'] .ui-btn {
+  font-family: var(--font-righteous);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  box-shadow:
+    0 0 10px rgba(255, 61, 165, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+html[data-theme='city-pop'] .ui-input {
+  background-color: rgba(8, 4, 22, 0.65);
+  border-color: rgba(45, 226, 230, 0.32);
+  caret-color: #ff3d9a;
+}
+html[data-theme='city-pop'] .ui-input:focus {
+  border-color: #2de2e6;
+  box-shadow: 0 0 10px rgba(45, 226, 230, 0.35);
+}
+
+/* aro: dois tubos de neon, ciano por dentro e rosa por fora */
+html[data-theme='city-pop'] .ui-rim {
+  background: radial-gradient(
+    closest-side,
+    #0c0520 0 90.4%,
+    #c8fdff 91.1%,
+    #2de2e6 92%,
+    rgba(45, 226, 230, 0.25) 93.4%,
+    #0c0520 94.4% 96.4%,
+    rgba(255, 61, 154, 0.3) 96.8%,
+    #ff8cc6 97.6%,
+    #ff3d9a 98.6%,
+    rgba(255, 61, 154, 0.25) 99.5%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 20px rgba(255, 61, 154, 0.7),
+    0 0 70px rgba(255, 61, 154, 0.3),
+    0 0 130px rgba(45, 226, 230, 0.16),
+    0 30px 80px -20px rgba(0, 0, 0, 0.9);
+}
+html[data-theme='city-pop'] .bulb {
+  background: #ffe1f0;
+  box-shadow: 0 0 6px 2px rgba(255, 61, 154, 0.9);
+}
+html[data-theme='city-pop'] .bulb:nth-child(odd) {
+  background: #dcfeff;
+  box-shadow: 0 0 6px 2px rgba(45, 226, 230, 0.9);
+}
+
+/* centro: círculo de neon com estrela */
+html[data-theme='city-pop'] .ui-hub {
+  flex-direction: column;
+  gap: 0.15em;
+  font-family: var(--font-righteous);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: #ffe6f2;
+  text-shadow: 0 0 6px #ff3d9a;
+  background: radial-gradient(circle at 50% 38%, #2c1050, #0c0520 72%);
+  box-shadow:
+    0 0 0 3px #ff6db6,
+    0 0 14px #ff3d9a,
+    0 0 34px rgba(255, 61, 154, 0.45),
+    inset 0 0 16px rgba(255, 61, 154, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.6);
+}
+html[data-theme='city-pop'] .ui-hub:focus-visible {
+  outline: 2px solid #2de2e6;
+  outline-offset: 4px;
+}
+html[data-theme='city-pop'] .ui-hub:not(:disabled)::before {
+  content: '';
+  width: 28%;
+  aspect-ratio: 1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23b8fbfc' stroke-width='1.8' stroke-linejoin='round' d='M12 2.6l2.8 6 6.6.8-4.9 4.5 1.3 6.5L12 17.1l-5.8 3.3 1.3-6.5L2.6 9.4l6.6-.8z'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 0 3px #2de2e6);
+}
+
+/* tubos tremulando e título piscando de vez em quando */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme='city-pop'] :is(section, nav, [role='dialog']).ui-card::after {
+    animation: cp-tube 7s steps(1) infinite;
+  }
+  html[data-theme='city-pop'] nav.ui-card::after {
+    animation-delay: -2s;
+  }
+  html[data-theme='city-pop'] section.ui-card:not(:has(.ui-rim))::after {
+    animation-duration: 11s;
+    animation-delay: -5s;
+  }
+  html[data-theme='city-pop'] .ui-title {
+    animation: cp-title 9s steps(1) infinite;
+  }
+  html[data-theme='city-pop'] .ui-cta:hover:not(:disabled) {
+    animation: cp-buzz 1.6s steps(1) infinite;
+  }
+}
+@keyframes cp-tube {
+  0%, 100% { opacity: 0.6; }
+  33% { opacity: 0.25; }
+  34% { opacity: 0.6; }
+  35% { opacity: 0.3; }
+  36% { opacity: 0.65; }
+  80% { opacity: 0.45; }
+  81% { opacity: 0.6; }
+}
+@keyframes cp-title {
+  0%, 100% { opacity: 1; }
+  62% { opacity: 0.55; }
+  62.6% { opacity: 1; }
+  63.4% { opacity: 0.7; }
+  64% { opacity: 1; }
+}
+
+/* Foto de fundo opcional (veja PROMPTS.md): salve a imagem gerada em
+   public/themes/city-pop/bg.webp e descomente para usá-la no lugar da cena
+   desenhada (mantendo a chuva, o relâmpago e a vinheta por cima).
+
+html[data-theme='city-pop'] .theme-backdrop {
+  background: #08040f url('/themes/city-pop/bg.webp') center / cover no-repeat;
+}
+html[data-theme='city-pop'] .scene-city-pop :is(.cp-sky, .cp-moon, .cp-clouds,
+  .cp-far, .cp-street, .cp-side, .cp-wires, .cp-tint) {
+  display: none;
+}
+*/

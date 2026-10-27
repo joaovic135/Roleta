@@ -1,3 +1,5 @@
+import ThemeScene from './ThemeScene'
+
 // Cena de fundo dos temas (estrelas, sol listrado, montanhas em wireframe,
 // cidade, grade neon, chuva, bolhas, CDs...). Tudo em CSS/SVG estático, sem
 // imagens: cada camada fica oculta por padrão e src/app/themes.css mostra
@@ -105,6 +107,7 @@ export const SPIDER_LEGS =
 export default function ThemeBackdrop() {
   return (
     <div className="theme-backdrop" aria-hidden="true">
+      <ThemeScene />
       <div className="bd-stars" />
       <div className="bd-sun-glow" />
       <div className="bd-sun" />

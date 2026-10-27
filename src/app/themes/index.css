@@ -1,1 +1,8 @@
 /* Um arquivo por tema (src/app/themes/<id>/theme.css) */
+@import './half-life/theme.css';
+@import './hearts-of-iron/theme.css';
+@import './uma-musume/theme.css';
+@import './mirai-funk/theme.css';
+@import './good-times/theme.css';
+@import './city-pop/theme.css';
+@import './aranha-pixel/theme.css';

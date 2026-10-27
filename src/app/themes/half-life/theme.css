@@ -1,0 +1,1033 @@
+/* Tema Half-Life: estilos ficam todos sob html[data-theme='half-life'].
+   Complexo de pesquisa subterrâneo + HUD do traje: painéis escuros
+   translúcidos com borda laranja fina e cantoneiras, rótulos condensados em
+   caixa alta, botão zebrado, aro industrial com listras de perigo e um
+   miolo que parece uma luz de alerta.
+
+   Cena viva: um turno do complexo em ciclo de --hl-cycle (210 s):
+     0–28%   turno normal
+     28–48%  alarme de violação de contenção (giroflex + luz vermelha)
+     48–64%  queda de energia (lâmpadas apagam, luz de emergência)
+     64–82%  tempestade de portal (surtos verdes, arcos, feixe mais forte)
+     82–100% volta ao normal
+   Todas as animações do ciclo usam a mesma duração e o mesmo atraso
+   (--hl-t0), então ficam sincronizadas. Só transform e opacity. */
+
+html[data-theme='half-life'] {
+  --hl-cycle: 210s;
+  --hl-t0: 0s;
+  --hl-o: #ff9b00;
+  --hl-o-soft: rgba(255, 155, 0, 0.35);
+  --hl-green: #6dff3a;
+  --hl-yellow: #f2b800;
+}
+
+html[data-theme='half-life'] .scene-half-life {
+  display: block;
+}
+
+/* ---------- Fontes ---------- */
+
+html[data-theme='half-life'] body {
+  --wheel-font: var(--font-saira-condensed);
+  --wheel-font-scale: 1.12;
+  font-family: var(--font-saira-condensed), var(--font-geist-sans), sans-serif;
+  letter-spacing: 0.015em;
+}
+
+/* ---------- Fundo: concreto, painéis de metal e brilho da câmara ---------- */
+
+html[data-theme='half-life'] .theme-backdrop {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.62 0 0 0 0 0.68 0 0 0 0 0.64 0 0 0 0.11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.38) 0 2px, rgba(255, 255, 255, 0.03) 2px 3px, transparent 3px 192px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.32) 0 2px, rgba(255, 255, 255, 0.025) 2px 3px, transparent 3px 128px),
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgba(210, 255, 225, 0.07), transparent 70%),
+    linear-gradient(to bottom, #1b201f 0%, #131716 55%, #0a0c0c 100%);
+}
+html[data-theme='half-life'] .bd-scanlines {
+  display: block;
+  opacity: 0.28;
+}
+
+/* ---------- Cena ---------- */
+
+html[data-theme='half-life'] .scene-half-life > * {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* câmara de testes atrás da roda */
+.hl-chamber-wrap,
+.hl-beam-wrap {
+  inset: 0;
+}
+.hl-chamber-wrap {
+  transform-origin: 48% 55%;
+  animation: hl-chamber-cycle var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-chamber {
+  position: absolute;
+  left: 48%;
+  top: 55%;
+  width: 135vmin;
+  height: 135vmin;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle closest-side,
+    rgba(120, 255, 70, 0.3),
+    rgba(70, 210, 40, 0.13) 38%,
+    rgba(40, 140, 30, 0.04) 62%,
+    transparent 78%
+  );
+}
+
+/* teto */
+.hl-ceiling {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70px;
+  overflow: visible;
+}
+.hl-steel {
+  fill: #171b1a;
+  stroke: #303836;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.hl-bolts {
+  fill: #3d4643;
+}
+.hl-coil {
+  fill: #ff9b00;
+  opacity: 0.85;
+}
+.hl-lens {
+  fill: #d8ffb0;
+}
+.hl-lights {
+  animation: hl-power var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-tube {
+  animation-name: hl-flicker;
+  animation-timing-function: steps(1, end);
+  animation-iteration-count: infinite;
+}
+
+/* feixe de ressonância */
+.hl-beam-wrap {
+  transform-origin: 50% 0;
+  animation: hl-beam-cycle var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-beam {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  bottom: 12vh;
+  width: 84px;
+  margin-left: -42px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(109, 255, 58, 0.08) 22%,
+    rgba(150, 255, 100, 0.4) 44%,
+    rgba(236, 255, 222, 0.95) 50%,
+    rgba(150, 255, 100, 0.4) 56%,
+    rgba(109, 255, 58, 0.08) 78%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  animation: hl-beam-pulse 2.4s ease-in-out infinite alternate;
+}
+.hl-lens-glow {
+  top: 0;
+  left: 50%;
+  width: 280px;
+  height: 90px;
+  margin-left: -140px;
+  background: radial-gradient(
+    ellipse 50% 60% at 50% 36%,
+    rgba(182, 255, 122, 0.75),
+    rgba(109, 255, 58, 0.18) 55%,
+    transparent 100%
+  );
+  animation: hl-beam-pulse 2.4s ease-in-out infinite alternate;
+}
+
+/* paredes */
+.hl-side {
+  top: 0;
+  height: 100%;
+  overflow: visible;
+}
+.hl-side-l {
+  left: 0;
+  width: 300px;
+}
+.hl-side-r {
+  right: 0;
+  width: 170px;
+}
+.hl-cable {
+  fill: none;
+  stroke: #070808;
+  stroke-width: 4;
+}
+.hl-slat {
+  fill: #050606;
+}
+.hl-paint-green {
+  fill: #2f6b2a;
+}
+.hl-plate {
+  fill: #111413;
+}
+.hl-sign-yellow {
+  fill: #f2b800;
+}
+.hl-sign-ink {
+  fill: #121212;
+}
+.hl-sign-big,
+.hl-sign-small,
+.hl-sign-label,
+.hl-sign-sector {
+  font-family: var(--font-saira-condensed), sans-serif;
+}
+.hl-sign-big {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  fill: #f2b800;
+}
+.hl-sign-small {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  fill: #ff9b00;
+}
+.hl-sign-label {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  fill: #ff9b00;
+}
+.hl-sign-sector {
+  font-size: 42px;
+  font-weight: 800;
+  fill: #f2b800;
+}
+.hl-valve {
+  fill: none;
+  stroke: #8a2216;
+  stroke-width: 5;
+}
+.hl-valve-hub {
+  fill: #8a2216;
+}
+.hl-gauge {
+  fill: #cfc8ad;
+  stroke: #0b0c0c;
+  stroke-width: 4;
+}
+.hl-needle {
+  stroke: #b0200f;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  animation: hl-needle 5s ease-in-out infinite alternate;
+}
+.hl-led-green {
+  fill: #6dff3a;
+}
+.hl-led-amber {
+  fill: #ff9b00;
+}
+.hl-led-red {
+  fill: #ff3b1f;
+}
+.hl-blink {
+  animation: hl-blink 1.1s steps(1, end) infinite;
+}
+.hl-blink-alt {
+  animation: hl-blink 1.7s steps(1, end) -0.6s infinite;
+}
+.hl-beacon {
+  fill: #4a120b;
+}
+.hl-beacon-lit {
+  fill: #ff4a2a;
+}
+.hl-emerg-lamp {
+  fill: #ff7a4a;
+}
+
+/* giroflex e luz de emergência (só em partes do ciclo) */
+.hl-alarm {
+  opacity: 0;
+  animation: hl-alarm-win var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-cone {
+  animation: hl-rotate 1.6s linear infinite;
+}
+.hl-cone-rev {
+  animation-direction: reverse;
+}
+.hl-emerg {
+  opacity: 0;
+  animation: hl-emerg-win var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+
+/* piso */
+.hl-floor {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34px;
+  border-top: 1px solid #000;
+  background:
+    repeating-linear-gradient(-45deg, #d9a400 0 10px, #121212 10px 20px) top / 100% 5px no-repeat,
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0 2px, transparent 2px 9px),
+    linear-gradient(#1f2524, #0b0d0c);
+}
+.hl-floor-lights {
+  left: 0;
+  right: 0;
+  bottom: 13px;
+  height: 8px;
+  background: radial-gradient(circle, #ff7a4a 0 2px, rgba(255, 60, 30, 0.35) 3px, transparent 7px) 0 0 / 90px 8px repeat-x;
+  -webkit-mask-image: linear-gradient(90deg, #000 30%, transparent 38% 62%, #000 70%);
+  mask-image: linear-gradient(90deg, #000 30%, transparent 38% 62%, #000 70%);
+  opacity: 0;
+  animation: hl-emerg-win var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+
+/* apagão, alarme e tempestade */
+.hl-blackout {
+  inset: 0;
+  background: radial-gradient(ellipse 60% 55% at 50% 55%, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.85));
+  opacity: 0;
+  animation: hl-dark-win var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-redwash,
+.hl-storm {
+  inset: 0;
+  opacity: 0;
+}
+.hl-redwash > div,
+.hl-storm > div {
+  position: absolute;
+  inset: 0;
+}
+.hl-redwash {
+  animation: hl-red-win var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-redwash > div {
+  background:
+    linear-gradient(to bottom, rgba(255, 30, 10, 0.28), transparent 18%),
+    radial-gradient(ellipse 72% 68% at 50% 52%, transparent 45%, rgba(255, 40, 20, 0.32) 100%);
+  animation: hl-pulse 1.6s ease-in-out infinite alternate;
+}
+.hl-storm {
+  animation: hl-storm-win var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+/* brilho verde constante durante a tempestade (os surtos piscam por cima) */
+.hl-storm::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(120, 255, 70, 0.16), transparent 22%),
+    linear-gradient(to top, rgba(120, 255, 70, 0.12), transparent 18%),
+    radial-gradient(ellipse 16% 70% at 0% 55%, rgba(110, 255, 60, 0.2), transparent 75%),
+    radial-gradient(ellipse 16% 70% at 100% 55%, rgba(110, 255, 60, 0.2), transparent 75%);
+}
+.hl-storm > div {
+  background:
+    radial-gradient(ellipse 45% 30% at 50% 0%, rgba(170, 255, 120, 0.5), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 48% 58%, rgba(110, 255, 60, 0.22), transparent 70%),
+    radial-gradient(ellipse 20% 60% at 0% 60%, rgba(110, 255, 60, 0.18), transparent 70%),
+    radial-gradient(ellipse 20% 60% at 100% 60%, rgba(110, 255, 60, 0.18), transparent 70%);
+  opacity: 0;
+  animation: hl-surge 3.7s linear infinite;
+}
+.hl-arcs {
+  top: 0;
+  left: 50%;
+  width: 600px;
+  height: 110px;
+  margin-left: -300px;
+  opacity: 0;
+  animation: hl-storm-win var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-arc {
+  fill: none;
+  stroke: #d6ffb0;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 3px #6dff3a) drop-shadow(0 0 8px rgba(109, 255, 58, 0.7));
+  animation: hl-arc 0.9s steps(1, end) infinite;
+}
+.hl-arc-b {
+  animation-duration: 1.3s;
+  animation-delay: -0.5s;
+}
+
+/* faíscas */
+.hl-spark {
+  top: 18px;
+  width: 40px;
+  height: 30px;
+  margin-left: -20px;
+  opacity: 0;
+  transform-origin: 50% 27%;
+  animation-name: hl-spark;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.hl-spark path {
+  stroke: #fff1a8;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.hl-spark circle {
+  fill: #fff;
+}
+
+/* partículas verdes */
+.hl-motes {
+  inset: 0;
+  opacity: 0.7;
+  animation: hl-motes-cycle var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-motes span {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #c4ff92;
+  box-shadow: 0 0 6px 2px rgba(109, 255, 58, 0.6);
+  opacity: 0;
+  animation-name: hl-mote;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* faixa de varredura do CRT */
+.hl-sweep {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 140px;
+  background: linear-gradient(to bottom, transparent, rgba(150, 255, 120, 0.035) 70%, rgba(200, 255, 180, 0.07) 96%, transparent);
+  animation: hl-scan 9s linear infinite;
+}
+
+/* HUD do traje */
+.hl-hud {
+  bottom: 44px;
+  font-family: var(--font-saira-condensed), sans-serif;
+  color: #ff9b00;
+  text-shadow: 0 0 8px rgba(255, 155, 0, 0.55);
+  line-height: 1;
+}
+.hl-hud small {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  opacity: 0.8;
+}
+.hl-hud-l {
+  left: 22px;
+}
+.hl-hud-r {
+  right: 22px;
+  text-align: right;
+}
+.hl-status,
+.hl-num,
+.hl-bar {
+  display: grid;
+}
+.hl-status > *,
+.hl-num > *,
+.hl-bar > * {
+  grid-area: 1 / 1;
+}
+.hl-status {
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+.hl-status .hl-ph-alarm {
+  color: #ff5a3a;
+  text-shadow: 0 0 8px rgba(255, 60, 30, 0.7);
+}
+.hl-status .hl-ph-storm {
+  color: #9dff6a;
+  text-shadow: 0 0 8px rgba(109, 255, 58, 0.7);
+}
+.hl-readouts {
+  display: flex;
+  gap: 22px;
+}
+.hl-readout {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 8px;
+}
+.hl-readout small {
+  grid-column: 1 / -1;
+  margin-bottom: 4px;
+}
+.hl-cross,
+.hl-shield {
+  width: 20px;
+  height: 20px;
+  filter: drop-shadow(0 0 4px rgba(255, 155, 0, 0.7));
+}
+.hl-cross {
+  background:
+    linear-gradient(#ff9b00, #ff9b00) center / 100% 34% no-repeat,
+    linear-gradient(#ff9b00, #ff9b00) center / 34% 100% no-repeat;
+}
+.hl-shield {
+  background: #ff9b00;
+  clip-path: polygon(50% 0, 100% 16%, 100% 52%, 50% 100%, 0 52%, 0 16%);
+}
+.hl-num {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.hl-hud-r .hl-num {
+  justify-items: end;
+}
+.hl-num .hl-ph-storm {
+  color: #ffb547;
+}
+.hl-hud-r .hl-ph-storm {
+  color: #9dff6a;
+  text-shadow: 0 0 8px rgba(109, 255, 58, 0.7);
+}
+.hl-hud-r .hl-ph-alarm,
+.hl-hud-r .hl-ph-dark {
+  color: #ff6a3a;
+}
+.hl-bar {
+  width: 120px;
+  height: 7px;
+  margin: 6px 0 0 auto;
+  background: repeating-linear-gradient(90deg, rgba(255, 155, 0, 0.18) 0 10px, transparent 10px 12px);
+}
+.hl-bar i {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, #ff9b00 0 10px, transparent 10px 12px);
+  transform-origin: left;
+}
+.hl-bar .hl-ph-alarm {
+  transform: scaleX(0.9);
+  background: repeating-linear-gradient(90deg, #ff6a3a 0 10px, transparent 10px 12px);
+}
+.hl-bar .hl-ph-dark {
+  transform: scaleX(0.12);
+  background: repeating-linear-gradient(90deg, #ff3b1f 0 10px, transparent 10px 12px);
+}
+.hl-bar .hl-ph-storm {
+  background: repeating-linear-gradient(90deg, #9dff6a 0 10px, transparent 10px 12px);
+}
+
+/* leituras que trocam em cada fase (o estado sem animação é o normal) */
+.hl-ph-alarm,
+.hl-ph-dark,
+.hl-ph-storm {
+  opacity: 0;
+}
+.hl-ph-normal {
+  animation: hl-ph-normal var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-ph-alarm {
+  animation: hl-ph-alarm var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-ph-dark {
+  animation: hl-ph-dark var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-ph-storm {
+  animation: hl-ph-storm var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+.hl-ph-calm {
+  animation: hl-ph-calm var(--hl-cycle) linear var(--hl-t0) infinite;
+}
+
+/* telas menores: a interface cobre quase tudo, a cena fica mais discreta */
+@media (max-width: 1023px) {
+  html[data-theme='half-life'] :is(.hl-hud, .hl-arcs) {
+    display: none;
+  }
+  html[data-theme='half-life'] .hl-side {
+    opacity: 0.55;
+  }
+}
+
+/* ---------- Ciclo do complexo ---------- */
+
+@keyframes hl-power {
+  0%, 47.8% { opacity: 1; }
+  48.2% { opacity: 0.25; }
+  48.6% { opacity: 0.9; }
+  49% { opacity: 0; }
+  49.4% { opacity: 0.5; }
+  49.8%, 63.8% { opacity: 0; }
+  64.2% { opacity: 0.8; }
+  64.6% { opacity: 0.1; }
+  65.2% { opacity: 1; }
+  65.6% { opacity: 0.3; }
+  66.2%, 100% { opacity: 1; }
+}
+@keyframes hl-dark-win {
+  0%, 48.8% { opacity: 0; }
+  50%, 63.6% { opacity: 1; }
+  65.6%, 100% { opacity: 0; }
+}
+@keyframes hl-alarm-win {
+  0%, 27.8% { opacity: 0; }
+  28.4%, 63.4% { opacity: 1; }
+  64.4%, 100% { opacity: 0; }
+}
+@keyframes hl-red-win {
+  0%, 27.8% { opacity: 0; }
+  29%, 47% { opacity: 1; }
+  50%, 63.4% { opacity: 0.4; }
+  64.4%, 100% { opacity: 0; }
+}
+@keyframes hl-emerg-win {
+  0%, 48.6% { opacity: 0; }
+  49.6%, 63.6% { opacity: 1; }
+  65.6%, 100% { opacity: 0; }
+}
+@keyframes hl-storm-win {
+  0%, 63.8% { opacity: 0; }
+  64.6%, 81.4% { opacity: 1; }
+  82.6%, 100% { opacity: 0; }
+}
+@keyframes hl-beam-cycle {
+  0%, 27.8% { opacity: 0.8; transform: scaleX(1); }
+  29%, 47.6% { opacity: 0.6; transform: scaleX(0.85); }
+  49%, 63.6% { opacity: 0.95; transform: scaleX(1.1); }
+  65%, 81% { opacity: 1; transform: scaleX(2); }
+  83%, 100% { opacity: 0.8; transform: scaleX(1); }
+}
+@keyframes hl-chamber-cycle {
+  0%, 27.8% { opacity: 0.85; transform: scale(1); }
+  29%, 63.6% { opacity: 0.55; transform: scale(0.94); }
+  65.5%, 81% { opacity: 1; transform: scale(1.22); }
+  83%, 100% { opacity: 0.85; transform: scale(1); }
+}
+@keyframes hl-motes-cycle {
+  0%, 63.6% { opacity: 0.7; }
+  65%, 81% { opacity: 1; }
+  83%, 100% { opacity: 0.7; }
+}
+@keyframes hl-ph-normal {
+  0%, 27.9% { opacity: 1; }
+  28%, 81.9% { opacity: 0; }
+  82%, 100% { opacity: 1; }
+}
+@keyframes hl-ph-alarm {
+  0%, 27.9% { opacity: 0; }
+  28%, 47.9% { opacity: 1; }
+  48%, 100% { opacity: 0; }
+}
+@keyframes hl-ph-dark {
+  0%, 47.9% { opacity: 0; }
+  48%, 63.9% { opacity: 1; }
+  64%, 100% { opacity: 0; }
+}
+@keyframes hl-ph-storm {
+  0%, 63.9% { opacity: 0; }
+  64%, 81.9% { opacity: 1; }
+  82%, 100% { opacity: 0; }
+}
+@keyframes hl-ph-calm {
+  0%, 63.9% { opacity: 1; }
+  64%, 81.9% { opacity: 0; }
+  82%, 100% { opacity: 1; }
+}
+
+/* ---------- Animações curtas ---------- */
+
+@keyframes hl-flicker {
+  0%, 60% { opacity: 1; }
+  61% { opacity: 0.15; }
+  62% { opacity: 1; }
+  63% { opacity: 0.35; }
+  64%, 88% { opacity: 1; }
+  88.6% { opacity: 0.55; }
+  89.2%, 100% { opacity: 1; }
+}
+@keyframes hl-spark {
+  0%, 94% { opacity: 0; transform: scale(0.4); }
+  95% { opacity: 1; transform: scale(1); }
+  96.5% { opacity: 0.6; transform: scale(1.3); }
+  97% { opacity: 1; transform: scale(0.9); }
+  98.5%, 100% { opacity: 0; transform: scale(1.5); }
+}
+@keyframes hl-rotate {
+  to { transform: rotate(1turn); }
+}
+@keyframes hl-pulse {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+@keyframes hl-beam-pulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+@keyframes hl-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+@keyframes hl-needle {
+  from { transform: rotate(-55deg); }
+  to { transform: rotate(35deg); }
+}
+@keyframes hl-surge {
+  0% { opacity: 0; }
+  6% { opacity: 0.9; }
+  8% { opacity: 0.15; }
+  11% { opacity: 0.75; }
+  18%, 52% { opacity: 0; }
+  55% { opacity: 1; }
+  58% { opacity: 0.25; }
+  63%, 100% { opacity: 0; }
+}
+@keyframes hl-arc {
+  0% { opacity: 1; }
+  18% { opacity: 0; }
+  42% { opacity: 1; }
+  52%, 100% { opacity: 0; }
+}
+@keyframes hl-mote {
+  0% { opacity: 0; transform: translateY(0); }
+  15% { opacity: 0.9; }
+  80% { opacity: 0.5; }
+  100% { opacity: 0; transform: translateY(-38vh); }
+}
+@keyframes hl-scan {
+  from { transform: translateY(-160px); }
+  to { transform: translateY(100vh); }
+}
+
+/* ---------- Componentes (HUD) ---------- */
+
+/* título: "ROLETA" laranja com brilho de HUD e trevo de radiação */
+html[data-theme='half-life'] .ui-title {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-family: var(--font-saira-condensed);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  background: none;
+  color: #ff9b00;
+  text-shadow:
+    0 0 2px rgba(255, 200, 120, 0.9),
+    0 0 14px rgba(255, 155, 0, 0.6);
+}
+html[data-theme='half-life'] .ui-title::before {
+  content: '';
+  width: 0.78em;
+  height: 0.78em;
+  flex-shrink: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='none' stroke='%23ff9b00' stroke-width='4'/%3E%3Cpath fill='%23ff9b00' transform='translate(12 12) scale(.76)' d='M40.8 50a9.2 9.2 0 1 0 18.4 0a9.2 9.2 0 1 0-18.4 0ZM56.9 62L73 89.8A46 46 0 0 1 27 89.8L43.1 62A13.8 13.8 0 0 0 56.9 62ZM36.2 50H4A46 46 0 0 1 27 10.2L43.1 38A13.8 13.8 0 0 0 36.2 50ZM56.9 38L73 10.2A46 46 0 0 1 96 50H63.8A13.8 13.8 0 0 0 56.9 38Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 0 6px rgba(255, 155, 0, 0.7));
+}
+
+/* subtítulo vira linha de status do HUD */
+html[data-theme='half-life'] .ui-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  font-family: var(--font-saira-condensed);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #ffb547;
+  text-shadow: 0 0 8px rgba(255, 155, 0, 0.45);
+}
+html[data-theme='half-life'] .ui-subtitle-text {
+  display: none;
+}
+html[data-theme='half-life'] .ui-subtitle::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6dff3a;
+  box-shadow: 0 0 8px 2px rgba(109, 255, 58, 0.7);
+  animation: hl-blink 1.6s steps(1, end) infinite;
+}
+html[data-theme='half-life'] .ui-subtitle::after {
+  content: 'Sistema de sorteio: online';
+}
+
+/* painéis translúcidos, borda laranja fina e cantoneiras */
+html[data-theme='half-life'] :is(.ui-card, .ui-chip) {
+  --hl-br: rgba(255, 155, 0, 0.95);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 155, 0, 0.28);
+  background:
+    linear-gradient(var(--hl-br), var(--hl-br)) left top / 16px 2px no-repeat,
+    linear-gradient(var(--hl-br), var(--hl-br)) left top / 2px 16px no-repeat,
+    linear-gradient(var(--hl-br), var(--hl-br)) right top / 16px 2px no-repeat,
+    linear-gradient(var(--hl-br), var(--hl-br)) right top / 2px 16px no-repeat,
+    linear-gradient(var(--hl-br), var(--hl-br)) left bottom / 16px 2px no-repeat,
+    linear-gradient(var(--hl-br), var(--hl-br)) left bottom / 2px 16px no-repeat,
+    linear-gradient(var(--hl-br), var(--hl-br)) right bottom / 16px 2px no-repeat,
+    linear-gradient(var(--hl-br), var(--hl-br)) right bottom / 2px 16px no-repeat,
+    repeating-linear-gradient(to bottom, rgba(255, 155, 0, 0.025) 0 1px, transparent 1px 4px),
+    linear-gradient(160deg, rgba(22, 27, 26, 0.94), rgba(10, 13, 12, 0.92));
+  background-origin: border-box;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 18px 50px rgba(0, 0, 0, 0.55),
+    inset 0 0 40px rgba(255, 155, 0, 0.04);
+}
+html[data-theme='half-life'] .ui-chip {
+  --hl-br: rgba(255, 155, 0, 0.8);
+  background-size:
+    8px 2px, 2px 8px, 8px 2px, 2px 8px, 8px 2px, 2px 8px, 8px 2px, 2px 8px,
+    auto, auto;
+}
+/* modal e tooltip mais opacos para leitura */
+html[data-theme='half-life'] [role='dialog'] .ui-card,
+html[data-theme='half-life'] [role='dialog'].ui-card {
+  border-color: rgba(255, 155, 0, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(255, 155, 0, 0.18),
+    0 24px 60px rgba(0, 0, 0, 0.7);
+}
+
+html[data-theme='half-life'] .ui-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-saira-condensed);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #ff9b00;
+  text-shadow: 0 0 10px rgba(255, 155, 0, 0.5);
+}
+html[data-theme='half-life'] .ui-card-title::before {
+  content: '';
+  width: 0.55em;
+  height: 0.95em;
+  flex-shrink: 0;
+  background: repeating-linear-gradient(-45deg, #f2b800 0 3px, #121212 3px 6px);
+  box-shadow: 0 0 0 1px #121212;
+}
+
+html[data-theme='half-life'] .ui-panel {
+  border-radius: 2px;
+  border: 1px solid rgba(255, 155, 0, 0.22);
+  background:
+    linear-gradient(rgba(255, 155, 0, 0.75), rgba(255, 155, 0, 0.75)) left top / 10px 2px no-repeat,
+    linear-gradient(rgba(255, 155, 0, 0.75), rgba(255, 155, 0, 0.75)) left top / 2px 10px no-repeat,
+    linear-gradient(rgba(255, 155, 0, 0.75), rgba(255, 155, 0, 0.75)) right bottom / 10px 2px no-repeat,
+    linear-gradient(rgba(255, 155, 0, 0.75), rgba(255, 155, 0, 0.75)) right bottom / 2px 10px no-repeat,
+    rgba(0, 0, 0, 0.32);
+  background-origin: border-box;
+}
+
+/* botão principal: placa laranja com pontas zebradas */
+html[data-theme='half-life'] .ui-cta {
+  font-family: var(--font-saira-condensed);
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: 0.24em;
+  color: #170e00;
+  text-shadow: 0 1px 0 rgba(255, 225, 160, 0.55);
+  border-radius: 3px;
+  border: 2px solid #0c0d0d;
+  background:
+    repeating-linear-gradient(-45deg, #141414 0 11px, #f2b800 11px 22px) left / 72px 100% no-repeat,
+    repeating-linear-gradient(-45deg, #141414 0 11px, #f2b800 11px 22px) right / 72px 100% no-repeat,
+    linear-gradient(#ffb526, #ff8c00);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 225, 160, 0.35),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 155, 0, 0.5),
+    0 0 26px rgba(255, 155, 0, 0.3);
+}
+/* reflexo que atravessa o botão ao passar o mouse */
+html[data-theme='half-life'] .ui-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: translateX(-120%) skewX(-20deg);
+  opacity: 0;
+  pointer-events: none;
+}
+html[data-theme='half-life'] .ui-cta:hover:not(:disabled)::after {
+  opacity: 1;
+  transform: translateX(400%) skewX(-20deg);
+  transition: transform 0.7s ease-out;
+}
+html[data-theme='half-life'] .ui-cta kbd {
+  border-radius: 2px;
+  background: rgba(23, 14, 0, 0.18);
+  letter-spacing: 0.06em;
+}
+html[data-theme='half-life'] .ui-cta:disabled {
+  color: #ffb547;
+  text-shadow: 0 0 8px rgba(255, 155, 0, 0.6);
+  background:
+    repeating-linear-gradient(-45deg, #141414 0 11px, #3b3a33 11px 22px) left / 72px 100% no-repeat,
+    repeating-linear-gradient(-45deg, #141414 0 11px, #3b3a33 11px 22px) right / 72px 100% no-repeat,
+    linear-gradient(#262c2a, #1a1e1d);
+  box-shadow: inset 0 0 0 1px rgba(255, 155, 0, 0.3);
+}
+
+html[data-theme='half-life'] .ui-btn {
+  font-family: var(--font-saira-condensed);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-radius: 2px;
+  background: linear-gradient(#ffad1f, #ff9000);
+  color: #170e00;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 225, 160, 0.45),
+    0 0 14px rgba(255, 155, 0, 0.25);
+}
+html[data-theme='half-life'] .ui-btn:hover:not(:disabled) {
+  background: linear-gradient(#ffc04d, #ffa31f);
+}
+
+html[data-theme='half-life'] .ui-input {
+  border-radius: 2px;
+  border-color: rgba(255, 155, 0, 0.28);
+  background: rgba(0, 0, 0, 0.42);
+  caret-color: #ff9b00;
+}
+html[data-theme='half-life'] .ui-input:focus {
+  border-color: rgba(255, 155, 0, 0.75);
+}
+
+/* aro industrial: anel zebrado entre duas bordas de aço */
+html[data-theme='half-life'] .ui-rim {
+  background:
+    radial-gradient(
+      circle closest-side,
+      transparent 0 90.6%,
+      #0a0c0b 90.6% 91.6%,
+      transparent 91.6% 95%,
+      #0a0c0b 95% 95.8%,
+      #48514e 95.8% 96.8%,
+      #262c2a 96.8% 98.8%,
+      #0a0c0b 98.8%
+    ),
+    repeating-conic-gradient(#e6aa00 0 7.5deg, #151515 7.5deg 15deg);
+  box-shadow:
+    0 0 0 2px #070808,
+    0 0 0 4px rgba(255, 155, 0, 0.55),
+    0 0 60px rgba(109, 255, 58, 0.16),
+    0 30px 80px -20px rgba(0, 0, 0, 0.9);
+}
+/* lâmpadas do aro: LEDs de alerta laranja */
+html[data-theme='half-life'] .bulb {
+  background: #ffd890;
+  box-shadow:
+    0 0 0 1.5px #0a0c0b,
+    0 0 9px 3px rgba(255, 155, 0, 0.75);
+}
+html[data-theme='half-life'] .bulb-win {
+  background: #d6ffb0;
+  box-shadow:
+    0 0 0 1.5px #0a0c0b,
+    0 0 12px 4px rgba(109, 255, 58, 0.85);
+}
+
+/* miolo: luz de alerta com anel zebrado e trevo */
+html[data-theme='half-life'] .ui-hub {
+  flex-direction: column;
+  gap: 0.15em;
+  font-family: var(--font-saira-condensed);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #ff9b00;
+  text-shadow: 0 0 8px rgba(255, 155, 0, 0.75);
+  background:
+    radial-gradient(circle closest-side, #1b201f 0 64%, #070808 65% 70%, transparent 71%),
+    repeating-conic-gradient(#f2b800 0 15deg, #141414 15deg 30deg);
+  box-shadow:
+    0 0 0 3px #070808,
+    0 0 0 5px rgba(255, 155, 0, 0.85),
+    0 0 26px rgba(255, 155, 0, 0.45),
+    0 8px 20px rgba(0, 0, 0, 0.6);
+}
+html[data-theme='half-life'] .ui-hub:hover:not(:disabled) {
+  color: #ffc46b;
+}
+html[data-theme='half-life'] .ui-hub::before {
+  content: '';
+  width: 30%;
+  aspect-ratio: 1;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23ff9b00' d='M40.8 50a9.2 9.2 0 1 0 18.4 0a9.2 9.2 0 1 0-18.4 0ZM56.9 62L73 89.8A46 46 0 0 1 27 89.8L43.1 62A13.8 13.8 0 0 0 56.9 62ZM36.2 50H4A46 46 0 0 1 27 10.2L43.1 38A13.8 13.8 0 0 0 36.2 50ZM56.9 38L73 10.2A46 46 0 0 1 96 50H63.8A13.8 13.8 0 0 0 56.9 38Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(255, 155, 0, 0.8));
+  animation: hl-beam-pulse 1.4s ease-in-out infinite alternate;
+}
+html[data-theme='half-life'] .ui-hub:disabled::before {
+  display: none;
+}
+
+/* rodapé no piso */
+html[data-theme='half-life'] footer {
+  font-family: var(--font-saira-condensed);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 190, 110, 0.75);
+  text-shadow: 0 1px 2px #000;
+}
+
+/* ---------- Movimento reduzido: cena parada no turno normal ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme='half-life'] .scene-half-life *,
+  html[data-theme='half-life'] .ui-subtitle::before,
+  html[data-theme='half-life'] .ui-hub::before {
+    animation: none !important;
+  }
+  html[data-theme='half-life'] :is(.hl-sweep, .hl-spark, .hl-motes) {
+    display: none;
+  }
+  html[data-theme='half-life'] .ui-cta::after {
+    display: none;
+  }
+}
+
+/* ---------- Arte opcional (ver PROMPTS.md) ----------
+   Para usar uma imagem gerada como fundo, salve em
+   public/themes/half-life/bg.webp e descomente:
+
+html[data-theme='half-life'] .theme-backdrop {
+  background-image:
+    url('/themes/half-life/bg.webp'),
+    linear-gradient(to bottom, #1b201f 0%, #131716 55%, #0a0c0c 100%);
+  background-size: cover;
+  background-position: center;
+}
+*/

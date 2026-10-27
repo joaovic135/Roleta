@@ -22,6 +22,8 @@ interface RouletteWheelProps {
 // Resolução interna do canvas (escalado via CSS, nítido em telas retina)
 const SIZE = 1000
 const BULBS = 24
+// Quanto a fatia em foco "levanta" para fora (em unidades de 0 a SIZE)
+const LIFT_DISTANCE = 26
 // Raio do miolo (botão GIRAR), em fração do raio da roda
 const HUB_RATIO = 0.2
 
@@ -136,158 +138,211 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
     // linhas com pelo menos 1 pixel real
     const line = (width: number) => Math.max(width, pixel)
     const c = SIZE / 2
-    const r = SIZE / 2
+    // a roda fica um pouco menor que o canvas para a fatia em foco poder
+    // "levantar" para fora sem ser cortada
+    const r = SIZE / 2 - LIFT_DISTANCE
     const hub = r * HUB_RATIO
-    ctx.clearRect(0, 0, SIZE, SIZE)
+    const webColor = bodyStyle.getPropertyValue('--wheel-web').trim()
 
-    if (segments.length === 0) {
-      ctx.beginPath()
-      ctx.arc(c, c, r, 0, 2 * Math.PI)
-      ctx.fillStyle = '#1e293b'
-      ctx.fill()
-      ctx.fillStyle = '#94a3b8'
-      ctx.font = `600 42px ${fontFamily}`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText('Adicione opções', c, c - 170)
-      return
-    }
+    const draw = (lift: number) => {
+      ctx.clearRect(0, 0, SIZE, SIZE)
 
-    const n = segments.length
-    const slice = (2 * Math.PI) / n
-    const start = (i: number) => -Math.PI / 2 + i * slice
-    const wedge = (i: number) => {
-      ctx.beginPath()
-      ctx.moveTo(c, c)
-      ctx.arc(c, c, r, start(i), start(i) + slice)
-      ctx.closePath()
-    }
+      if (segments.length === 0) {
+        ctx.beginPath()
+        ctx.arc(c, c, r, 0, 2 * Math.PI)
+        ctx.fillStyle = '#1e293b'
+        ctx.fill()
+        ctx.fillStyle = '#94a3b8'
+        ctx.font = `600 42px ${fontFamily}`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('Adicione opções', c, c - 170)
+        return
+      }
 
-    // Fatias
-    segments.forEach((option, i) => {
-      wedge(i)
-      ctx.fillStyle = option.color
-      ctx.fill()
-    })
-
-    // Sombreamento para dar profundidade
-    const shade = ctx.createRadialGradient(c, c, hub, c, c, r)
-    shade.addColorStop(0, 'rgba(0,0,0,0.25)')
-    shade.addColorStop(0.35, 'rgba(0,0,0,0.05)')
-    shade.addColorStop(0.7, 'rgba(255,255,255,0.08)')
-    shade.addColorStop(0.93, 'rgba(0,0,0,0)')
-    shade.addColorStop(1, 'rgba(0,0,0,0.3)')
-    ctx.beginPath()
-    ctx.arc(c, c, r, 0, 2 * Math.PI)
-    ctx.fillStyle = shade
-    ctx.fill()
-
-    // Divisórias
-    if (n > 1) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.6)'
-      ctx.lineWidth = line(n > 40 ? 1.5 : 3)
-      for (let i = 0; i < n; i++) {
+      const n = segments.length
+      const slice = (2 * Math.PI) / n
+      const start = (i: number) => -Math.PI / 2 + i * slice
+      const wedge = (i: number) => {
         ctx.beginPath()
         ctx.moveTo(c, c)
-        ctx.lineTo(c + r * Math.cos(start(i)), c + r * Math.sin(start(i)))
-        ctx.stroke()
+        ctx.arc(c, c, r, start(i), start(i) + slice)
+        ctx.closePath()
       }
-    }
+      const lifted =
+        hoverIndex !== null && hoverIndex < n && !isSpinning && n > 1
+          ? hoverIndex
+          : null
 
-    // Teia por cima das fatias (tema Homem-Aranha): anéis que cedem entre
-    // uma divisória e outra, como fios de teia
-    const webColor = bodyStyle.getPropertyValue('--wheel-web').trim()
-    if (webColor) {
-      const spokes = Math.max(n, 8)
-      const step = (2 * Math.PI) / spokes
-      ctx.strokeStyle = webColor
-      ctx.lineWidth = line(2.5)
-      if (n < 8) {
-        for (let i = 0; i < spokes; i++) {
-          const a = -Math.PI / 2 + i * step
+      // Fatias
+      segments.forEach((option, i) => {
+        wedge(i)
+        ctx.fillStyle = option.color
+        ctx.fill()
+      })
+
+      // Sombreamento para dar profundidade
+      const shade = ctx.createRadialGradient(c, c, hub, c, c, r)
+      shade.addColorStop(0, 'rgba(0,0,0,0.25)')
+      shade.addColorStop(0.35, 'rgba(0,0,0,0.05)')
+      shade.addColorStop(0.7, 'rgba(255,255,255,0.08)')
+      shade.addColorStop(0.93, 'rgba(0,0,0,0)')
+      shade.addColorStop(1, 'rgba(0,0,0,0.3)')
+      ctx.beginPath()
+      ctx.arc(c, c, r, 0, 2 * Math.PI)
+      ctx.fillStyle = shade
+      ctx.fill()
+
+      // Divisórias
+      if (n > 1) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)'
+        ctx.lineWidth = line(n > 40 ? 1.5 : 3)
+        for (let i = 0; i < n; i++) {
           ctx.beginPath()
           ctx.moveTo(c, c)
-          ctx.lineTo(c + r * Math.cos(a), c + r * Math.sin(a))
+          ctx.lineTo(c + r * Math.cos(start(i)), c + r * Math.sin(start(i)))
           ctx.stroke()
         }
       }
-      for (let k = 1; k <= 5; k++) {
-        const ring = hub + ((r - hub) * k) / 5.4
-        ctx.beginPath()
-        for (let i = 0; i <= spokes; i++) {
-          const a = -Math.PI / 2 + i * step
-          const x = c + ring * Math.cos(a)
-          const y = c + ring * Math.sin(a)
-          if (i === 0) {
-            ctx.moveTo(x, y)
-          } else {
-            const mid = a - step / 2
-            ctx.quadraticCurveTo(
-              c + ring * 0.9 * Math.cos(mid),
-              c + ring * 0.9 * Math.sin(mid),
-              x,
-              y,
-            )
+
+      // Teia por cima das fatias (tema Homem-Aranha): anéis que cedem entre
+      // uma divisória e outra, como fios de teia
+      if (webColor) {
+        const spokes = Math.max(n, 8)
+        const step = (2 * Math.PI) / spokes
+        ctx.strokeStyle = webColor
+        ctx.lineWidth = line(2.5)
+        if (n < 8) {
+          for (let i = 0; i < spokes; i++) {
+            const a = -Math.PI / 2 + i * step
+            ctx.beginPath()
+            ctx.moveTo(c, c)
+            ctx.lineTo(c + r * Math.cos(a), c + r * Math.sin(a))
+            ctx.stroke()
           }
         }
+        for (let k = 1; k <= 5; k++) {
+          const ring = hub + ((r - hub) * k) / 5.4
+          ctx.beginPath()
+          for (let i = 0; i <= spokes; i++) {
+            const a = -Math.PI / 2 + i * step
+            const x = c + ring * Math.cos(a)
+            const y = c + ring * Math.sin(a)
+            if (i === 0) {
+              ctx.moveTo(x, y)
+            } else {
+              const mid = a - step / 2
+              ctx.quadraticCurveTo(
+                c + ring * 0.9 * Math.cos(mid),
+                c + ring * 0.9 * Math.sin(mid),
+                x,
+                y,
+              )
+            }
+          }
+          ctx.stroke()
+        }
+      }
+
+      // Destaque da fatia vencedora
+      const highlight = highlightIndex !== null && n > 1 ? highlightIndex : null
+      if (highlight !== null) {
+        ctx.fillStyle = 'rgba(2,6,23,0.62)'
+        for (let i = 0; i < n; i++) {
+          if (i === highlight) continue
+          wedge(i)
+          ctx.fill()
+        }
+        wedge(highlight)
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = 8
+        ctx.lineJoin = 'round'
         ctx.stroke()
       }
-    }
 
-    // Destaque da fatia vencedora
-    const highlight = highlightIndex !== null && n > 1 ? highlightIndex : null
-    if (highlight !== null) {
-      ctx.fillStyle = 'rgba(2,6,23,0.62)'
-      for (let i = 0; i < n; i++) {
-        if (i === highlight) continue
-        wedge(i)
-        ctx.fill()
+      // Textos
+      const fontSize = Math.max(16, Math.min(46, slice * r * 0.32)) * fontScale
+      const maxWidth = r - hub - 70
+      ctx.font = `700 ${fontSize}px ${fontFamily}`
+      if (
+        document.fonts &&
+        !fontsRequested.current.has(ctx.font) &&
+        !document.fonts.check(ctx.font)
+      ) {
+        fontsRequested.current.add(ctx.font)
+        document.fonts.load(ctx.font).then(() => setFontTick((t) => t + 1))
       }
-      wedge(highlight)
-      ctx.strokeStyle = '#ffffff'
-      ctx.lineWidth = 8
-      ctx.lineJoin = 'round'
-      ctx.stroke()
+      ctx.textAlign = 'right'
+      ctx.textBaseline = 'middle'
+      const label = (option: RouletteOption, i: number, alpha: number) => {
+        ctx.save()
+        ctx.translate(c, c)
+        ctx.rotate(start(i) + slice / 2)
+        ctx.globalAlpha = alpha
+        const color = contrastText(option.color)
+        ctx.fillStyle = color
+        ctx.shadowColor =
+          color === '#ffffff' ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.3)'
+        ctx.shadowBlur = 6
+        ctx.fillText(ellipsize(ctx, option.text, maxWidth), r - 40, 2)
+        ctx.restore()
+      }
+      segments.forEach((option, i) => {
+        if (i === lifted) return
+        label(option, i, highlight !== null && i !== highlight ? 0.4 : 1)
+      })
+
+      // Fatia em foco: "levanta" para fora com sombra, deixando uma
+      // cavidade escura no lugar de onde saiu
+      if (lifted !== null) {
+        wedge(lifted)
+        ctx.fillStyle = `rgba(0,0,0,${0.5 * lift})`
+        ctx.fill()
+
+        const mid = start(lifted) + slice / 2
+        const distance = LIFT_DISTANCE * lift
+        const grow = 1 + 0.05 * lift
+        ctx.save()
+        ctx.translate(
+          c + Math.cos(mid) * distance,
+          c + Math.sin(mid) * distance,
+        )
+        ctx.scale(grow, grow)
+        ctx.translate(-c, -c)
+        ctx.shadowColor = `rgba(0,0,0,${0.55 * lift})`
+        ctx.shadowBlur = 36 * lift
+        ctx.shadowOffsetX = Math.cos(mid) * 10 * lift
+        ctx.shadowOffsetY = Math.sin(mid) * 10 * lift
+        wedge(lifted)
+        ctx.fillStyle = segments[lifted].color
+        ctx.fill()
+        ctx.shadowColor = 'transparent'
+        ctx.fillStyle = `rgba(255,255,255,${0.16 * lift})`
+        ctx.fill()
+        ctx.strokeStyle = `rgba(255,255,255,${0.95 * lift})`
+        ctx.lineWidth = line(5)
+        ctx.lineJoin = 'round'
+        ctx.stroke()
+        label(segments[lifted], lifted, 1)
+        ctx.restore()
+      }
     }
 
-    // Fatia sob o cursor
-    if (hoverIndex !== null && hoverIndex < n && !isSpinning) {
-      wedge(hoverIndex)
-      ctx.fillStyle = 'rgba(255,255,255,0.18)'
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(255,255,255,0.9)'
-      ctx.lineWidth = 5
-      ctx.lineJoin = 'round'
-      ctx.stroke()
+    // Anima a subida da fatia em foco (~150 ms, desacelerando)
+    if (hoverIndex === null || isSpinning) {
+      draw(0)
+      return
     }
-
-    // Textos
-    const fontSize = Math.max(16, Math.min(46, slice * r * 0.32)) * fontScale
-    const maxWidth = r - hub - 70
-    ctx.font = `700 ${fontSize}px ${fontFamily}`
-    if (
-      document.fonts &&
-      !fontsRequested.current.has(ctx.font) &&
-      !document.fonts.check(ctx.font)
-    ) {
-      fontsRequested.current.add(ctx.font)
-      document.fonts.load(ctx.font).then(() => setFontTick((t) => t + 1))
+    let raf = 0
+    const startedAt = performance.now()
+    const step = (now: number) => {
+      const t = Math.min(1, (now - startedAt) / 150)
+      draw(1 - Math.pow(1 - t, 3))
+      if (t < 1) raf = requestAnimationFrame(step)
     }
-    ctx.textAlign = 'right'
-    ctx.textBaseline = 'middle'
-    segments.forEach((option, i) => {
-      ctx.save()
-      ctx.translate(c, c)
-      ctx.rotate(start(i) + slice / 2)
-      ctx.globalAlpha = highlight !== null && i !== highlight ? 0.4 : 1
-      const color = contrastText(option.color)
-      ctx.fillStyle = color
-      ctx.shadowColor =
-        color === '#ffffff' ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.3)'
-      ctx.shadowBlur = 6
-      ctx.fillText(ellipsize(ctx, option.text, maxWidth), r - 40, 2)
-      ctx.restore()
-    })
+    draw(0)
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
   }, [segments, highlightIndex, hoverIndex, isSpinning, fontsReady, fontTick])
 
   return (
