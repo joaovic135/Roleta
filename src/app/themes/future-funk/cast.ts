@@ -1,11 +1,10 @@
-// Personagens em primeiro plano, desenhados à mão em cel-shading de anime
-// dos anos 80: cor chapada, uma sombra de borda dura, um brilho e traço de
+// Elenco em primeiro plano, desenhado à mão em cel-shading de anime dos
+// anos 80: cor chapada, uma sombra de borda dura, um brilho e traço de
 // nanquim. Só dados (paths); o Scene.tsx monta os SVGs.
 //
-// A garota olha para a direita (para a roleta), de olhos fechados, ouvindo
-// música; o vento vem da direita e leva o cabelo para trás. Cada mecha que
-// balança é um <svg> próprio, recortado pela caixa dela, girando em volta da
-// raiz (o pivô), para o navegador só compor a camada.
+// Peças que se mexem (cones das caixas, carretéis, folhas) são um <svg>
+// próprio recortado pela sua caixa, girando ou escalando em volta do pivô,
+// para o navegador só compor a camada.
 
 export interface Shape {
   d: string
@@ -18,7 +17,7 @@ export interface Shape {
 }
 
 export interface Part {
-  // caixa no sistema da personagem: x, y, largura, altura
+  // caixa no sistema da peça: x, y, largura, altura
   box: [number, number, number, number]
   // ponto em volta do qual a peça gira
   pivot: [number, number]
@@ -27,16 +26,8 @@ export interface Part {
 
 export const INK = '#2b1055'
 const HAIR = '#4d2b93'
-const HAIR_D = '#33196e'
-const HAIR_L = '#8d67e0'
-const HAIR_S = '#ff9ad2'
 const SKIN = '#ffe7d8'
-const SKIN_D = '#f7b5ae'
-const BLUSH = '#ff6fa8'
-const JACKET = '#96f0ff'
-const JACKET_D = '#52c3e3'
 const LINING = '#ff8fd0'
-const LINING_D = '#e2559f'
 const PINK = '#ff4fa3'
 const PINK_D = '#d42a80'
 const YELLOW = '#ffe14d'
@@ -44,94 +35,19 @@ const CREAM = '#fff6c4'
 const CYAN_FRINGE = '#3fe9ff'
 const PINK_FRINGE = '#ff3d9a'
 
-// ============ Garota (caixa 360×560) ============
-export const GIRL_W = 360
-export const GIRL_H = 560
+// ============ Boombox em cima de um engradado (caixa 360×560) ============
+export const BOX_W = 360
+export const BOX_H = 560
 
 // franja de aberração cromática: a mesma forma deslocada em ciano/magenta
 const fringe = (d: string, k = 5): Shape[] => [
   { d, fill: CYAN_FRINGE, o: 0.55, dx: -k },
   { d, fill: PINK_FRINGE, o: 0.5, dx: k },
 ]
-
-// --- mechas ao vento (atrás de tudo) ---
-const LOCK_A =
-  'M152 62C122 50 88 52 58 62C36 70 12 68 -16 56C0 70 14 76 30 80C14 86 -4 88 -26 84C0 98 36 102 64 98C88 96 104 104 114 118Z'
-const LOCK_B =
-  'M102 118C76 116 48 122 20 132C2 138 -18 138 -38 130C-20 146 -4 152 10 156C-6 164 -24 168 -42 166C-14 184 22 182 48 178C70 176 86 184 96 200Z'
-const LOCK_C =
-  'M86 198C72 230 52 254 28 270C12 280 -6 284 -26 290C-10 300 4 304 16 306C0 318 -14 330 -30 344C0 342 30 330 54 324C78 318 98 322 112 334Z'
-const SIDE_LOCK =
-  'M200 148C194 190 194 236 198 274C200 300 196 320 186 340C204 326 210 300 208 272C206 232 206 192 210 154Z'
-
-const lockShapes = (d: string, shade: string, shine: string): Shape[] => [
-  ...fringe(d, 4),
-  { d, fill: HAIR, stroke: INK, w: 3.5 },
-  { d: shade, fill: HAIR_D },
-  { d: shine, stroke: HAIR_L, w: 3 },
-  { d, stroke: INK, w: 3.5 },
-]
-
-export const GIRL_LOCKS: Part[] = [
-  {
-    box: [-34, 44, 194, 82],
-    pivot: [128, 88],
-    shapes: lockShapes(
-      LOCK_A,
-      'M114 118C104 104 88 96 64 98C36 102 0 98 -26 84C4 84 30 84 56 86C84 88 104 98 114 118Z',
-      'M140 64C112 58 84 60 58 68C40 74 22 74 4 70',
-    ),
-  },
-  {
-    box: [-50, 110, 156, 96],
-    pivot: [96, 152],
-    shapes: lockShapes(
-      LOCK_B,
-      'M96 200C86 184 70 176 48 178C22 182 -14 184 -42 166C-10 170 20 168 46 166C70 166 88 178 96 200Z',
-      'M92 124C66 124 42 130 18 140C4 145 -10 146 -24 144',
-    ),
-  },
-  {
-    box: [-38, 190, 158, 162],
-    pivot: [100, 264],
-    shapes: lockShapes(
-      LOCK_C,
-      'M112 334C98 322 78 318 54 324C30 330 0 342 -30 344C2 330 32 316 60 310C84 306 100 316 112 334Z',
-      'M80 224C66 250 46 270 24 284C12 292 0 296 -12 298',
-    ),
-  },
-]
-
-export const GIRL_SIDE_LOCK: Part = {
-  box: [178, 142, 40, 206],
-  pivot: [205, 154],
-  shapes: [
-    { d: SIDE_LOCK, fill: HAIR, stroke: INK, w: 3 },
-    {
-      d: 'M205 162C203 200 204 238 206 270C207 294 202 316 192 334C200 314 201 294 199 272C197 236 197 200 205 162Z',
-      fill: HAIR_D,
-    },
-  ],
-}
-
-// --- base parada: cabelo de trás, pescoço, rosto, franja, fone, jaqueta ---
-const HAIR_MASS =
-  'M290 156C296 116 272 72 226 60C186 48 138 56 110 84C84 110 74 152 76 198C78 252 90 302 106 342C118 374 150 394 184 398L202 330C188 300 176 270 170 244Z'
-const FACE =
-  'M178 150C196 118 236 108 262 124C276 134 282 150 280 168C279 178 276 186 278 194C282 204 288 210 292 218C288 224 282 225 280 226C283 232 285 236 283 240C280 242 279 244 282 247C283 252 281 256 278 258C277 266 274 272 266 278C254 286 236 286 220 280C204 272 190 258 180 242C172 222 170 180 178 150Z'
-const NECK = 'M194 246L190 372L270 372L256 274C244 284 222 284 206 272Z'
-const BANGS =
-  'M168 156C172 104 214 76 256 84C284 90 302 116 296 152Q292 166 286 184Q280 166 274 152Q272 174 264 196Q258 168 250 150Q246 170 236 188Q232 162 226 146Q220 162 210 178Q206 158 200 146Q194 158 186 168Q186 152 182 140Z'
-const CUP = 'M136 216a34 34 0 1 0 68 0a34 34 0 1 0 -68 0Z'
-const JACKET_L =
-  'M200 338C170 348 122 354 86 370C52 384 30 418 26 468L20 560L200 560L214 404Z'
-const JACKET_R =
-  'M260 338C284 350 300 358 316 368C342 384 356 420 358 470L360 560L262 560L246 404Z'
-const COLLAR_L =
-  'M200 336C188 324 178 312 166 302C158 324 164 354 182 374L214 406L224 392Z'
-const COLLAR_R =
-  'M260 336C272 324 282 312 294 302C302 324 296 354 278 374L246 406L236 392Z'
-
+const ring = (x: number, y: number, r: number) =>
+  `M${x - r} ${y}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0Z`
+const rr = (x: number, y: number, w: number, h: number, r: number) =>
+  `M${x + r} ${y}H${x + w - r}Q${x + w} ${y} ${x + w} ${y + r}V${y + h - r}Q${x + w} ${y + h} ${x + w - r} ${y + h}H${x + r}Q${x} ${y + h} ${x} ${y + h - r}V${y + r}Q${x} ${y} ${x + r} ${y}Z`
 const heart = (x: number, y: number, s: number) =>
   `M${x} ${y + s * 0.9}C${x - s * 0.6} ${y + s * 0.45} ${x - s} ${y + s * 0.1} ${x - s} ${y - s * 0.3}A${s * 0.5} ${s * 0.5} 0 0 1 ${x} ${y - s * 0.45}A${s * 0.5} ${s * 0.5} 0 0 1 ${x + s} ${y - s * 0.3}C${x + s} ${y + s * 0.1} ${x + s * 0.6} ${y + s * 0.45} ${x} ${y + s * 0.9}Z`
 const star = (x: number, y: number, r: number) => {
@@ -144,161 +60,133 @@ const star = (x: number, y: number, r: number) => {
   return d + 'Z'
 }
 
-export const GIRL_BASE: Shape[] = [
-  // franjas do VHS atrás da silhueta (aparecem só na borda)
-  ...fringe(HAIR_MASS),
-  ...fringe(JACKET_L + JACKET_R),
-  ...fringe(BANGS),
-  // cabelo de trás: base, sombra de baixo, brilho rosa na nuca
-  { d: HAIR_MASS, fill: HAIR, stroke: INK, w: 4 },
+const BODY = rr(8, 80, 344, 232, 28)
+const HANDLE = 'M84 82V50Q84 30 104 30H256Q276 30 276 50V82'
+const ANTENNA = 'M300 80L346 12'
+// centros dos alto-falantes e dos carretéis da fita
+export const SPK: [number, number][] = [
+  [74, 212],
+  [286, 212],
+]
+export const REEL: [number, number][] = [
+  [160, 130],
+  [200, 130],
+]
+
+const CRATE = rr(22, 318, 316, 260, 14)
+const CRATE_HOLES = [0, 1, 2]
+  .flatMap((r) =>
+    [0, 1, 2, 3, 4].map((c) => rr(46 + c * 56, 392 + r * 52, 38, 34, 8)),
+  )
+  .join('')
+
+export const BOX_BASE: Shape[] = [
+  // engradado de plástico com discos (embaixo do rádio)
+  ...fringe(CRATE),
+  { d: 'M48 322L70 250L120 250L108 322Z', fill: YELLOW, stroke: INK, w: 3.5 },
   {
-    d: 'M78 198C80 252 92 300 108 340C120 372 150 392 184 398L202 330C188 300 176 270 170 246C140 252 108 236 78 198Z',
-    fill: HAIR_D,
-  },
-  {
-    d: 'M112 90C130 70 162 58 196 54C166 66 138 82 120 106Z',
-    fill: HAIR_S,
-  },
-  { d: 'M92 150C88 196 94 246 112 296', stroke: HAIR_L, w: 3 },
-  // fio do fone descendo até o walkman (fora da tela)
-  {
-    d: 'M166 250C150 300 178 330 160 382C146 424 118 474 128 566',
+    d: 'M250 322L262 236L318 244L306 322Z',
+    fill: '#7ff3ff',
     stroke: INK,
-    w: 8,
+    w: 3.5,
   },
+  { d: ring(285, 270, 14), fill: INK },
+  { d: CRATE, fill: '#9b7bff', stroke: INK, w: 5 },
+  { d: 'M24 520H336V564Q336 576 322 576H38Q24 576 24 564Z', fill: '#6f4fd8' },
+  { d: rr(130, 334, 100, 24, 12), fill: INK },
+  { d: CRATE_HOLES, fill: '#5a3cbf', stroke: INK, w: 2.5 },
+  { d: 'M40 332H120', stroke: '#ffffff', w: 2.6, o: 0.6 },
+  { d: star(310, 540, 14), fill: YELLOW, stroke: INK, w: 2.5 },
+  ...fringe(BODY),
+  // antena cromada com bolinha rosa
+  { d: ANTENNA, stroke: INK, w: 8 },
+  { d: ANTENNA, stroke: '#e9e4ff', w: 3.5 },
+  { d: ring(346, 12, 7), fill: PINK, stroke: INK, w: 3 },
+  // alça
+  { d: HANDLE, stroke: INK, w: 17 },
+  { d: HANDLE, stroke: '#c9b8ff', w: 9 },
+  { d: 'M100 38H240', stroke: '#ffffff', w: 2.6, o: 0.8 },
+  { d: rr(68, 64, 32, 26, 7), fill: YELLOW, stroke: INK, w: 3.5 },
+  { d: rr(260, 64, 32, 26, 7), fill: YELLOW, stroke: INK, w: 3.5 },
+  // teclas do toca-fitas no alto
+  { d: rr(132, 66, 18, 18, 4), fill: '#7ff3ff', stroke: INK, w: 3 },
+  { d: rr(154, 66, 18, 18, 4), fill: '#ffffff', stroke: INK, w: 3 },
+  { d: rr(176, 66, 18, 18, 4), fill: YELLOW, stroke: INK, w: 3 },
+  { d: rr(198, 66, 18, 18, 4), fill: '#ffffff', stroke: INK, w: 3 },
+  // corpo: base, sombra dura embaixo, brilho em cima
+  { d: BODY, fill: PINK, stroke: INK, w: 5 },
+  { d: 'M10 266H350V284Q350 310 324 310H36Q10 310 10 284Z', fill: PINK_D },
+  { d: 'M40 92H320', stroke: '#ffffff', w: 3, o: 0.75 },
+  { d: 'M20 120V250', stroke: '#ffffff', w: 2.4, o: 0.45 },
+  // tampa da fita com janela
+  { d: rr(128, 98, 104, 66, 10), fill: CREAM, stroke: INK, w: 4 },
+  { d: rr(140, 112, 80, 36, 8), fill: '#3a1670', stroke: INK, w: 3 },
+  { d: rr(148, 104, 64, 5, 2.5), fill: PINK },
+  // dial do rádio (o LED acende por cima)
+  { d: rr(128, 172, 104, 28, 8), fill: INK },
   {
-    d: 'M166 250C150 300 178 330 160 382C146 424 118 474 128 566',
-    stroke: YELLOW,
-    w: 4,
-  },
-  // pescoço com a sombra do queixo
-  { d: NECK, fill: SKIN, stroke: INK, w: 3.5 },
-  {
-    d: 'M196 250L193 304C214 312 240 306 260 296L256 274C244 284 222 284 206 272Z',
-    fill: SKIN_D,
-  },
-  // camiseta, jaqueta oversized de ombreira e gola levantada
-  { d: 'M194 334L268 334L266 566L196 566Z', fill: CREAM, stroke: INK, w: 3 },
-  { d: 'M198 440L264 440L264 458L198 458Z', fill: LINING },
-  { d: heart(231, 488, 12), fill: PINK, stroke: INK, w: 2 },
-  { d: JACKET_L, fill: JACKET, stroke: INK, w: 4 },
-  { d: JACKET_R, fill: JACKET, stroke: INK, w: 4 },
-  {
-    d: 'M86 370C52 384 30 418 26 468L20 560L112 560C108 500 114 440 138 398C118 392 100 382 86 370Z',
-    fill: JACKET_D,
-  },
-  {
-    d: 'M246 404L262 560L300 560C292 500 284 450 270 412Z',
-    fill: JACKET_D,
-  },
-  {
-    d: 'M300 366C324 378 342 398 352 426C340 406 322 392 296 380Z',
-    fill: '#ffffff',
-  },
-  { d: 'M150 410C142 440 140 480 144 520', stroke: INK, w: 2.4 },
-  { d: 'M318 420C326 452 330 490 330 530', stroke: INK, w: 2.4 },
-  { d: COLLAR_L, fill: LINING, stroke: INK, w: 3.5 },
-  { d: COLLAR_R, fill: LINING, stroke: INK, w: 3.5 },
-  {
-    d: 'M170 312C168 334 176 356 190 370L206 386C196 368 184 344 170 312Z',
-    fill: LINING_D,
-  },
-  // broche de estrela na lapela
-  { d: star(92, 452, 17), fill: YELLOW, stroke: INK, w: 2.6 },
-  { d: star(92, 452, 7), fill: '#ffffff' },
-  // rosto: pele, sombra da franja na testa
-  { d: FACE, fill: SKIN, stroke: INK, w: 3.5 },
-  {
-    d: 'M182 168Q196 160 210 186Q222 168 236 196Q248 176 264 204Q272 182 284 192L282 160L180 146Z',
-    fill: SKIN_D,
-  },
-  // bochecha corada, boca, nariz
-  { d: 'M236 233a15 6.5 0 1 0 30 0a15 6.5 0 1 0 -30 0Z', fill: BLUSH, o: 0.5 },
-  {
-    d: 'M240 238L246 229M248 239L254 230M256 240L262 231',
-    stroke: '#ff3d8b',
+    d: 'M140 180V186M152 180V192M164 180V186M176 180V192M188 180V186M200 180V192M212 180V186M224 180V192',
+    stroke: '#7ff3ff',
     w: 2,
+    o: 0.8,
   },
-  { d: 'M271 247Q277 251 282 247', stroke: INK, w: 2.4 },
-  { d: 'M280 221L285 222', stroke: INK, w: 1.8 },
-  // olho fechado (curtindo a música): sobrancelha, pálpebra, cílios
-  { d: 'M232 186Q247 178 263 183', stroke: INK, w: 3 },
-  { d: 'M228 207Q244 218 261 206', stroke: INK, w: 4 },
-  { d: 'M229 207L219 201M232 211L222 213', stroke: INK, w: 3 },
-  // franja pontuda por cima, com o anel de brilho
-  { d: BANGS, fill: HAIR, stroke: INK, w: 3.5 },
+  { d: 'M190 176V197', stroke: YELLOW, w: 3 },
+  // grade entre as caixas e os botões giratórios
   {
-    d: 'M300 150Q296 168 286 184Q284 170 280 160Q290 158 300 150Z',
-    fill: HAIR_D,
-  },
-  {
-    d: 'M188 112Q220 90 256 94Q280 98 292 116L284 120L276 108L268 120L258 106L248 118L238 104L226 116L216 102L204 114Z',
-    fill: HAIR_L,
-  },
-  { d: 'M214 98Q236 90 258 96', stroke: '#ffffff', w: 2.6, o: 0.8 },
-  // fone: arco amarelo, concha rosa com coração (o LED brilha por cima)
-  {
-    d: 'M168 190C160 142 170 98 200 72C214 62 228 56 246 54',
+    d: 'M140 214H220M140 226H220M140 238H220M140 250H220',
     stroke: INK,
-    w: 15,
+    w: 3.5,
   },
-  {
-    d: 'M168 190C160 142 170 98 200 72C214 62 228 56 246 54',
-    stroke: YELLOW,
-    w: 9,
-  },
-  { d: 'M170 150C170 120 180 100 196 86', stroke: '#ffffff', w: 2.4, o: 0.8 },
-  { d: 'M160 176L176 176L178 200L162 200Z', fill: PINK, stroke: INK, w: 3 },
-  { d: CUP, fill: PINK, stroke: INK, w: 4 },
-  { d: 'M140 230A34 34 0 0 0 196 240A30 30 0 0 1 140 230Z', fill: PINK_D },
-  { d: 'M148 194A30 30 0 0 1 192 196', stroke: '#ffffff', w: 3, o: 0.7 },
-  {
-    d: 'M149 216a21 21 0 1 0 42 0a21 21 0 1 0 -42 0Z',
-    fill: YELLOW,
-    stroke: INK,
-    w: 3,
-  },
-  { d: heart(170, 217, 10), fill: '#ff2e93' },
+  { d: ring(146, 286, 9), fill: CREAM, stroke: INK, w: 3 },
+  { d: ring(214, 286, 9), fill: CREAM, stroke: INK, w: 3 },
+  // aros dos alto-falantes
+  ...SPK.flatMap(([x, y]): Shape[] => [
+    { d: ring(x, y, 62), fill: CREAM, stroke: INK, w: 5 },
+    { d: ring(x, y, 52), fill: '#3a1670', stroke: INK, w: 3 },
+  ]),
+  // adesivos
+  { d: heart(334, 290, 13), fill: YELLOW, stroke: INK, w: 3 },
+  { d: star(28, 98, 12), fill: '#7ff3ff', stroke: INK, w: 2.5 },
 ]
 
-// olho aberto com brilho (piscadela dos eventos e da vitória)
-export const GIRL_EYE: Shape[] = [
-  { d: 'M224 206a22 14 0 1 0 44 0a22 14 0 1 0 -44 0Z', fill: SKIN },
-  {
-    d: 'M228 205Q236 190 254 190Q264 192 265 201Q263 214 255 220Q239 223 230 214Z',
-    fill: '#ffffff',
-  },
-  { d: 'M240 205a10 13 0 1 0 20 0a10 13 0 1 0 -20 0Z', fill: HAIR },
-  { d: 'M240 206A10 13 0 0 0 260 206Z', fill: '#c65ddd' },
-  { d: 'M246 204a4.5 6 0 1 0 9 0a4.5 6 0 1 0 -9 0Z', fill: '#1d0b33' },
-  { d: 'M240.5 198a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0 -9 0Z', fill: '#ffffff' },
-  { d: 'M252 213a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0Z', fill: '#ffffff' },
-  { d: 'M225 204Q236 186 256 187Q266 189 267 198', stroke: INK, w: 4.5 },
-  { d: 'M227 204L216 197M229 209L219 210', stroke: INK, w: 3 },
-  { d: 'M234 221Q246 225 257 220', stroke: INK, w: 1.8 },
-]
+// cone que pulsa no ritmo (um <svg> por caixa, escala em volta do centro)
+export const cone = ([x, y]: [number, number]): Part => ({
+  box: [x - 48, y - 48, 96, 96],
+  pivot: [x, y],
+  shapes: [
+    { d: ring(x, y, 44), fill: '#6b3fc4', stroke: INK, w: 3 },
+    { d: ring(x, y, 31), fill: LINING, stroke: INK, w: 2.5 },
+    { d: ring(x, y, 14), fill: YELLOW, stroke: INK, w: 3 },
+    {
+      d: `M${x - 30} ${y - 20}A36 36 0 0 1 ${x - 6} ${y - 36}`,
+      stroke: '#ffffff',
+      w: 3,
+      o: 0.7,
+    },
+  ],
+})
 
-// noite: a silhueta escurece e ganha luz de borda do neon da cidade
-export const GIRL_NIGHT: Shape[] = [
-  { d: HAIR_MASS + FACE + NECK + BANGS + CUP, fill: '#3a0d78', o: 0.28 },
-  {
-    d: 'M194 334L268 334L266 566L196 566Z' + JACKET_L + JACKET_R,
-    fill: '#2c0b62',
-    o: 0.4,
-  },
-  { d: COLLAR_L + COLLAR_R, fill: '#3a0d78', o: 0.32 },
-  {
-    d: 'M262 124C276 134 282 150 280 168C279 178 276 186 278 194C282 204 288 210 292 218',
-    stroke: '#7ff3ff',
-    w: 3,
-  },
-  {
-    d: 'M283 240C280 242 279 244 282 247C283 252 281 256 278 258C277 266 274 272 266 278',
-    stroke: '#7ff3ff',
-    w: 3,
-  },
-  { d: 'M316 368C342 384 356 420 358 470', stroke: '#7ff3ff', w: 4 },
-  { d: 'M110 84C84 110 74 152 76 198', stroke: HAIR_S, w: 4 },
+// carretel da fita (gira)
+export const reel = ([x, y]: [number, number]): Part => ({
+  box: [x - 13, y - 13, 26, 26],
+  pivot: [x, y],
+  shapes: [
+    { d: ring(x, y, 11), fill: '#ffffff', stroke: INK, w: 2.5 },
+    {
+      d: `M${x} ${y - 8}V${y + 8}M${x - 7} ${y - 4}L${x + 7} ${y + 4}M${x - 7} ${y + 4}L${x + 7} ${y - 4}`,
+      stroke: INK,
+      w: 2.5,
+    },
+  ],
+})
+
+// noite: o rádio escurece e ganha luz de borda do neon da cidade
+export const BOX_NIGHT: Shape[] = [
+  { d: BODY + HANDLE + CRATE, fill: '#3a0d78', o: 0.3 },
+  { d: 'M338 340V560', stroke: '#7ff3ff', w: 3.5 },
+  { d: 'M352 110V280', stroke: '#7ff3ff', w: 3.5 },
+  { d: 'M276 50V82', stroke: '#7ff3ff', w: 3 },
+  { d: 'M300 80L346 12', stroke: '#ff8fd0', w: 2 },
 ]
 
 // ============ Coqueiro (caixa 320×600), silhueta com luz de borda ============

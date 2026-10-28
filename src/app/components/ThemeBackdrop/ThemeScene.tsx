@@ -52,9 +52,6 @@ const SCENES: Record<string, ComponentType> = {
   'neon-noir': dynamic(() => import('@/app/themes/neon-noir/Scene'), {
     ssr: false,
   }),
-  'alto-contraste': dynamic(() => import('@/app/themes/alto-contraste/Scene'), {
-    ssr: false,
-  }),
 }
 
 const currentTheme = () => document.documentElement.dataset.theme ?? ''

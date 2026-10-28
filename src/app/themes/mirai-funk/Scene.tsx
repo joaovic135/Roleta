@@ -360,7 +360,7 @@ export default function MiraiFunkScene() {
 
       {/* girando: linhas de concentração em volta da roleta */}
       <div className="mf-lines">
-        <svg viewBox="-1000 -1000 2000 2000">
+        <svg className="mf-lines-art" viewBox="-1000 -1000 2000 2000">
           <path d={SPEED_LINES} />
         </svg>
       </div>
@@ -394,8 +394,8 @@ export default function MiraiFunkScene() {
 
       {/* vencedor: anéis e fogos na cor vencedora, clarão duotone */}
       <div className="mf-win-rings">
-        <i />
-        <i />
+        <i className="mf-win-ring" />
+        <i className="mf-win-ring" />
       </div>
       <Fireworks win />
       <div className="mf-win-glow" />

@@ -38,18 +38,19 @@ import {
   CAR,
   CAR_H,
   CAR_W,
-  GIRL_BASE,
-  GIRL_EYE,
-  GIRL_H,
-  GIRL_LOCKS,
-  GIRL_NIGHT,
-  GIRL_SIDE_LOCK,
-  GIRL_W,
+  BOX_BASE,
+  BOX_H,
+  BOX_NIGHT,
+  BOX_W,
   PALM_BACK,
   PALM_FRONT,
   PALM_H,
   PALM_TRUNK,
   PALM_W,
+  REEL,
+  SPK,
+  cone,
+  reel,
   type Part,
   type Shape,
 } from './cast'
@@ -60,8 +61,8 @@ import {
 // grão, faixa clara rolando, chiado de troca de cabeça no rodapé, tropeços
 // de tracking e o OSD do videocassete ("▶ PLAY" e o contador de fita).
 //
-// Elenco: a garota de fones no canto de baixo à esquerda (olhos fechados,
-// cabelo ao vento, balança no ritmo; abre os olhos de vez em quando), o
+// Elenco: o boombox no canto de baixo à esquerda (cones pulsando no ritmo,
+// fita rodando, notas saindo das caixas), o
 // gatinho preto no telhado, o coqueiro na direita, vinil girando, rajadas
 // de vento com pétalas de cerejeira, fita cassete gigante com
 // carretéis, telão de equalizador, outdoors que rolam palavras, dirigível,
@@ -70,14 +71,14 @@ import {
 //
 // Linha do tempo (ver o cabeçalho do theme.css): dia de 240 s; legendas da
 // música a cada 120 s; tropeço de tracking a cada 37 s; conversível a cada
-// 97 s; trem a cada 30 s; a garota abre os olhos a cada 61 s; rajada de
+// 97 s; trem a cada 30 s; rajada de
 // pétalas a cada 71 s; "◀◀ REW" raro a cada 293 s.
 //
 // Roleta (CSS, html[data-wheel]): girando = modo "▶▶ FF" (OSD piscando,
 // contador disparado, faixas de tracking, telão enlouquecido, vinil e
-// carretéis acelerados, cabelo chicoteando, ela abre os olhos); venceu =
+// carretéis acelerados, caixas no talo); venceu =
 // "☆ SORTE ☆" na cor da fatia, estouro de brilhos e corações, um flash
-// suave e uma piscadela; depois fica só o letreiro aceso, parado.
+// suave e corações saindo do rádio; depois fica só o letreiro aceso, parado.
 //
 // Componente sem estado: tudo é calculado uma vez (art.ts / cast.ts) e
 // anima só transform/opacity em elementos HTML ou no <svg> de fora.
@@ -154,44 +155,42 @@ const NOTE =
 const NOTES2 =
   'M8 6.5l11-3v12.3a3.3 2.7 -20 1 1 -2-2.4V8.3l-7 1.9v8.6a3.3 2.7 -20 1 1 -2-2.4z'
 
-function Girl() {
-  const box = `0 0 ${GIRL_W} ${GIRL_H}`
+const BOX_VIEW = `0 0 ${BOX_W} ${BOX_H}`
+
+function Boombox() {
   return (
     <div
-      className="ff-girl"
+      className="ff-boombox"
       style={{
-        ...at(-20, 440, GIRL_W, GIRL_H),
-        // em telas baixas ela desce: o rosto fica sempre abaixo da coluna
-        // de temas (que termina perto de 560 px)
-        top: 'max(calc(440 * var(--ff-u)), calc(560px - 100vh + 890 * var(--ff-u)))',
+        ...at(-4, 652, BOX_W * 0.62, BOX_H * 0.62),
+        // em telas baixas ele desce: fica sempre abaixo da coluna de temas
+        // (que termina perto de 560 px)
+        top: 'max(calc(652 * var(--ff-u)), calc(560px - 100vh + 1000 * var(--ff-u)))',
       }}
     >
-      <div className="ff-locks">
-        {GIRL_LOCKS.map((p, i) => (
-          <PartSvg
-            key={i}
-            part={p}
-            className={'ff-lock ff-lock-' + i}
-            w={GIRL_W}
-            h={GIRL_H}
-          />
-        ))}
-      </div>
-      <svg className="ff-fill" viewBox={box}>
-        <Shapes list={GIRL_BASE} />
+      <svg className="ff-fill" viewBox={BOX_VIEW}>
+        <Shapes list={BOX_BASE} />
       </svg>
-      <PartSvg
-        part={GIRL_SIDE_LOCK}
-        className="ff-lock ff-lock-s"
-        w={GIRL_W}
-        h={GIRL_H}
-      />
-      <svg className="ff-fill ff-girl-eye" viewBox={box}>
-        <Shapes list={GIRL_EYE} />
-        <path d={sparkle(238, 196, 9)} fill="#ffffff" />
-      </svg>
-      <svg className="ff-fill ff-c ff-cnight" viewBox={box}>
-        <Shapes list={GIRL_NIGHT} />
+      {REEL.map((c, i) => (
+        <PartSvg
+          key={i}
+          part={reel(c)}
+          className="ff-bb-reel"
+          w={BOX_W}
+          h={BOX_H}
+        />
+      ))}
+      {SPK.map((c, i) => (
+        <PartSvg
+          key={i}
+          part={cone(c)}
+          className={'ff-bb-cone ff-bb-cone-' + i}
+          w={BOX_W}
+          h={BOX_H}
+        />
+      ))}
+      <svg className="ff-fill ff-c ff-cnight" viewBox={BOX_VIEW}>
+        <Shapes list={BOX_NIGHT} />
       </svg>
       <span className="ff-led" />
       {[NOTE, NOTES2, NOTE].map((d, i) => (
@@ -207,7 +206,7 @@ function Girl() {
           </svg>
         </span>
       ))}
-      {/* vitória: corações saltando do fone */}
+      {/* vitória: corações saltando do rádio */}
       {[0, 1, 2, 3].map((i) => (
         <span key={i} className={'ff-love ff-love-' + i}>
           <svg viewBox="0 0 24 24">
@@ -593,7 +592,7 @@ function SideView({ side, right }: { side: Side; right: boolean }) {
         <>
           <Vinyl />
           <Cat />
-          <Girl />
+          <Boombox />
         </>
       )}
     </div>

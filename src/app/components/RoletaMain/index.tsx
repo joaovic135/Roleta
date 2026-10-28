@@ -11,6 +11,7 @@ import {
   RANDOM_THEME_ID,
   applyTheme,
   currentRandomTheme,
+  isKnownTheme,
   getTheme,
   rollRandomTheme,
 } from '@/app/utils/themes'
@@ -29,7 +30,6 @@ import { MAX_SPIN_SECONDS, useWheelSound } from '@/app/hooks/useWheelSound'
 import {
   buildSegments,
   createOption,
-  easeOutQuart,
   parseOptionsText,
   random,
   autoSegmentsPerOption,
@@ -37,6 +37,8 @@ import {
   spinTarget,
   uid,
 } from '@/app/utils/wheel'
+import { spinWheel } from '@/app/utils/spinMotion'
+import { pauseSceneAnimations } from '@/app/utils/scenePause'
 
 const DEFAULT_SETTINGS: RouletteSettings = {
   spinTime: 10,
@@ -112,6 +114,9 @@ export function RoletaMain() {
   // resultado é revelado; some ao fechar o modal
   const [celebrating, setCelebrating] = useState(false)
   const [showWinner, setShowWinner] = useState(false)
+  // Vencedor já sorteado no começo do giro: o modal monta escondido com ele,
+  // e abrir é só ligar a animação (nada de montar a árvore no último quadro)
+  const [primedWinner, setPrimedWinner] = useState<RouletteOption | null>(null)
   const [spinRequest, setSpinRequest] = useState(0)
   const [pendingImport, setPendingImport] = useState<RouletteImport | null>(
     null,
@@ -121,7 +126,7 @@ export function RoletaMain() {
   const rotorRef = useRef<HTMLDivElement>(null)
   const pointerRef = useRef<HTMLDivElement>(null)
   const rotationRef = useRef(0)
-  const rafRef = useRef<number | null>(null)
+  const spinRef = useRef<ReturnType<typeof spinWheel> | null>(null)
   const revealTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const cardsRef = useRef<CardTableHandle>(null)
 
@@ -134,7 +139,8 @@ export function RoletaMain() {
   // escolhidas à mão
   // "Aleatório": o tema efetivo é o sorteado neste carregamento (pelo script
   // de boot no layout). Só é lido após montar, como o resto do estado salvo
-  const isRandomTheme = settings.theme === RANDOM_THEME_ID
+  const isRandomTheme =
+    settings.theme === RANDOM_THEME_ID || !isKnownTheme(settings.theme)
   const [randomThemeId, setRandomThemeId] = useState<string | null>(null)
   useEffect(() => {
     if (settingsLoaded && isRandomTheme && !randomThemeId)
@@ -149,21 +155,33 @@ export function RoletaMain() {
   }, [theme.id, themeReady])
 
   // As cenas de fundo reagem à roleta: data-wheel no <html> (girando /
-  // vencedor em destaque) e --win-color com a cor da fatia vencedora
+  // vencedor em destaque) e --win-color com a cor da fatia vencedora.
+  // A cor vai já no começo do giro, junto com data-wheel='spinning': mudar
+  // uma variável no <html> recalcula o estilo da página inteira (40 ms nos
+  // temas pesados), e na parada da roda isso engasgava a entrada do modal.
+  // Nenhum tema mostra a --win-color fora do estado 'won' (conferido em
+  // todos, com a roda girando).
   const wheelPhase = isSpinning ? 'spinning' : celebrating ? 'won' : 'idle'
+  const winColor = (primedWinner ?? winner)?.color
   useEffect(() => {
+    if (winColor)
+      document.documentElement.style.setProperty('--win-color', winColor)
     document.documentElement.dataset.wheel = wheelPhase
-  }, [wheelPhase])
-  useEffect(() => {
-    if (winner)
-      document.documentElement.style.setProperty('--win-color', winner.color)
-  }, [winner])
+  }, [wheelPhase, winColor])
   // Com o modal do vencedor aberto a cena para atrás do fundo escuro e libera
-  // a GPU para a entrada do modal e o confete
+  // a GPU para a entrada do modal e o confete: data-dialog para os laços em
+  // canvas/WebGL (useSceneLoop) e as animações CSS pausadas pela Web
+  // Animations API (uma regra CSS no atributo recalculava o estilo da cena
+  // inteira no primeiro quadro do modal)
   useEffect(() => {
+    if (!showWinner) return
     const root = document.documentElement
-    if (showWinner) root.dataset.dialog = 'open'
-    else delete root.dataset.dialog
+    root.dataset.dialog = 'open'
+    const resume = pauseSceneAnimations()
+    return () => {
+      delete root.dataset.dialog
+      resume()
+    }
   }, [showWinner])
 
   const coloredOptions = useMemo(
@@ -226,7 +244,7 @@ export function RoletaMain() {
 
   useEffect(
     () => () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      spinRef.current?.cancel()
       if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current)
     },
     [],
@@ -313,34 +331,10 @@ export function RoletaMain() {
     commitOptions(next)
   }
 
-  const flickPointer = () => {
-    pointerRef.current?.animate(
-      [
-        { transform: 'rotate(0deg)' },
-        { transform: 'rotate(-24deg)', offset: 0.25 },
-        { transform: 'rotate(0deg)' },
-      ],
-      { duration: 160, easing: 'ease-out' },
-    )
-  }
-
-  // Ponteiro balança e assenta quando a roda para
-  const settlePointer = () => {
-    pointerRef.current?.animate(
-      [
-        { transform: 'rotate(0deg)' },
-        { transform: 'rotate(-18deg)' },
-        { transform: 'rotate(10deg)' },
-        { transform: 'rotate(-5deg)' },
-        { transform: 'rotate(0deg)' },
-      ],
-      { duration: 600, easing: 'ease-out' },
-    )
-  }
-
   // O vencedor já está decidido: as imagens dele baixam durante o giro (ou
   // as cartas) e o modal abre sem esperar a rede
   const preloadWinner = (next: RouletteOption | undefined) => {
+    setPrimedWinner(next ?? null)
     const nextMovie = next?.movieId ? movieById.get(next.movieId) : undefined
     if (nextMovie?.poster_path)
       preloadTmdbImage({
@@ -379,7 +373,7 @@ export function RoletaMain() {
     revealTimeoutRef.current = setTimeout(() => {
       setShowWinner(true)
       sound.win()
-    }, 350)
+    }, 280)
   }
 
   const spin = () => {
@@ -423,43 +417,22 @@ export function RoletaMain() {
     if (!rotor) return
 
     // A roda só sai quando a música começa, para as duas acabarem juntas
-    const wheelStart = sound.startSpin(spinSeconds)
-    const duration = spinSeconds * 1000
-    preloadWinner(snapshot[segmentIndexAt(end, count)])
-    let startedAt = 0
-    let lastIndex = segmentIndexAt(start, count)
-    let lastTickAt = 0
-
-    const frame = (now: number) => {
-      const t = Math.min(1, Math.max(0, now - startedAt) / duration)
-      const rotation = start + (end - start) * easeOutQuart(t)
-      rotor.style.transform = `rotate(${rotation}deg)`
-
-      const index = segmentIndexAt(rotation, count)
-      if (index !== lastIndex) {
-        lastIndex = index
-        if (now - lastTickAt > 35) {
-          lastTickAt = now
-          sound.tick()
-          flickPointer()
-        }
-      }
-
-      if (t < 1) {
-        rafRef.current = requestAnimationFrame(frame)
-        return
-      }
-
-      rafRef.current = null
-      rotationRef.current = rotation % 360
-      rotor.style.transform = `rotate(${rotationRef.current}deg)`
-      settlePointer()
-      finishRound(snapshot[index], index)
-    }
-
-    wheelStart.then((t) => {
-      startedAt = t
-      rafRef.current = requestAnimationFrame(frame)
+    const index = segmentIndexAt(end, count)
+    preloadWinner(snapshot[index])
+    spinRef.current?.cancel()
+    spinRef.current = spinWheel({
+      rotor,
+      pointer: pointerRef.current,
+      start,
+      end,
+      durationMs: spinSeconds * 1000,
+      startAt: sound.startSpin(spinSeconds),
+      count,
+      onTick: sound.tick,
+      onDone: () => {
+        rotationRef.current = end % 360
+        finishRound(snapshot[index], index)
+      },
     })
   }
 
@@ -515,6 +488,8 @@ export function RoletaMain() {
 
   const lastResult = history[0]
   const canSpin = !isSpinning && segments.length > 0
+
+  const dialogWinner = showWinner ? winner : (primedWinner ?? winner)
 
   return (
     // No desktop os cards terminam antes do pé da tela: a faixa de baixo fica
@@ -694,11 +669,15 @@ export function RoletaMain() {
         </div>
       </div>
 
-      {winner && (
+      {dialogWinner && (
         <WinnerDialog
           isOpen={showWinner}
-          winner={winner}
-          movie={winner?.movieId ? movieById.get(winner.movieId) : undefined}
+          winner={dialogWinner}
+          movie={
+            dialogWinner.movieId
+              ? movieById.get(dialogWinner.movieId)
+              : undefined
+          }
           eliminationMode={settings.eliminationMode}
           onClose={handleClose}
           onRemove={() => closeWinner(true)}

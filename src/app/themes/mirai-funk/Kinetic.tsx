@@ -143,7 +143,7 @@ export function TrackTitle() {
       {/* vencedor: 大当たり batendo letra por letra */}
       <div className="mf-jackpot">
         {[...'大当たり！'].map((c, i) => (
-          <b key={i} style={v('i', i)}>
+          <b key={i} className="mf-win-ch" style={v('i', i)}>
             {c}
           </b>
         ))}
@@ -182,7 +182,7 @@ export function SideColumn() {
       {/* vencedor: 大当たり na vertical */}
       <div className="mf-column-win">
         {[...'大当たり'].map((c, i) => (
-          <b key={i} style={v('i', i)}>
+          <b key={i} className="mf-win-ch" style={v('i', i)}>
             {c}
           </b>
         ))}

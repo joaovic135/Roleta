@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import ShaderCanvas from '../_kit/ShaderCanvas'
 import { FRAG, STILL, createChrome } from './chrome'
+import Y2kDesk, { Cursor, SlotWindows, SpinWindow } from './Desk'
 
 // Cena de fundo do tema Y2K (só aparece com data-theme="y2k").
 // "Sonho Cromado 2000": céu de vidro da virada do milênio emoldurado por
@@ -35,6 +36,12 @@ import { FRAG, STILL, createChrome } from './chrome'
 // incham as gotas num lampejo iridescente na cor da fatia, que assenta num
 // brilho calmo enquanto o resultado fica aberto (Gotinha sorrindo, LCD
 // aceso na cor e o pop-up do visitante nº 1.000.000).
+//
+// Por cima de tudo, a ÁREA DE TRABALHO PASTEL (Desk.tsx): estética de
+// sistema retrô em tons pastel — grade de papel de parede, janelas com
+// barra de título e _ □ X (o rodízio de pop-ups do aparelho ganha quatro
+// janelas novas e um cursor que clica), adesivos fofos, joguinho e player
+// na faixa de baixo e janelas nas margens largas.
 //
 // Sorteios com semente fixa, formas iguais num só <path>, e cada camada
 // animada num elemento próprio (opacidade e movimento na GPU).
@@ -364,6 +371,10 @@ export default function Y2kScene() {
       </div>
       <div className="y2-sky y2-sky-night y2-cyc" />
       <div className="y2-sky y2-sky-dawn y2-cyc" />
+      {/* papel de parede de sistema: grade branca fina (forte de dia) */}
+      <div className="y2-grid-wrap y2-cyc">
+        <div className="y2-grid" />
+      </div>
 
       {/* noite: estrelas cintilando e estrelas cadentes */}
       <div className="y2-stars y2-cyc">
@@ -616,7 +627,7 @@ export default function Y2kScene() {
             <div className="y2-win-text">
               Você é o visitante nº <b>999.999</b>!
             </div>
-            <div className="y2-win-btn">Gire para ganhar ✦</div>
+            <div className="y2-win-btn y2-press">Gire para ganhar ✦</div>
           </div>
           <div className="y2-win y2-win-c y2-cyc" style={lag(0.66)}>
             <div className="y2-win-bar">Erro do Milênio</div>
@@ -625,7 +636,9 @@ export default function Y2kScene() {
             </div>
             <div className="y2-win-text y2-win-fix">Corrigindo o relógio…</div>
           </div>
+          <SlotWindows lag={lag} />
         </div>
+        <SpinWindow />
         <div className="y2-win y2-win-won">
           <div className="y2-win-bar">★ SORTEADO! ★</div>
           <div className="y2-win-text">
@@ -635,6 +648,7 @@ export default function Y2kScene() {
             <i />
           </div>
         </div>
+        <Cursor />
       </div>
 
       {/* aparelho de som "CromoSystem 2000" com a contagem para 2000 */}
@@ -692,6 +706,9 @@ export default function Y2kScene() {
           </div>
         </div>
       </div>
+
+      {/* área de trabalho pastel: janelas e adesivos em volta da interface */}
+      <Y2kDesk />
     </>
   )
 }

@@ -752,7 +752,7 @@ html[data-theme='retrowave'] .rw-date {
 html[data-theme='retrowave'][data-wheel='spinning'] .rw-speed {
   opacity: 1;
 }
-html[data-theme='retrowave'][data-wheel='spinning'] .rw-speed svg {
+html[data-theme='retrowave'][data-wheel='spinning'] .rw-speed svg.rw-speed-art {
   animation: rw-speed 0.55s linear infinite;
 }
 html[data-theme='retrowave'][data-wheel='spinning'] .rw-speed .rw-speed-b {

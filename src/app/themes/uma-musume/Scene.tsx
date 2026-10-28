@@ -401,7 +401,7 @@ export default function UmaMusumeScene() {
           />
         </svg>
         <div className="um-crowd">
-          <svg viewBox="0 0 260 600">
+          <svg className="um-crowd-art" viewBox="0 0 260 600">
             {STAND.shirts.map((d, i) => (
               <path key={i} className={`um-st-shirt um-st-shirt-${i}`} d={d} />
             ))}
@@ -625,12 +625,12 @@ export default function UmaMusumeScene() {
       </div>
       <div className="um-cannon um-cannon-l">
         {CANNON_L.map((style, i) => (
-          <i key={i} style={style} />
+          <i key={i} className="um-confetto" style={style} />
         ))}
       </div>
       <div className="um-cannon um-cannon-r">
         {CANNON_R.map((style, i) => (
-          <i key={i} style={style} />
+          <i key={i} className="um-confetto" style={style} />
         ))}
       </div>
     </div>

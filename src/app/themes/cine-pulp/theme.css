@@ -1649,7 +1649,7 @@ html[data-wheel='spinning'] .scene-cine-pulp .cn-leader-spin .cn-leader-weave {
 html[data-wheel='won'] .scene-cine-pulp .cn-win {
   opacity: 1;
 }
-html[data-wheel='won'] .scene-cine-pulp .cn-win b {
+html[data-wheel='won'] .scene-cine-pulp .cn-win b.cn-win-word {
   animation: cn-pop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both;
 }
 html[data-wheel='won'] .scene-cine-pulp .cn-bulbs-all {

@@ -193,7 +193,7 @@ export default function Marquee() {
           <Leader className="cn-leader-spin" />
           <div className="cn-win">
             <small>★ ESTREIA DA NOITE ★</small>
-            <b>SUCESSO!</b>
+            <b className="cn-win-word">SUCESSO!</b>
           </div>
           <div className="cn-panel-glass" />
         </div>

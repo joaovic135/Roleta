@@ -8,13 +8,11 @@ export const uid = (): string =>
 export const random = (): number =>
   crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296
 
-export const easeOutQuart = (t: number): number => 1 - Math.pow(1 - t, 4)
-
 // Ângulo final do giro. Mais tempo = mais voltas; o ângulo final é
 // uniforme, então a chance de cada opção é proporcional ao número de fatias
 // dela. O modo cartas sorteia com a mesma função.
 export const spinTarget = (start: number, spinSeconds: number): number => {
-  const turns = 2 + spinSeconds * 1.1 + random() * 2
+  const turns = 1 + spinSeconds * 0.55 + random()
   return start + turns * 360 + random() * 360
 }
 

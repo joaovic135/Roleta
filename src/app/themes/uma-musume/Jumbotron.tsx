@@ -145,7 +145,7 @@ export default function Jumbotron() {
               }
             />
           </svg>
-          <b>
+          <b className="um-over-word">
             1<small>º</small> LUGAR!
           </b>
         </div>

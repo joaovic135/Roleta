@@ -485,7 +485,7 @@ html[data-wheel='won'] .ap-beams {
   );
   clip-path: polygon(47% 100%, 53% 100%, 100% 0, 0 0);
 }
-html[data-wheel='won'] .ap-beam > div {
+html[data-wheel='won'] .ap-beam > div.ap-beam-cone {
   background: linear-gradient(
     to top,
     color-mix(in srgb, var(--win-color, #fcd25d) 70%, transparent),

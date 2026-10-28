@@ -614,7 +614,7 @@ html[data-wheel='spinning'] .hl-rumble {
 html[data-wheel='spinning'] .hl-alarm {
   opacity: 1;
 }
-html[data-wheel='spinning'] .hl-alarm > i {
+html[data-wheel='spinning'] .hl-alarm > i.hl-alarm-lamp {
   animation: hl-pulse 1.1s ease-in-out infinite alternate;
 }
 /* o anel sai rápido do fundo e desacelera nas bordas (onde aparece) */
@@ -787,7 +787,7 @@ html[data-wheel='won'] .hl-winglow {
   transform: translateZ(0);
   transition: opacity 0.5s ease;
 }
-html[data-wheel='spinning'] .hl-beacon b::after,
+html[data-wheel='spinning'] .hl-beacon b.hl-beacon-lamp::after,
 html[data-wheel='spinning'] .hl-beacon-beam {
   opacity: 1;
 }
@@ -845,7 +845,7 @@ html[data-wheel='spinning'] .hl-beacon-r .hl-beacon-beam {
     inset 0 0 0 0.12vh rgba(0, 0, 0, 0.45),
     0 0.5vh 0.9vh rgba(0, 0, 0, 0.6);
 }
-html[data-wheel='spinning'] .hl-handle > i {
+html[data-wheel='spinning'] .hl-handle > i.hl-handle-grip {
   animation: hl-handle-kick 0.7s ease-in-out infinite alternate;
 }
 

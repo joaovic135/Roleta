@@ -1172,10 +1172,10 @@ html[data-wheel='spinning'] .scene-hearts-of-iron :is(.hoi-alarm-beams, .hoi-ala
 html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-alarm-beams {
   animation: hoi-fadein 0.6s ease-out both;
 }
-html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-alarm-beams span {
+html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-alarm-beams span.hoi-alarm-beam {
   animation: hoi-spin 1.5s linear infinite;
 }
-html[data-wheel] .scene-hearts-of-iron .hoi-alarm-beams span + span {
+html[data-wheel] .scene-hearts-of-iron .hoi-alarm-beams span + span.hoi-alarm-beam {
   animation-delay: -0.75s;
 }
 html[data-wheel='spinning'] .scene-hearts-of-iron .hoi-alarm-glow {
@@ -1313,7 +1313,7 @@ html[data-wheel='won'] .scene-hearts-of-iron .hoi-radar-fast {
   animation: hoi-spin 1.2s linear infinite, hoi-fadeout 1.6s ease-out both;
   animation-play-state: paused, running;
 }
-html[data-wheel='won'] .scene-hearts-of-iron .hoi-alarm-beams span {
+html[data-wheel='won'] .scene-hearts-of-iron .hoi-alarm-beams span.hoi-alarm-beam {
   animation: hoi-spin 1.5s linear infinite;
   animation-play-state: paused;
 }

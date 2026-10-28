@@ -783,10 +783,10 @@ export default function AranhaPixelScene() {
       {/* holofotes atrás dos prédios: acendem quando a roleta gira */}
       <div className="ap-beams">
         <div className="ap-beam ap-beam-l">
-          <div />
+          <div className="ap-beam-cone" />
         </div>
         <div className="ap-beam ap-beam-r">
-          <div />
+          <div className="ap-beam-cone" />
         </div>
       </div>
 

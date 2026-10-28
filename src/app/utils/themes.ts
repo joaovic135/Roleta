@@ -27,7 +27,6 @@ import { cityPopTheme } from '../themes/city-pop/theme'
 import { vaporwaveTheme } from '../themes/vaporwave/theme'
 import { cinePulpTheme } from '../themes/cine-pulp/theme'
 import { neonNoirTheme } from '../themes/neon-noir/theme'
-import { altoContrasteTheme } from '../themes/alto-contraste/theme'
 
 export const THEMES: WheelTheme[] = [
   cassinoTheme,
@@ -47,7 +46,6 @@ export const THEMES: WheelTheme[] = [
   cityPopTheme,
   cinePulpTheme,
   neonNoirTheme,
-  altoContrasteTheme,
 ]
 
 // "Aleatório": valor salvo nas configurações que sorteia um tema a cada
@@ -55,11 +53,11 @@ export const THEMES: WheelTheme[] = [
 export const RANDOM_THEME_ID = 'random'
 export const DEFAULT_THEME_ID = RANDOM_THEME_ID
 
-// Temas que entram no sorteio: o alto contraste é de acessibilidade e só
-// aparece se escolhido de propósito
-export const RANDOM_THEME_POOL = THEMES.filter(
-  (t) => t.id !== 'alto-contraste',
-).map((t) => t.id)
+// Temas que entram no sorteio
+export const RANDOM_THEME_POOL = THEMES.map((t) => t.id)
+
+// Tema salvo que não existe mais (ex.: removido) vale como "Aleatório"
+export const isKnownTheme = (id: string) => THEMES.some((t) => t.id === id)
 
 // Último tema sorteado, para não repetir no próximo carregamento
 const LAST_RANDOM_KEY = 'roleta.lastRandomTheme'
@@ -142,6 +140,7 @@ export const themeCss = () =>
   THEMES.map((t) => `html[data-theme="${t.id}"]{${cssVars(t)}}`).join('')
 
 // Roda antes da primeira pintura e aplica o tema salvo, sem piscar o padrão.
-// Sem tema salvo (ou "Aleatório") sorteia aqui mesmo, evitando o último
-// sorteado, e deixa o resultado em window.__roletaRandomTheme para o React
-export const themeBootScript = `try{var s=localStorage,d=document.documentElement,t=JSON.parse(s.getItem('roleta.settings')||'{}').theme||'${RANDOM_THEME_ID}';if(t==='${RANDOM_THEME_ID}'){var l=s.getItem('${LAST_RANDOM_KEY}'),p=${JSON.stringify(RANDOM_THEME_POOL)}.filter(function(i){return i!==l});t=p[Math.floor(Math.random()*p.length)];s.setItem('${LAST_RANDOM_KEY}',t);window.__roletaRandomTheme=t}d.dataset.theme=t}catch(e){}`
+// Sem tema salvo (ou "Aleatório", ou um tema que não existe mais) sorteia
+// aqui mesmo, evitando o último sorteado, e deixa o resultado em
+// window.__roletaRandomTheme para o React
+export const themeBootScript = `try{var s=localStorage,d=document.documentElement,t=JSON.parse(s.getItem('roleta.settings')||'{}').theme||'${RANDOM_THEME_ID}';var a=${JSON.stringify(RANDOM_THEME_POOL)};if(a.indexOf(t)<0){var l=s.getItem('${LAST_RANDOM_KEY}'),p=a.filter(function(i){return i!==l});t=p[Math.floor(Math.random()*p.length)];s.setItem('${LAST_RANDOM_KEY}',t);window.__roletaRandomTheme=t}d.dataset.theme=t}catch(e){}`

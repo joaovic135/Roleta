@@ -120,10 +120,10 @@ export function GroundLights() {
   return (
     <>
       <div className="cy-gsl cy-gsl-l">
-        <i />
+        <i className="cy-gsl-beam" />
       </div>
       <div className="cy-gsl cy-gsl-r">
-        <i />
+        <i className="cy-gsl-beam" />
       </div>
     </>
   )

@@ -1663,7 +1663,10 @@ html[data-wheel='spinning'] .scene-good-times .gt-shades {
    usam fill backwards: quando acabam, nada fica preso como animação ativa
    segurando camada na GPU enquanto o modal está aberto (e o quadro do
    movimento reduzido mostra o mesmo final) */
-html[data-wheel='won'] .scene-good-times .gt-win > * {
+html[data-wheel='won']
+  .scene-good-times
+  .gt-win
+  > :is(.gt-win-flash, .gt-win-glow, .gt-slap) {
   display: block;
 }
 html[data-wheel='won'] .scene-good-times .gt-win-flash {

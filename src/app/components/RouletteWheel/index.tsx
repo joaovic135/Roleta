@@ -374,8 +374,20 @@ const RouletteWheel: React.FC<RouletteWheelProps> = ({
           ref={faceRef}
           className="h-full w-full rounded-full bg-slate-950 p-[0.8%]"
         >
-          <div ref={rotorRef} className="h-full w-full will-change-transform">
-            <canvas ref={canvasRef} className="h-full w-full rounded-full" />
+          <div
+            ref={rotorRef}
+            className="relative h-full w-full will-change-transform"
+          >
+            <canvas
+              ref={canvasRef}
+              className="wheel-face h-full w-full rounded-full"
+            />
+            {/* Desfoque de movimento: o giro desenha aqui uma cópia borrada
+                da roda e controla a opacidade pela velocidade */}
+            <canvas
+              aria-hidden="true"
+              className="wheel-blur pointer-events-none absolute inset-0 h-full w-full rounded-full opacity-0"
+            />
           </div>
         </div>
       </div>

@@ -1993,7 +1993,7 @@ html[data-theme='uma-musume'] .um-over-won b {
     0 0 12px var(--win-color, #ff8fc8),
     0 2px 0 rgba(0, 0, 0, 0.35);
 }
-html[data-theme='uma-musume'][data-wheel='won'] .um-over-won b {
+html[data-theme='uma-musume'][data-wheel='won'] .um-over-won b.um-over-word {
   animation: um-pop-in 0.7s cubic-bezier(0.3, 1.7, 0.5, 1) both;
 }
 html[data-theme='uma-musume'] .um-over-won small {
@@ -2154,7 +2154,7 @@ html[data-theme='uma-musume'] .um-cannon i:nth-child(4n) {
   border-radius: 50%;
   background: #ffd34d;
 }
-html[data-theme='uma-musume'][data-wheel='won'] .um-cannon i {
+html[data-theme='uma-musume'][data-wheel='won'] .um-cannon i.um-confetto {
   animation: um-pop 3.6s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 /* bandeirinhas tremulam mais rápido enquanto a roleta gira */
@@ -2162,7 +2162,7 @@ html[data-theme='uma-musume'][data-wheel='spinning'] .um-garland {
   animation: um-flutter 0.34s ease-in-out infinite alternate;
 }
 /* a torcida pula enquanto a roleta gira */
-html[data-theme='uma-musume'][data-wheel='spinning'] .um-crowd svg {
+html[data-theme='uma-musume'][data-wheel='spinning'] .um-crowd svg.um-crowd-art {
   animation: um-hop 0.42s ease-in-out infinite alternate;
 }
 

@@ -513,11 +513,15 @@ export default function RetrowaveScene() {
       </div>
 
       <div className="rw-speed">
-        <svg viewBox="0 0 2000 2000" preserveAspectRatio="xMidYMid slice">
+        <svg
+          className="rw-speed-art"
+          viewBox="0 0 2000 2000"
+          preserveAspectRatio="xMidYMid slice"
+        >
           <path d={SPEED_LINES} />
         </svg>
         <svg
-          className="rw-speed-b"
+          className="rw-speed-art rw-speed-b"
           viewBox="0 0 2000 2000"
           preserveAspectRatio="xMidYMid slice"
         >

@@ -333,7 +333,7 @@ export default function HalfLifeScene() {
 
       {/* roleta: alarme (girando) e ressonância (vencedor) */}
       <div className="hl-alarm">
-        <i />
+        <i className="hl-alarm-lamp" />
       </div>
       <div className="hl-set hl-set-fx">
         <div className="hl-ring hl-ring-1">
@@ -366,17 +366,17 @@ export default function HalfLifeScene() {
       </div>
       <div className="hl-beacon hl-beacon-l">
         <Beam />
-        <b />
+        <b className="hl-beacon-lamp" />
       </div>
       <div className="hl-beacon hl-beacon-r">
         <Beam />
-        <b />
+        <b className="hl-beacon-lamp" />
       </div>
       <div className="hl-handle hl-handle-l">
-        <i />
+        <i className="hl-handle-grip" />
       </div>
       <div className="hl-handle hl-handle-r">
-        <i />
+        <i className="hl-handle-grip" />
       </div>
 
       <div className="hl-led" aria-hidden="true">

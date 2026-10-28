@@ -522,7 +522,7 @@ export function BackLeft() {
         </span>
       </div>
       <div className="cp-bb cp-bb-win">
-        <b>当たり！</b>
+        <b className="cp-bb-word">当たり！</b>
         <span>おめでとう</span>
       </div>
     </div>

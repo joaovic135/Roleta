@@ -3061,7 +3061,7 @@ html[data-wheel='spinning'] .cp-bb-run {
   animation: cp-ticker 3.2s linear infinite;
 }
 /* "当たり！" pulsa três vezes e fica aceso, calmo */
-html[data-wheel='won'] .cp-bb-win b {
+html[data-wheel='won'] .cp-bb-win b.cp-bb-word {
   animation: cp-bb-pop 0.8s ease-out 3 both;
 }
 @keyframes cp-bb-pop {

@@ -1431,11 +1431,11 @@ html[data-theme='cyberpunk'][data-wheel='won'] .cy-cone-wrap {
 html[data-theme='cyberpunk'][data-wheel='won'] .cy-cone-win {
   opacity: 0.5;
 }
-html[data-theme='cyberpunk'][data-wheel='won'] .cy-gsl i {
+html[data-theme='cyberpunk'][data-wheel='won'] .cy-gsl i.cy-gsl-beam {
   opacity: 0.4;
   transform: rotate(34deg);
 }
-html[data-theme='cyberpunk'][data-wheel='won'] .cy-gsl-r i {
+html[data-theme='cyberpunk'][data-wheel='won'] .cy-gsl-r i.cy-gsl-beam {
   transform: rotate(-41deg);
 }
 html[data-theme='cyberpunk'][data-wheel='won'] .cy-wonglow {

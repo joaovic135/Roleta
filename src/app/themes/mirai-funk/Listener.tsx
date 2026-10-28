@@ -81,7 +81,7 @@ export default function Listener() {
       </div>
       {/* girando: dança em 4 quadros */}
       <div className="mf-pier-dance">
-        <svg viewBox="0 0 160 60">
+        <svg className="mf-pier-dance-art" viewBox="0 0 160 60">
           <path className="mf-pier-rim" d={DANCE_PATH} />
           <path className="mf-pier-ink" d={DANCE_PATH} />
           <path className="mf-pier-fill" d={DANCE_HEADS} />

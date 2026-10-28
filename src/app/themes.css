@@ -359,11 +359,10 @@
   }
 }
 
-/* Modal do vencedor aberto (data-dialog no <html>): a cena congela atrás do
-   fundo escuro, e a GPU fica com a entrada do modal e o confete. Os laços em
-   canvas/WebGL do kit param junto (useSceneLoop). */
-html[data-dialog='open'] .theme-backdrop *,
-html[data-dialog='open'] .theme-backdrop *::before,
-html[data-dialog='open'] .theme-backdrop *::after {
-  animation-play-state: paused !important;
-}
+/* Modal do vencedor aberto: a cena congela atrás do fundo escuro pela Web
+   Animations API (src/app/utils/scenePause.ts) e os laços em canvas/WebGL
+   param com data-dialog no <html> (useSceneLoop). Não use regras CSS com
+   html[data-dialog] aqui: trocar o atributo recalcularia o estilo da cena
+   inteira no primeiro quadro do modal. Pelo mesmo motivo, regras com
+   html[data-wheel] devem terminar numa classe (não em *, div, i, b, svg...),
+   senão a troca de fase invalida todos esses elementos da página. */

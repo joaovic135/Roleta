@@ -16,17 +16,17 @@
      tropeço de tracking a cada 37 s (7 s): faixa de ruído + tranco lateral
      "◀◀ REW"           a cada 293 s (37 s): o OSD rebobina, faixa sobe
      rajada de vento     a cada 71 s (21 s): pétalas cruzam a tela da
-                         direita para a esquerda e sacodem o cabelo dela
+                         direita para a esquerda
      conversível         a cada 97 s; trem a cada 30 s; dirigível 150 s
-     a garota abre os olhos a cada 61 s (11 s); balança no ritmo (1,04 s)
+     o boombox balança no ritmo (1,04 s), cones a cada meia batida
    Roleta: girando = modo "▶▶ FF" (OSD piscando 2×/s, contador disparado,
    faixas de tracking, telão enlouquecido, vinil e carretéis acelerados,
-   cabelo chicoteando, ela abre os olhos); venceu = "☆ SORTE ☆" na cor da
-   fatia (--win-color), estouro de brilhos e corações, um flash suave e uma
-   piscadela, depois só o letreiro aceso e parado.
+   caixas e fita no talo); venceu = "☆ SORTE ☆" na cor da
+   fatia (--win-color), estouro de brilhos e corações, um flash suave,
+   depois só o letreiro aceso e parado.
    Tudo anima só opacity/transform. Os estilos-base (sem animação) são o
    quadro parado do prefers-reduced-motion: pôr do sol com as luzes acesas,
-   a garota de olhos fechados e o título da música na tela. */
+   o boombox parado e o título da música na tela. */
 
 html[data-theme='future-funk'] {
   --ff-cycle: 240s;
@@ -81,7 +81,7 @@ html[data-theme='future-funk'] .ff-osd {
 }
 html[data-theme='future-funk'] .ff-world > *,
 html[data-theme='future-funk'] .ff-stage > *,
-html[data-theme='future-funk'] .ff-girl > *,
+html[data-theme='future-funk'] .ff-boombox > *,
 html[data-theme='future-funk'] .ff-palm > *,
 html[data-theme='future-funk'] .ff-cass > *,
 html[data-theme='future-funk'] .ff-vhs > * {
@@ -639,62 +639,50 @@ html[data-theme='future-funk'] .ff-cat-blink {
   animation: ff-cat-blink 5.3s steps(1) -1.7s infinite;
 }
 
-/* --- a garota de fones (primeiro plano, à esquerda) --- */
-html[data-theme='future-funk'] .ff-girl {
+/* --- o boombox (primeiro plano, à esquerda) --- */
+html[data-theme='future-funk'] .ff-boombox {
   transform-origin: 50% 100%;
   animation: ff-groove 1.04s ease-in-out infinite;
 }
-html[data-theme='future-funk'] .ff-locks {
-  inset: 0;
-  transform-origin: 33% 28%;
-  animation: ff-gust-hit var(--ff-gust) ease-in-out var(--ff-gust0) infinite;
-}
-html[data-theme='future-funk'] .ff-lock {
+/* cones batendo no ritmo (meia batida) */
+html[data-theme='future-funk'] .ff-bb-cone {
   position: absolute;
-  animation: ff-lock 3.4s ease-in-out infinite alternate;
+  animation: ff-thump 0.52s ease-out infinite;
 }
-html[data-theme='future-funk'] .ff-lock-1 {
-  animation-duration: 4.1s;
-  animation-delay: -1.3s;
+html[data-theme='future-funk'] .ff-bb-cone-1 {
+  animation-delay: -0.26s;
 }
-html[data-theme='future-funk'] .ff-lock-2 {
-  animation-duration: 4.9s;
-  animation-delay: -2.2s;
+html[data-theme='future-funk'] .ff-bb-reel {
+  position: absolute;
+  animation: ff-spin 2.4s linear infinite;
 }
-html[data-theme='future-funk'] .ff-lock-s {
-  animation: ff-lock-s 3.7s ease-in-out -0.8s infinite alternate;
-}
-/* abre os olhos de vez em quando (e ao girar a roleta) */
-html[data-theme='future-funk'] .ff-girl-eye {
-  opacity: 0;
-  animation: ff-eye 61s linear -30s infinite;
-}
-/* LED do fone pulsando no ritmo */
+/* LED do dial pulsando no ritmo */
 html[data-theme='future-funk'] .ff-led {
-  left: 34.7%;
-  top: 30.5%;
-  width: 25%;
-  height: 16%;
+  left: 33%;
+  top: 28%;
+  width: 34%;
+  height: 9%;
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgba(255, 255, 255, 0.9) 0 10%,
-    rgba(255, 79, 163, 0.75) 22%,
-    rgba(255, 79, 163, 0.25) 55%,
+    rgba(255, 255, 255, 0.85) 0 10%,
+    rgba(127, 243, 255, 0.7) 26%,
+    rgba(127, 243, 255, 0.2) 60%,
     transparent 100%
   );
   opacity: 0.7;
   animation: ff-led 1.04s ease-out infinite;
 }
-/* notas saindo do fone, levadas pelo vento */
+/* notas saindo da caixa da direita, levadas pelo vento */
 html[data-theme='future-funk'] .ff-note {
-  left: 41%;
-  top: 33%;
-  width: 7.5%;
+  left: 74%;
+  top: 30%;
+  width: 10%;
   opacity: 0;
   animation: ff-note 4.5s ease-out infinite;
 }
 html[data-theme='future-funk'] .ff-note-1 {
+  left: 14%;
   animation-delay: -1.5s;
   animation-duration: 5.2s;
 }
@@ -706,11 +694,11 @@ html[data-theme='future-funk'] .ff-note svg {
   height: auto;
 }
 
-/* vitória: corações saltando do fone (uma vez) */
+/* vitória: corações saltando do rádio (uma vez) */
 html[data-theme='future-funk'] .ff-love {
-  left: 42%;
-  top: 34%;
-  width: 7.5%;
+  left: 45%;
+  top: 16%;
+  width: 10%;
   display: none;
   opacity: 0;
   --ff-lx: -180%;
@@ -1359,12 +1347,11 @@ html[data-wheel='spinning'][data-theme='future-funk'] .ff-vinyl-wrap {
 html[data-wheel='spinning'][data-theme='future-funk'] .ff-reel {
   animation: ff-spin-back 0.35s linear infinite;
 }
-html[data-wheel='spinning'][data-theme='future-funk'] .ff-locks {
-  animation: ff-gust 0.42s ease-in-out infinite alternate;
+html[data-wheel='spinning'][data-theme='future-funk'] .ff-bb-cone {
+  animation-duration: 0.26s;
 }
-html[data-wheel='spinning'][data-theme='future-funk'] .ff-girl-eye {
-  opacity: 1;
-  animation: none;
+html[data-wheel='spinning'][data-theme='future-funk'] .ff-bb-reel {
+  animation-duration: 0.4s;
 }
 /* venceu: letreiro, estouro e flash uma vez; depois fica parado */
 html[data-wheel='won'][data-theme='future-funk'] .ff-sorte,
@@ -1383,9 +1370,6 @@ html[data-wheel='won'][data-theme='future-funk'] .ff-sorte-star {
 html[data-wheel='won'][data-theme='future-funk'] .ff-bit {
   animation: ff-bit 1s cubic-bezier(0.12, 0.7, 0.3, 1) both;
 }
-html[data-wheel='won'][data-theme='future-funk'] .ff-girl-eye {
-  animation: ff-eye-won 3.2s linear both;
-}
 
 /* ================= CELULAR ================= */
 @media (max-width: 640px) {
@@ -1394,7 +1378,7 @@ html[data-wheel='won'][data-theme='future-funk'] .ff-girl-eye {
     --ff-u: 0.42px;
   }
   html[data-theme='future-funk'] .scene-future-funk :is(
-      .ff-girl,
+      .ff-boombox,
       .ff-palm,
       .ff-eq,
       .ff-cass,
@@ -1657,15 +1641,6 @@ html[data-wheel='won'][data-theme='future-funk'] .ff-girl-eye {
   50% { opacity: 1; }
   51.2%, 100% { opacity: 0; }
 }
-@keyframes ff-eye {
-  0%, 81.9% { opacity: 0; }
-  82%, 86.9% { opacity: 1; }
-  87%, 100% { opacity: 0; }
-}
-@keyframes ff-eye-won {
-  0%, 80% { opacity: 1; }
-  81%, 100% { opacity: 0; }
-}
 @keyframes ff-petal {
   0% { transform: translate(104vw, 0) rotate(0deg) scaleX(1); opacity: 1; }
   3% { transform: translate(78vw, 3vh) rotate(170deg) scaleX(0.35); }
@@ -1673,14 +1648,6 @@ html[data-wheel='won'][data-theme='future-funk'] .ff-girl-eye {
   9% { transform: translate(26vw, 4vh) rotate(500deg) scaleX(0.4); }
   12% { transform: translate(-6vw, 1vh) rotate(660deg) scaleX(1); opacity: 1; }
   12.1%, 100% { transform: translate(-6vw, 1vh) rotate(660deg); opacity: 0; }
-}
-@keyframes ff-gust-hit {
-  0%, 7% { transform: rotate(0deg); }
-  8.5% { transform: rotate(4deg); }
-  10% { transform: rotate(-1.5deg); }
-  11.5% { transform: rotate(3.5deg); }
-  13% { transform: rotate(-1deg); }
-  15%, 100% { transform: rotate(0deg); }
 }
 @keyframes ff-love {
   0% { transform: translate(0, 0) scale(0.3); opacity: 1; }
@@ -1762,17 +1729,9 @@ html[data-wheel='won'][data-theme='future-funk'] .ff-girl-eye {
   94%, 97% { opacity: 1; }
   98%, 100% { opacity: 0; }
 }
-@keyframes ff-lock {
-  from { transform: rotate(-3deg); }
-  to { transform: rotate(4.5deg); }
-}
-@keyframes ff-lock-s {
-  from { transform: rotate(-2deg); }
-  to { transform: rotate(3deg); }
-}
-@keyframes ff-gust {
-  from { transform: rotate(-1.5deg); }
-  to { transform: rotate(3.5deg); }
+@keyframes ff-thump {
+  0% { transform: scale(1.1); }
+  45%, 100% { transform: scale(0.96); }
 }
 @keyframes ff-led {
   0% { opacity: 1; transform: scale(1.12); }

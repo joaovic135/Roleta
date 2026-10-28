@@ -1168,7 +1168,7 @@ html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-pier-dance,
 html[data-theme='mirai-funk'][data-wheel='won'] .mf-pier-cheer {
   visibility: visible;
 }
-html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-pier-dance svg {
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-pier-dance svg.mf-pier-dance-art {
   animation: mf-flap 1.016s steps(4) infinite;
 }
 html[data-theme='mirai-funk'][data-wheel='won'] .mf-pier-cheer {
@@ -1683,7 +1683,7 @@ html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-race-track {
 html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-column-race-track {
   animation: mf-race-v 1.4s linear infinite;
 }
-html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-lines svg {
+html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-lines svg.mf-lines-art {
   animation: mf-rotate 40s linear infinite;
 }
 html[data-theme='mirai-funk'][data-wheel='spinning'] .mf-disc-blur {
@@ -1714,15 +1714,15 @@ html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-glow {
   opacity: 1;
   transition-duration: 1.2s;
 }
-html[data-theme='mirai-funk'][data-wheel='won'] .mf-jackpot > b,
-html[data-theme='mirai-funk'][data-wheel='won'] .mf-column-win > b {
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-jackpot > b.mf-win-ch,
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-column-win > b.mf-win-ch {
   animation: mf-slam 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
   animation-delay: calc(var(--mf-i) * 90ms);
 }
-html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-rings > i {
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-rings > i.mf-win-ring {
   animation: mf-ring 1.8s cubic-bezier(0.1, 0.6, 0.3, 1) backwards;
 }
-html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-rings > i + i {
+html[data-theme='mirai-funk'][data-wheel='won'] .mf-win-rings > i + i.mf-win-ring {
   animation-delay: 0.3s;
 }
 html[data-theme='mirai-funk'][data-wheel='won'] .mf-fw-win {

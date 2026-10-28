@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 //   até o modal fechar);
 // - --win-color: cor da fatia vencedora (vale a partir do primeiro giro);
 // - data-dialog="open" enquanto o modal do vencedor está aberto: as animações
-//   CSS da cena ficam pausadas (themes.css) e o useSceneLoop para junto.
+//   CSS da cena ficam pausadas (utils/scenePause.ts) e o useSceneLoop para junto.
 // No CSS: html[data-wheel='spinning'] .minha-camada { ... } e
 // var(--win-color, #fff). No JS: as funções abaixo.
 

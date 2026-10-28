@@ -223,8 +223,8 @@ export default function HeartsOfIronScene() {
       {/* sirene: aparece com a roleta girando */}
       <div className="hoi-alarm" aria-hidden="true">
         <div className="hoi-alarm-beams">
-          <span />
-          <span />
+          <span className="hoi-alarm-beam" />
+          <span className="hoi-alarm-beam" />
         </div>
         <svg className="hoi-alarm-lamp" viewBox="0 0 80 50">
           <defs>
